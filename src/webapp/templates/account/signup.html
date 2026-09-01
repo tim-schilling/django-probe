@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% block title %}Sign up | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Account</p>
+  <h1>Create an account</h1>
+  <p class="lede">Get an API token and a private history of submissions made with it.</p>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+<form method="post" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {{ redirect_field }}
+  <button type="submit">Create account</button>
+</form>
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  <div class="auth-alternate">
+  {% for provider in socialaccount_providers %}
+    <p><a href="{% provider_login_url provider.id %}">Continue with {{ provider.name }}</a></p>
+  {% endfor %}
+  </div>
+{% endif %}
+
+<p>Already have an account? <a href="{% url 'account_login' %}">Sign in</a>.</p>
+</div>
+{% endblock %}

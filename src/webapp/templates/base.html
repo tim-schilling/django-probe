@@ -19,22 +19,24 @@
         <ul>
           <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
           {% if user.is_authenticated %}
+            <li><a href="{% url 'account' %}"{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'account-submissions' %} aria-current="page"{% endif %}>Account</a></li>
             <li><a href="{% url 'token' %}"{% if request.resolver_match.url_name == 'token' %} aria-current="page"{% endif %}>API token</a></li>
             {% if user.is_staff %}<li><a href="{% url 'style-guide' %}"{% if request.resolver_match.url_name == 'style-guide' %} aria-current="page"{% endif %}>Style guide</a></li>{% endif %}
             <li><a href="{% url 'account_logout' %}"{% if request.resolver_match.url_name == 'account_logout' %} aria-current="page"{% endif %}>Sign out</a></li>
           {% else %}
-            <li><a href="{% url 'account_login' %}"{% if request.resolver_match.url_name == 'account_login' %} aria-current="page"{% endif %}>Sign in with GitHub</a></li>
+            <li><a href="{% url 'account_login' %}"{% if request.resolver_match.url_name == 'account_login' %} aria-current="page"{% endif %}>Sign in</a></li>
+            <li><a href="{% url 'account_signup' %}"{% if request.resolver_match.url_name == 'account_signup' %} aria-current="page"{% endif %}>Sign up</a></li>
           {% endif %}
         </ul>
       </nav>
     </div>
   </header>
-  {% if messages %}
-    <ul class="messages" aria-label="Messages">
-      {% for message in messages %}<li class="message{% if message.tags %} message--{{ message.tags }}{% endif %}">{{ message }}</li>{% endfor %}
-    </ul>
-  {% endif %}
   <main class="container site-main" id="main-content">
+    {% if messages %}
+      <ul class="messages" aria-label="Messages">
+        {% for message in messages %}<li class="message{% if message.tags %} message--{{ message.tags }}{% endif %}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   {% block scripts %}{% endblock %}

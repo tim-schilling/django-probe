@@ -4,10 +4,12 @@ import json
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Count, Max
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 
 from ingest.models import ApiToken, Submission
 from ingest.throttle import ip_limited, project_limited
@@ -86,15 +88,45 @@ def style_guide(request) -> HttpResponse:
 
 
 @login_required
+def account(request) -> HttpResponse:
+    submissions = request.user.submissions.all()
+    projects = (
+        submissions.exclude(project_key__isnull=True)
+        .values("project_key")
+        .annotate(submission_count=Count("id"), latest_submission=Max("created_at"))
+        .order_by("-latest_submission")
+    )
+    return render(
+        request,
+        "account.html",
+        {
+            "projects": projects,
+            "recent_submissions": submissions[:5],
+            "submission_count": submissions.count(),
+        },
+    )
+
+
+@login_required
+def account_submissions(request) -> HttpResponse:
+    return render(
+        request,
+        "account_submissions.html",
+        {"submissions": request.user.submissions.all()},
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
 def token(request) -> HttpResponse:
     """Show the signed-in user's API token, and let them roll it.
 
-    This is the only page that requires a login. Scanning, submitting, and grouping by
-    project key all work without visiting it.
+    Scanning, submitting, and grouping by project key all work without visiting it.
     """
     if request.method == "POST":
-        ApiToken.objects.filter(user=request.user).delete()
-        ApiToken.objects.create(user=request.user)
+        with transaction.atomic():
+            ApiToken.objects.filter(user=request.user).delete()
+            ApiToken.objects.create(user=request.user)
         return redirect("token")
 
     api_token = ApiToken.objects.filter(user=request.user).first()
