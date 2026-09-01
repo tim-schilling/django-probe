@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Frontend style guide | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Internal reference</p>
+  <h1>Frontend style guide</h1>
+  <p class="lede">
+    Reusable foundations and components for Django Probe's restrained, technical interface.
+  </p>
+</header>
+
+<nav class="section-nav" aria-label="Style guide sections">
+  <a href="#typography">Typography</a>
+  <a href="#color">Color</a>
+  <a href="#actions">Actions</a>
+  <a href="#forms">Forms</a>
+  <a href="#feedback">Feedback</a>
+  <a href="#content">Content</a>
+  <a href="#dialog">Dialog</a>
+</nav>
+
+<section class="component-group" id="typography">
+  <p class="eyebrow">Foundations</p>
+  <h2>Typography</h2>
+  <div class="specimen">
+    <h1>Page heading</h1>
+    <h2>Section heading</h2>
+    <h3>Subsection heading</h3>
+    <p class="lede">Lead text introduces a page in one concise, quieter sentence.</p>
+    <p>Body text carries product guidance and technical explanations at a readable measure.</p>
+    <p class="muted">Muted text holds supporting metadata, never essential instructions.</p>
+    <p>Exact values use <code>DJANGO_PROBE_TOKEN</code> and related inline code.</p>
+  </div>
+</section>
+
+<section class="component-group" id="color">
+  <p class="eyebrow">Foundations</p>
+  <h2>Color tokens</h2>
+  <div class="swatch-grid">
+    <div class="swatch"><span class="swatch__sample swatch__sample--canvas"></span><code>--color-canvas</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--surface"></span><code>--color-surface</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--ink"></span><code>--color-ink</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--muted"></span><code>--color-muted</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--border"></span><code>--color-border</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--accent"></span><code>--color-accent</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--danger"></span><code>--color-danger</code></div>
+    <div class="swatch"><span class="swatch__sample swatch__sample--warning"></span><code>--color-warning</code></div>
+  </div>
+</section>
+
+<section class="component-group" id="actions">
+  <p class="eyebrow">Controls</p>
+  <h2>Links and buttons</h2>
+  <p><a href="#actions">Standard text link</a> for navigation within prose.</p>
+  <div class="actions">
+    <button type="button">Primary action</button>
+    <a class="button button--secondary" href="#actions">Secondary action</a>
+    <button type="button" disabled>Disabled action</button>
+  </div>
+  <p class="muted">Hover with a pointer and use the Tab key to inspect interactive states.</p>
+</section>
+
+<section class="component-group" id="forms">
+  <p class="eyebrow">Controls</p>
+  <h2>Form controls</h2>
+  <form class="form-specimen">
+    <p>
+      <label for="guide-project">Project label</label>
+      <input id="guide-project" name="project" value="example-project">
+      <span class="helptext">Help text clarifies format or consequences.</span>
+    </p>
+    <p>
+      <label for="guide-version">Django version</label>
+      <select id="guide-version" name="version">
+        <option>5.2</option>
+        <option>4.2</option>
+      </select>
+    </p>
+    <p>
+      <label for="guide-notes">Notes</label>
+      <textarea id="guide-notes" name="notes" rows="3">Technical context belongs here.</textarea>
+    </p>
+    <p class="check-field">
+      <input id="guide-private" name="private" type="checkbox" checked>
+      <label for="guide-private">Keep submission history private</label>
+    </p>
+  </form>
+</section>
+
+<section class="component-group" id="feedback">
+  <p class="eyebrow">System feedback</p>
+  <h2>Messages and alerts</h2>
+  <ul class="messages messages--specimen" aria-label="Example messages">
+    <li class="message">Your submission was received.</li>
+    <li class="message message--warning">The token expires when it is regenerated.</li>
+    <li class="message message--error">The submitted token was not recognized.</li>
+  </ul>
+</section>
+
+<section class="component-group" id="content">
+  <p class="eyebrow">Content containers</p>
+  <h2>Panels, lists, code, and empty states</h2>
+  <div class="panel">
+    <p><strong>Default panel</strong></p>
+    <p>Use for a short, meaningful unit with one clear purpose.</p>
+  </div>
+  <div class="panel panel--subtle">
+    <p><strong>Subtle panel</strong></p>
+    <p>Use for neutral supporting content or a compact statistic.</p>
+  </div>
+  <div class="panel panel--caution">
+    <p><strong>Caution panel</strong></p>
+    <p>Reserve this treatment for information that affects a user's next action.</p>
+  </div>
+
+  <h3>Record list</h3>
+  <ul class="item-list">
+    <li><span class="item-list__title">September 1, 2026</span><span class="item-list__meta">Django 5.2 · Python 3.13 · 128 files scanned</span></li>
+    <li><span class="item-list__title">August 28, 2026</span><span class="item-list__meta">Django 4.2 · Python 3.12 · 47 files scanned</span></li>
+  </ul>
+
+  <h3>Command block</h3>
+  <pre><code>django-probe scan .
+django-probe submit .</code></pre>
+
+  <h3>Empty state</h3>
+  <div class="panel">
+    <p><strong>No submissions yet.</strong></p>
+    <p><a href="{% url 'token' %}">Get your API token</a> to attach a future submission.</p>
+  </div>
+</section>
+
+<section class="component-group" id="dialog">
+  <p class="eyebrow">Overlay</p>
+  <h2>Dialog</h2>
+  <p>Use a dialog only for a short decision that cannot happen comfortably in page flow.</p>
+  <button type="button" data-dialog-open="guide-dialog">Open dialog example</button>
+  <dialog id="guide-dialog">
+    <form method="dialog">
+      <h2>Regenerate API token?</h2>
+      <p>Your current token will stop working immediately.</p>
+      <div class="actions">
+        <button value="confirm">Regenerate token</button>
+        <button class="button--secondary" value="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/style-guide.js' %}" defer></script>{% endblock %}

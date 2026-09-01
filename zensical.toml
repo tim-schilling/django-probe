@@ -9,8 +9,11 @@ nav = [
   { "Overview" = "index.md" },
   { "Getting started" = "getting-started.md" },
   { "Privacy" = "privacy.md" },
-  { "Writing a probe" = "writing-probes.md" },
-  { "Third-party probe packages" = "third-party-probes.md" },
-  { "Repository layout" = "architecture.md" },
-  { "Contributing" = "contributing.md" },
+  { "Contributing" = [
+    { "Overview" = "contributing.md" },
+    { "Writing a probe" = "writing-probes.md" },
+    { "Third-party probe packages" = "third-party-probes.md" },
+    { "Repository layout" = "architecture.md" },
+    { "Frontend style" = "frontend-style.md" },
+  ] },
 ]

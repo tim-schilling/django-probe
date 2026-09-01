@@ -1,38 +1,42 @@
 <!doctype html>
+{% load static %}
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Django Probe{% endblock %}</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 40rem;
-      margin: 3rem auto;
-      padding: 0 1.5rem;
-      line-height: 1.6;
-    }
-    code, pre {
-      background: color-mix(in srgb, currentColor 8%, transparent);
-      border-radius: 4px;
-    }
-    code { padding: 0.1em 0.35em; }
-    pre { padding: 0.75rem 1rem; overflow-x: auto; }
-    nav { margin-bottom: 2rem; font-size: 0.9rem; }
-    nav a { margin-right: 1rem; }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/probe.css' %}">
 </head>
 <body>
-  <nav>
-    <a href="/">Home</a>
-    {% if user.is_authenticated %}
-      <a href="/token/">API token</a>
-      <a href="/accounts/logout/">Sign out</a>
-    {% else %}
-      <a href="/accounts/login/">Sign in with GitHub</a>
-    {% endif %}
-  </nav>
-  {% block content %}{% endblock %}
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand__mark" aria-hidden="true">🛰️</span>
+        <span>Django Probe</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'token' %}"{% if request.resolver_match.url_name == 'token' %} aria-current="page"{% endif %}>API token</a></li>
+            {% if user.is_staff %}<li><a href="{% url 'style-guide' %}"{% if request.resolver_match.url_name == 'style-guide' %} aria-current="page"{% endif %}>Style guide</a></li>{% endif %}
+            <li><a href="{% url 'account_logout' %}"{% if request.resolver_match.url_name == 'account_logout' %} aria-current="page"{% endif %}>Sign out</a></li>
+          {% else %}
+            <li><a href="{% url 'account_login' %}"{% if request.resolver_match.url_name == 'account_login' %} aria-current="page"{% endif %}>Sign in with GitHub</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+  {% if messages %}
+    <ul class="messages" aria-label="Messages">
+      {% for message in messages %}<li class="message{% if message.tags %} message--{{ message.tags }}{% endif %}">{{ message }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  <main class="container site-main" id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

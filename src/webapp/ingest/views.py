@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -77,6 +78,11 @@ def home(request) -> HttpResponse:
         "home.html",
         {"submission_count": Submission.objects.count()},
     )
+
+
+@staff_member_required
+def style_guide(request) -> HttpResponse:
+    return render(request, "style_guide.html")
 
 
 @login_required

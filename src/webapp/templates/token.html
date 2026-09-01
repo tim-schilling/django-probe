@@ -2,7 +2,11 @@
 {% block title %}API token | Django Probe{% endblock %}
 
 {% block content %}
-<h1>Your API token</h1>
+<header class="page-header">
+  <p class="eyebrow">Account</p>
+  <h1>Your API token</h1>
+  <p class="lede">Use this token to attach submissions to your private account history.</p>
+</header>
 
 <pre><code>{{ api_token.key }}</code></pre>
 
@@ -11,10 +15,12 @@
 <pre><code>export DJANGO_PROBE_TOKEN={{ api_token.key }}
 django-probe submit .</code></pre>
 
+<div class="panel panel--caution">
 <p>
   Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. The
   client reads the token from the environment or <code>--token</code> only.
 </p>
+</div>
 
 <form method="post">
   {% csrf_token %}
