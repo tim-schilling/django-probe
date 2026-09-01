@@ -41,3 +41,11 @@ scan path=".":
 # Scan and send to a running local server
 submit path="." url="http://localhost:8000":
     uv run django-probe submit {{path}} --server-url {{url}}
+
+# Serve the documentation site locally with live reload
+docs-serve:
+    uv run --group docs zensical serve
+
+# Build the documentation site into site/
+docs-build:
+    uv run --group docs zensical build

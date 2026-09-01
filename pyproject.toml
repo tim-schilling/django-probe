@@ -62,6 +62,7 @@ dev = [
   { include-group = "webapp" },
   { include-group = "test" },
 ]
+docs = [ "zensical==0.0.57" ]
 # Pinned Django versions for the tox test matrix only, kept out of `dev`.
 django50 = [ "django>=5.0,<5.1" ]
 django52 = [ "django>=5.2,<6" ]

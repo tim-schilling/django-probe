@@ -9,3 +9,4 @@ build/
 .tox/
 db.sqlite3
 .env
+/site/

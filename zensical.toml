@@ -1,0 +1,13 @@
+[project]
+site_name = "Django Probe"
+site_description = "Count how often specific code patterns appear in a Django project."
+site_url = "https://docs.djangoprobe.org/"
+repo_url = "https://github.com/django-probe/django-probe"
+docs_dir = "docs"
+site_dir = "site"
+nav = [
+  { "Overview" = "index.md" },
+  { "Writing a probe" = "writing-probes.md" },
+  { "Forward compatibility" = "forward-compatibility.md" },
+  { "Repository layout" = "architecture.md" },
+]

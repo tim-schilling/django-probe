@@ -1,0 +1,16 @@
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: latest
+  jobs:
+    install:
+      - pip install uv
+      - uv sync --only-group docs
+    build:
+      html:
+        - uv run zensical build
+    post_build:
+      - mkdir -p $READTHEDOCS_OUTPUT/html/
+      - cp --recursive site/* $READTHEDOCS_OUTPUT/html/
