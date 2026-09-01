@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ingest.models import Submission
-from tests.ingest.helpers import IngestTestCase, payload
+from ingest.tests.helpers import IngestTestCase, payload
 
 
 class ValidationTests(IngestTestCase):

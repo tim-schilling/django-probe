@@ -134,7 +134,7 @@ from becoming a coordination point between the server and every probe author.
 
 ```
 src/django_probe/   the client package published to PyPI
-src/server/         the Django server that receives submissions
+src/webapp/         the Django server that receives submissions
 ```
 
 ## Development

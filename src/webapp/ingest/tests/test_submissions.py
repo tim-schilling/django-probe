@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.test import override_settings
 
 from ingest.models import ApiToken, Submission
-from tests.ingest.helpers import IngestTestCase, payload
+from ingest.tests.helpers import IngestTestCase, payload
 
 
 class AnonymousSubmissionTests(IngestTestCase):

@@ -45,7 +45,7 @@ urls.Repository = "https://github.com/django-probe/django-probe"
 [dependency-groups]
 # Groups rather than extras: they stay out of the published wheel's metadata, so
 # installing django-probe pulls in neither Django nor pytest.
-server = [
+webapp = [
   "django>=5.0",
   "django-allauth[socialaccount]>=65",
   "django-ratelimit>=4.1",
@@ -59,11 +59,10 @@ dev = [
   "mypy>=1.13",
   "pre-commit>=4",
   "ruff>=0.8",
-  { include-group = "server" },
+  { include-group = "webapp" },
   { include-group = "test" },
 ]
-# Pinned Django versions for the tox test matrix only; kept out of `dev` so that
-# `uv sync --group dev` resolves without having to pick one of these arbitrarily.
+# Pinned Django versions for the tox test matrix only, kept out of `dev`.
 django50 = [ "django>=5.0,<5.1" ]
 django52 = [ "django>=5.2,<6" ]
 django60 = [ "django>=6.0,<6.1; python_version>='3.12'" ]
@@ -126,9 +125,13 @@ lint.isort.known-first-party = [ "config", "django_probe", "ingest", "tests" ]
 lint.isort.required-imports = [ "from __future__ import annotations" ]
 
 [tool.pytest.ini_options]
+addopts = "--strict-markers"
 DJANGO_SETTINGS_MODULE = "config.settings"
-pythonpath = [ ".", "src", "src/server" ]
-testpaths = [ "tests" ]
+pythonpath = [ ".", "src", "src/webapp" ]
+testpaths = [ "tests", "src/webapp" ]
+markers = [
+  "webapp: exercises src/webapp rather than the django_probe library",
+]
 
 [tool.mypy]
 mypy_path = "src/"
@@ -143,7 +146,7 @@ strict = true
 overrides = [
   { module = "tests.*", allow_untyped_defs = true },
   { module = "tokenize_rt.*", ignore_missing_imports = true },
-  # The server is a Django app; annotating views and models fully needs
+  # The webapp is a Django app; annotating views and models fully needs
   # django-stubs, which is more machinery than this POC warrants.
   { module = "config.*", ignore_errors = true },
   { module = "ingest.*", ignore_errors = true },

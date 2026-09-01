@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 
 from ingest.models import Submission
+from ingest.tests.helpers import IngestTestCase, payload
 from ingest.throttle import ANONYMOUS_IP_RATE
-from tests.ingest.helpers import IngestTestCase, payload
 
 
 class RateLimitTests(IngestTestCase):

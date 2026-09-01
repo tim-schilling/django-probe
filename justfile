@@ -1,7 +1,7 @@
 default:
     @just --list
 
-# Install the dev environment (lint, test, and server dependencies) into the local venv
+# Install the dev environment (lint, test, and webapp dependencies) into the local venv
 install:
     uv sync --group dev
 
@@ -23,16 +23,16 @@ fmt:
     uv run ruff check --fix .
 
 migrate:
-    uv run python src/server/manage.py migrate
+    uv run python src/webapp/manage.py migrate
 
 makemigrations:
-    uv run python src/server/manage.py makemigrations
+    uv run python src/webapp/manage.py makemigrations
 
 serve:
-    uv run python src/server/manage.py runserver
+    uv run python src/webapp/manage.py runserver
 
 createsuperuser:
-    uv run python src/server/manage.py createsuperuser
+    uv run python src/webapp/manage.py createsuperuser
 
 # Print the payload that `submit` would send, without sending it
 scan path=".":
