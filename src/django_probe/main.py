@@ -6,14 +6,14 @@ import argparse
 import json
 import os
 import sys
+import uuid
 from collections.abc import Sequence
 from pathlib import Path
 
-from django_probe.config import read_project_key, write_project_key
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
-DEFAULT_SERVER = "https://djangoprobe.org"
+DEFAULT_SERVER = "https://api.djangoprobe.org"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -40,40 +40,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
     )
     send.add_argument(
-        "--token",
-        default=os.environ.get("DJANGO_PROBE_TOKEN"),
-        help="Optional API token, attaching the submission to your account. "
-        "Submitting without one is a fully supported path.",
-    )
-    send.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the payload instead of sending it.",
     )
 
-    init = sub.add_parser("init", help="Write a random project_key to pyproject.toml.")
-    init.add_argument("path", nargs="?", default=".")
+    sub.add_parser("init", help="Print a random project key.")
 
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.command == "init":
+        print(uuid.uuid4())
+        return 0
+
     root = Path(args.path).resolve()
 
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
         return 2
-
-    if args.command == "init":
-        existing = read_project_key(root)
-        key = write_project_key(root)
-        if existing:
-            print(f"project_key already set: {key}")
-        else:
-            print(f"wrote project_key {key} to pyproject.toml")
-            print("Commit it so every developer and CI run reports as one project.")
-        return 0
 
     payload = build_payload(root)
 
@@ -82,8 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     try:
-        # Submitting without a token is the default path, not a degraded one.
-        response = submit(payload, args.server_url, token=args.token)
+        response = submit(payload, args.server_url)
     except SubmitError as exc:
         print(str(exc), file=sys.stderr)
         return 1

@@ -17,8 +17,7 @@ import ast
 from collections.abc import Callable, Iterable
 from weakref import WeakKeyDictionary
 
-from django_upgrade.data import State
-
+from django_probe.ast_probe import State
 from django_probe.probes import Probe, dotted_name, hit
 
 METHODS = ("extra", "filter", "exclude", "alias", "annotate")

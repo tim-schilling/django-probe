@@ -5,8 +5,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Iterable
 
-from django_upgrade.data import State
-
+from django_probe.ast_probe import State
 from django_probe.probes import Probe, hit, resolves_to
 
 transaction_atomic = Probe("transaction_atomic")

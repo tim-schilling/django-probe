@@ -1,37 +1,36 @@
 # Django Probe
 
-Count how often specific code patterns appear in a Django project, and report only the
-counts to a central server.
+It's hard to remove features in open-source software. [Deprecation warnings exist, but people tend to ignore them](https://sethmlarson.dev/deprecations-via-warnings-dont-work-for-python-libraries). What maintainers want to know is how many people are using a feature. That's where Django Probe comes in.
 
-There is currently no public data on which Django patterns are still in use.
-Maintainers deprecate APIs without knowing how many projects are affected, and tooling
-authors have to guess at which patterns matter. This project collects that data.
+Django Probe allows you to share how your project uses Django. This package counts how often specific code patterns appear in your Django project and shares the aggregated information with the community.
 
-For installation and CLI usage, see the
-[README](https://github.com/django-probe/django-probe#usage). This site covers what
-gets counted, how to write a probe, and how the project stays forward compatible.
+By sharing what your project uses, you help support the Django community. This allows maintainers to know what features and APIs are actually being used, removing guess work.
 
-## What gets counted
+## Quickstart
 
-Probes measure which APIs a codebase uses, rather than which patterns are out of date.
+```console
+$ pip install django-probe
+$ django-probe scan .                    # inspect the payload
+$ django-probe submit .                  # send it, anonymously
+```
 
-| Probe | Question it answers |
-|---|---|
-| `queryset_filter` `_exclude` `_annotate` `_alias` `_extra` | Which ORM methods do projects use? `.extra()` is of particular interest, as it has long been discouraged but never formally deprecated, and cannot be fixed automatically. |
-| `django_task` | Django 6.0 added a built-in Tasks framework. How widely is it being adopted? |
-| `cache_page` | How common is per-view caching? |
-| `custom_user_model` / `auth_user_model_setting` | How many projects define their own user model rather than using the default? |
-| `signal_receiver` | How widely are signals used? |
-| `transaction_atomic` | How often do projects manage transactions explicitly? |
+No account is required. See [Getting started](https://docs.djangoprobe.org/getting-started/)
+for project keys, and [Privacy](https://docs.djangoprobe.org/privacy/)
+for exactly what a payload contains.
 
-### Accuracy of the counts
+### Reporting automatically
 
-`queryset_*` precision is approximately 98%, measured across Django, Wagtail,
-django-oscar, and djangopackages. The probes match on method name, because there are no
-types available at parse time. Requiring a recognisable receiver such as `.objects`
-would raise precision to nearly 100%, but would also discard about a third of genuine
-ORM calls, which is not a worthwhile trade for a usage survey.
+You should avoid reporting this manually. The project key can be set as an environment
+variable (`DJANGO_PROBE_PROJECT_KEY`), so it drops straight into a scheduled GitHub
+Action as a repository secret. See
+[Getting started](https://docs.djangoprobe.org/getting-started/#reporting-on-a-schedule)
+for a workflow you can copy.
 
-`migrations/` directories are skipped. They contain generated code, and a single
-migration file can contain many model classes and `.filter()` calls that no one wrote
-by hand.
+## What we're looking to learn
+
+This list will grow over time, but for now there are two main usages:
+
+- The [`.extra()` ORM API method](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#extra)
+  - The [`.extra()` ORM API method](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#extra) has had a note about avoiding its usage for years. Let's determine if this is something that is central to a signficant number of Django projects.
+- The [`@cache_page` decorator](https://docs.djangoproject.com/en/6.1/topics/cache/#the-per-view-cache)
+  - The `@cache_page` decorator can easily cause problems for projects by storing and serving sensitive information such as CSRF tokens and CSP nonces. Understanding how widespread the usage is of it can help determine what further changes are needed.

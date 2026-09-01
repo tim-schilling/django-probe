@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
+import ast
 import os
+import warnings
 from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 
-from django_upgrade.ast import ast_parse
-from django_upgrade.data import Settings
-from django_upgrade.main import SUPPORTED_TARGET_VERSIONS
-
 import django_probe.probes  # noqa: F401  -- importing registers the probes
-from django_probe.ast_probe import count_patterns, probe_names
+from django_probe.ast_probe import count_patterns
 
 #: `migrations` is skipped deliberately: generated code would swamp the counts with
 #: model classes and `.filter()` calls nobody wrote by hand.
@@ -37,9 +35,13 @@ SKIP_DIRS = frozenset(
     }
 )
 
-# Settings requires a target version, but probes measure usage rather than upgrade
-# eligibility, so nothing is gated on it.
-_TARGET_VERSION = max(SUPPORTED_TARGET_VERSIONS)
+
+def ast_parse(contents_text: str) -> ast.Module:
+    # Real projects contain files with syntax warnings (e.g. invalid escape
+    # sequences); we can't do anything about them, so don't let them reach the user.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return ast.parse(contents_text.encode())
 
 
 class ScanResult:
@@ -62,12 +64,6 @@ def iter_python_files(root: Path) -> Iterator[Path]:
 
 
 def scan_path(root: Path) -> ScanResult:
-    settings = Settings(
-        target_version=_TARGET_VERSION,
-        # django-upgrade's own fixers register themselves into the shared FIXERS dict
-        # on import; restrict the run to our probes.
-        only_fixers=set(probe_names()),
-    )
     patterns: Counter[str] = Counter()
     scanned = skipped = 0
 
@@ -81,7 +77,7 @@ def scan_path(root: Path) -> ScanResult:
 
         # Relative path only. Filename heuristics need it, and it never leaves here.
         rel = str(path.relative_to(root)) if path.is_relative_to(root) else path.name
-        patterns.update(count_patterns(tree, settings, rel))
+        patterns.update(count_patterns(tree, rel))
         scanned += 1
 
     return ScanResult(patterns, scanned, skipped)

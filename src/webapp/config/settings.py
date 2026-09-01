@@ -3,11 +3,24 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import dj_database_url
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_PROBE_SECRET_KEY", "insecure-development-key")
 DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("DJANGO_PROBE_ALLOWED_HOSTS", "*").split(",")
+
+# Coolify (and most PaaS-style hosts) terminate TLS at a proxy in front of the
+# container, so Django only ever sees plain HTTP. Without these two settings it
+# would think every request is insecure and reject admin/allauth POSTs with a CSRF
+# failure once ALLOWED_HOSTS is locked down to a real domain.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = [
+    origin
+    for origin in os.environ.get("DJANGO_PROBE_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -26,6 +39,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -52,21 +66,35 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get("DJANGO_PROBE_DB", str(BASE_DIR / "db.sqlite3")),
+_DATABASE_URL = os.environ.get("DATABASE_URL")
+if _DATABASE_URL:
+    DATABASES = {"default": dj_database_url.parse(_DATABASE_URL, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("DJANGO_PROBE_DB", str(BASE_DIR / "db.sqlite3")),
+        }
     }
-}
 
 # Rate limiting is cache-backed. LocMemCache is per-process, so a real deployment
-# must point this at Redis or limits apply per worker rather than per server.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "django-probe",
+# must point this at Redis via REDIS_URL, or limits apply per worker rather than per
+# server.
+_REDIS_URL = os.environ.get("REDIS_URL")
+if _REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _REDIS_URL,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "django-probe",
+        }
+    }
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
@@ -75,6 +103,15 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 

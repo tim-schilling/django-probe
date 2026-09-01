@@ -1,9 +1,7 @@
 """django-probe's probes.
 
 A probe answers "how often does this codebase do X?" for an X no tool will rewrite
-away. Probes are registered as django-upgrade ``Fixer`` objects to reuse its registry
-and ``condition`` gating, but never rewrite anything: a probe yields once per
-occurrence and the visitor tallies the yields.
+away: a probe yields once per occurrence and the visitor tallies the yields.
 
 Third-party packages will later ship probes the same way, under their own namespace::
 
@@ -16,11 +14,7 @@ import ast
 import pkgutil
 from collections.abc import Callable, Iterable
 
-from django_upgrade.ast import ast_start_offset
-from django_upgrade.data import FIXERS, Fixer, State
-from tokenize_rt import Offset
-
-from django_probe.ast_probe import ProbeFunc, register_probe
+from django_probe.ast_probe import ProbeFunc, State, register_probe
 
 DEFAULT_NAMESPACE = "probe"
 
@@ -34,21 +28,28 @@ class Probe:
         namespace: str = DEFAULT_NAMESPACE,
         condition: Callable[[State], bool] | None = None,
     ) -> None:
-        if name in FIXERS:
-            raise RuntimeError(f"probe {name!r} collides with an existing name")
-        if ":" in name or ":" in namespace:
-            raise RuntimeError("probe names and namespaces must not contain ':'")
-        # min_version is irrelevant: probes measure usage, not upgrade eligibility.
-        self.fixer = Fixer(name, min_version=(1, 0), condition=condition)
-        register_probe(name, namespace)
+        if any(c in name or c in namespace for c in ":."):
+            raise RuntimeError(
+                "probe names and namespaces must not contain ':' or '.': "
+                "':' separates them in the registry key"
+            )
+        self._registration = register_probe(f"{namespace}:{name}", condition)
 
     def register(self, type_: type[ast.AST]) -> Callable[[ProbeFunc], ProbeFunc]:
-        return self.fixer.register(type_)
+        def decorator(func: ProbeFunc) -> ProbeFunc:
+            self._registration.ast_funcs[type_].append(func)
+            return func
+
+        return decorator
 
 
-def hit(node: ast.AST) -> Iterable[Offset]:
-    """Yield a single countable occurrence at ``node``'s start offset."""
-    yield ast_start_offset(node)  # type: ignore[arg-type]
+def hit(node: ast.AST) -> Iterable[None]:
+    """Yield a single countable occurrence.
+
+    ``count_patterns`` only tallies how many times a probe yields, not what it yields;
+    ``node`` documents at the call site what was hit.
+    """
+    yield None
 
 
 def dotted_name(node: ast.expr) -> str | None:
@@ -77,8 +78,8 @@ def resolves_to(state: State, node: ast.expr, module: str, name: str) -> bool:
         from django import tasks           ->  @tasks.task
         import django.tasks                ->  @django.tasks.task
 
-    Aliased imports are not resolved, matching django-upgrade: tracking rebindings
-    would need real scope analysis.
+    Aliased imports are not resolved: tracking rebindings would need real scope
+    analysis.
     """
     dotted = dotted_name(node)
     if dotted is None:

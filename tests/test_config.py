@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import uuid
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, mock
 
-from django_probe.config import read_project_key, write_project_key
+from django_probe.config import read_project_key, resolve_project_key
 
 
-class ProjectKeyTests(TestCase):
+class ReadProjectKeyTests(TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
@@ -17,28 +18,36 @@ class ProjectKeyTests(TestCase):
     def test_absent_without_pyproject(self):
         self.assertIsNone(read_project_key(self.root))
 
-    def test_write_read_round_trip(self):
-        key = write_project_key(self.root)
-        uuid.UUID(key)  # raises if not a real UUID
-        self.assertEqual(read_project_key(self.root), key)
-
-    def test_preserves_existing_content(self):
+    def test_reads_from_tool_table(self):
+        key = str(uuid.uuid4())
         (self.root / "pyproject.toml").write_text(
-            '[project]\nname = "demo"\n', encoding="utf-8"
+            f'[tool.django_probe]\nproject_key = "{key}"\n', encoding="utf-8"
         )
-        key = write_project_key(self.root)
-
-        content = (self.root / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertIn('name = "demo"', content)
         self.assertEqual(read_project_key(self.root), key)
 
-    def test_idempotent(self):
-        first = write_project_key(self.root)
-        self.assertEqual(write_project_key(self.root), first)
 
-    def test_populates_existing_tool_table(self):
+class ResolveProjectKeyTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_falls_back_to_pyproject(self):
+        key = str(uuid.uuid4())
         (self.root / "pyproject.toml").write_text(
-            "[tool.django_probe]\n", encoding="utf-8"
+            f'[tool.django_probe]\nproject_key = "{key}"\n', encoding="utf-8"
         )
-        key = write_project_key(self.root)
-        self.assertEqual(read_project_key(self.root), key)
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DJANGO_PROBE_PROJECT_KEY", None)
+            self.assertEqual(resolve_project_key(self.root), key)
+
+    def test_env_var_takes_precedence(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\nproject_key = "from-file"\n', encoding="utf-8"
+        )
+        with mock.patch.dict(os.environ, {"DJANGO_PROBE_PROJECT_KEY": "from-env"}):
+            self.assertEqual(resolve_project_key(self.root), "from-env")
+
+    def test_env_var_works_without_pyproject(self):
+        with mock.patch.dict(os.environ, {"DJANGO_PROBE_PROJECT_KEY": "from-env"}):
+            self.assertEqual(resolve_project_key(self.root), "from-env")

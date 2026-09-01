@@ -3,11 +3,11 @@ from __future__ import annotations
 import io
 import json
 import tempfile
+import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import TestCase
 
-from django_probe.config import read_project_key
 from django_probe.main import main
 
 PAYLOAD_KEYS = {
@@ -43,11 +43,11 @@ class CliTests(TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(set(json.loads(output)), PAYLOAD_KEYS)
 
-    def test_init_writes_key(self):
-        code, _ = self.run_cli(["init", str(self.root)])
+    def test_init_prints_uuid(self):
+        code, output = self.run_cli(["init"])
 
         self.assertEqual(code, 0)
-        self.assertIsNotNone(read_project_key(self.root))
+        uuid.UUID(output.strip())  # raises if not a real UUID
 
     def test_missing_directory_errors(self):
         code, _ = self.run_cli(["scan", str(self.root / "nope")])

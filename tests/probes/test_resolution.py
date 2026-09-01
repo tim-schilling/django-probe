@@ -20,7 +20,7 @@ class ImportFormTests(TestCase):
                 self.assertEqual(result["probe:signal_receiver"], 1)
 
     def test_aliased_import_not_resolved(self):
-        """Matching django-upgrade: rebindings would need real scope analysis."""
+        """Rebindings would need real scope analysis, so they're not resolved."""
         result = counts(
             """
             from django.dispatch import receiver as listen

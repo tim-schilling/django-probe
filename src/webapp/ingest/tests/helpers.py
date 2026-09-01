@@ -15,7 +15,7 @@ VALID: dict[str, Any] = {
     "python_version": "3.12.3",
     "django_version": "5.1.2",
     "files_scanned": 12,
-    "probe_sources": {"django-upgrade": "1.32.0"},
+    "probe_sources": {"django-probe": "0.1.0"},
     "patterns": {"probe:queryset_filter": 3},
     "dependencies": {"django": "5.1.2"},
 }

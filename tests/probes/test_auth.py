@@ -39,6 +39,6 @@ class AuthUserModelSettingTests(TestCase):
         self.assertEqual(result["probe:auth_user_model_setting"], 1)
 
     def test_ignored_elsewhere(self):
-        """Gated on django-upgrade's looks_like_settings_file heuristic."""
+        """Gated on the looks_like_settings_file heuristic."""
         result = counts(self.SOURCE, filename="views.py")
         self.assertNotIn("probe:auth_user_model_setting", result)

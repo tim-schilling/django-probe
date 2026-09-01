@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from django_probe import collect
-from django_probe.config import read_project_key
+from django_probe.config import resolve_project_key
 from django_probe.scan import scan_path
 
 SCHEMA_VERSION = 1
@@ -22,7 +22,7 @@ def build_payload(root: Path) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),
-        "project_key": read_project_key(root),
+        "project_key": resolve_project_key(root),
         "python_version": collect.python_version(),
         "django_version": collect.django_version(),
         "files_scanned": result.files_scanned,

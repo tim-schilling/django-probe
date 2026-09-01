@@ -7,7 +7,10 @@ docs_dir = "docs"
 site_dir = "site"
 nav = [
   { "Overview" = "index.md" },
+  { "Getting started" = "getting-started.md" },
+  { "Privacy" = "privacy.md" },
   { "Writing a probe" = "writing-probes.md" },
-  { "Forward compatibility" = "forward-compatibility.md" },
+  { "Third-party probe packages" = "third-party-probes.md" },
   { "Repository layout" = "architecture.md" },
+  { "Contributing" = "contributing.md" },
 ]

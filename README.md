@@ -1,31 +1,12 @@
 # Django Probe
 
-Count how often specific code patterns appear in a Django project, and report only the
-counts to a central server.
+It's hard to remove features in open-source software. [Deprecation warnings exist, but people tend to ignore them](https://sethmlarson.dev/deprecations-via-warnings-dont-work-for-python-libraries). What maintainers want to know is how many people are using a feature. That's where Django Probe comes in.
 
-There is currently no public data on which Django patterns are still in use.
-Maintainers deprecate APIs without knowing how many projects are affected, and tooling
-authors have to guess at which patterns matter. This project collects that data.
+Django Probe allows you to share how your project uses Django. This package counts how often specific code patterns appear in your Django project and shares the aggregated information with the community.
 
-Full documentation, including the probe catalog and how to write a new probe, is at
-[docs.djangoprobe.org](https://docs.djangoprobe.org/).
+By sharing what your project uses, you help support the Django community. This allows maintainers to know what features and APIs are actually being used, removing guess work.
 
-## Privacy
-
-No source code, file paths, or repository names leave your machine. A payload contains
-only integers, package names, and version strings.
-
-You can verify this yourself:
-
-```console
-$ django-probe scan .
-```
-
-`scan` prints the exact payload that `submit` would send, without sending anything.
-Everything the server can receive is assembled in one file,
-[`payload.py`](src/django_probe/payload.py).
-
-## Usage
+## Quickstart
 
 ```console
 $ pip install django-probe
@@ -33,70 +14,23 @@ $ django-probe scan .                    # inspect the payload
 $ django-probe submit .                  # send it, anonymously
 ```
 
-No account is required. Anonymous submission is the default path and supports every
-feature. An account only lets you see your own submissions listed under your name. It
-does not unlock functionality or change the data you contribute.
+No account is required. See [Getting started](https://docs.djangoprobe.org/getting-started/)
+for project keys, and [Privacy](https://docs.djangoprobe.org/privacy/)
+for exactly what a payload contains.
 
-### Grouping your submissions over time
+### Reporting automatically
 
-```console
-$ django-probe init
-wrote project_key 9f2c1e04-… to pyproject.toml
-```
+You should avoid reporting this manually. The project key can be set as an environment
+variable (`DJANGO_PROBE_PROJECT_KEY`), so it drops straight into a scheduled GitHub
+Action as a repository secret. See
+[Getting started](https://docs.djangoprobe.org/getting-started/#reporting-on-a-schedule)
+for a workflow you can copy.
 
-This writes a random UUID to `pyproject.toml`. If you commit it, every developer and CI
-run reports as a single project rather than as many separate ones.
+## What we're looking to learn
 
-The key is a random UUID rather than a hash of your git remote. Hashing the remote
-would require no configuration, but public repositories can be enumerated, so anyone
-could hash every repository on GitHub and match yours. A random UUID cannot be reversed
-in that way. Project keys work with or without an account.
+This list will grow over time, but for now there are two main usages:
 
-### Attaching submissions to an account
-
-This step is optional. Sign in to the server with GitHub, copy your token from
-`/token/`, then:
-
-```console
-$ export DJANGO_PROBE_TOKEN=…
-$ django-probe submit .
-```
-
-Tokens are read from the environment or the `--token` flag. They are never written to
-`pyproject.toml`, because that file is normally committed.
-
-## Development
-
-Requires [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/).
-
-```console
-$ just install
-$ just test
-$ just lint
-$ just migrate && just serve
-```
-
-`just --list` shows the remaining commands.
-
-The server runs and accepts submissions without GitHub OAuth credentials configured, so
-a deployment that never sets up allauth is still valid. Set
-`DJANGO_PROBE_GITHUB_CLIENT_ID` and `DJANGO_PROBE_GITHUB_SECRET` to enable sign-in.
-
-For production deployments, point `CACHES` at Redis. Rate limiting is cache-backed, and
-LocMemCache is per-process, so limits would otherwise apply per worker rather than
-across the server.
-
-### Documentation site
-
-The `docs/` directory holds the [Zensical](https://zensical.org/) source for
-[docs.djangoprobe.org](https://docs.djangoprobe.org/), built by Read the Docs from
-`.readthedocs.yaml`.
-
-```console
-$ just docs-serve   # live preview at localhost:8000
-$ just docs-build    # build the static site into site/
-```
-
-## License
-
-MIT
+- The [`.extra()` ORM API method](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#extra)
+  - The [`.extra()` ORM API method](https://docs.djangoproject.com/en/6.1/ref/models/querysets/#extra) has had a note about avoiding its usage for years. Let's determine if this is something that is central to a signficant number of Django projects.
+- The [`@cache_page` decorator](https://docs.djangoproject.com/en/6.1/topics/cache/#the-per-view-cache)
+  - The `@cache_page` decorator can easily cause problems for projects by storing and serving sensitive information such as CSRF tokens and CSP nonces. Understanding how widespread the usage is of it can help determine what further changes are needed.
