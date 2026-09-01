@@ -8,9 +8,8 @@ by dictionary attack. A UUID has no preimage.
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 PROJECT_KEY_ENV = "DJANGO_PROBE_PROJECT_KEY"
 

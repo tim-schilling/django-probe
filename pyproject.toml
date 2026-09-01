@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "django-probe"
-version = "0.1.0"
+dynamic = [ "version" ]
 description = "Count Django code patterns in a project and report the counts."
 readme = "README.md"
 keywords = [
@@ -18,7 +18,7 @@ license = "MIT"
 authors = [
   { name = "Django Probe contributors" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Framework :: Django",
@@ -26,7 +26,6 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -68,15 +67,28 @@ docs = [ "zensical==0.0.57" ]
 django50 = [ "django>=5.0,<5.1" ]
 django52 = [ "django>=5.2,<6" ]
 django60 = [ "django>=6.0,<6.1; python_version>='3.12'" ]
+django61 = [ "django>=6.1,<6.2; python_version>='3.12'" ]
+djangomain = [ "django @ git+https://github.com/django/django.git@main ; python_version>='3.12'" ]
 
 [tool.uv]
+# django61/djangomain track pre-release and dev Django builds; allow uv to
+# resolve pre-releases project-wide so the lockfile's resolution mode stays
+# consistent across every tox env (a per-env override desyncs `uv sync
+# --locked` from the lockfile's recorded mode).
+prerelease = "allow"
 conflicts = [
   [
     { group = "django50" },
     { group = "django52" },
     { group = "django60" },
+    { group = "django61" },
+    { group = "djangomain" },
   ],
 ]
+
+[tool.hatch.version]
+source = "code"
+path = "src/django_probe/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/django_probe" ]
