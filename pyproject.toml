@@ -50,17 +50,41 @@ server = [
   "django-allauth[socialaccount]>=65",
   "django-ratelimit>=4.1",
 ]
-dev = [
-  "mypy>=1.13",
-  "pre-commit>=4",
+test = [
   "pytest>=8",
   "pytest-django>=4.9",
   "pytest-randomly",
+]
+dev = [
+  "mypy>=1.13",
+  "pre-commit>=4",
   "ruff>=0.8",
+  { include-group = "server" },
+  { include-group = "test" },
+]
+# Pinned Django versions for the tox test matrix only; kept out of `dev` so that
+# `uv sync --group dev` resolves without having to pick one of these arbitrarily.
+django50 = [ "django>=5.0,<5.1" ]
+django52 = [ "django>=5.2,<6" ]
+django60 = [ "django>=6.0,<6.1; python_version>='3.12'" ]
+
+[tool.uv]
+conflicts = [
+  [
+    { group = "django50" },
+    { group = "django52" },
+    { group = "django60" },
+  ],
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/django_probe" ]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src/django_probe",
+  "/README.md",
+]
 
 [tool.ruff]
 extend-exclude = [ "*/migrations/*" ]

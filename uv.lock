@@ -2,17 +2,29 @@ version = 1
 revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
-    "python_full_version >= '3.15'",
-    "python_full_version >= '3.12' and python_full_version < '3.15'",
-    "python_full_version < '3.12'",
+    "python_full_version >= '3.15' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60'",
+    "python_full_version >= '3.12' and python_full_version < '3.15' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60'",
+    "python_full_version < '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60'",
+    "python_full_version >= '3.15' and extra != 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version < '3.15' and extra != 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version >= '3.15' and extra == 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version < '3.15' and extra == 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version >= '3.15' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version >= '3.12' and python_full_version < '3.15' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version < '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
 ]
+conflicts = [[
+    { package = "django-probe", group = "django50" },
+    { package = "django-probe", group = "django52" },
+    { package = "django-probe", group = "django60" },
+]]
 
 [[package]]
 name = "asgiref"
 version = "3.12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e6/26/3b59f2bdae5f640389becb1f673cded775287f5fc4f816309d9ca9a3f93d/asgiref-3.12.1.tar.gz", hash = "sha256:59dcb51c272ad209d59bed5708a64a333083e86017d7fcdd67498eeab7784340", size = 42378, upload-time = "2026-07-14T09:56:18.087Z" }
 wheels = [
@@ -97,7 +109,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -388,8 +400,8 @@ name = "cryptography"
 version = "50.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bb/ad/5d6702db60b1e40b41ef513b6967ff5848f307d50f8449baf1634f5908f1/cryptography-50.0.1.tar.gz", hash = "sha256:5dd9bda1c12b4162f6ff568eeb5e0ff956c28d14406e875cfe8a63a2d414ff20", size = 880381, upload-time = "2026-08-25T19:45:45.499Z" }
 wheels = [
@@ -451,19 +463,58 @@ wheels = [
 
 [[package]]
 name = "django"
+version = "5.0.14"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version < '3.15'",
+]
+dependencies = [
+    { name = "asgiref", marker = "extra == 'group-12-django-probe-django50' or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "sqlparse", marker = "extra == 'group-12-django-probe-django50' or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "tzdata", marker = "(sys_platform == 'win32' and extra == 'group-12-django-probe-django50') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/a4/cc0205045386b5be8eecb15a95f290383d103f0db5f7e34f93dcc340d5b0/Django-5.0.14.tar.gz", hash = "sha256:29019a5763dbd48da1720d687c3522ef40d1c61be6fb2fad27ed79e9f655bc11", size = 10644306, upload-time = "2025-04-02T11:24:41.396Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/93/eabde8789f41910845567ebbff5aacd52fd80e54c934ce15b83d5f552d2c/Django-5.0.14-py3-none-any.whl", hash = "sha256:e762bef8629ee704de215ebbd32062b84f4e56327eed412e5544f6f6eb1dfd74", size = 8185934, upload-time = "2025-04-02T11:24:36.888Z" },
+]
+
+[[package]]
+name = "django"
 version = "5.2.17"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12'",
+    "python_full_version < '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60'",
+    "python_full_version >= '3.15' and extra != 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version < '3.15' and extra != 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
+    "python_full_version < '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "(python_full_version < '3.12' and extra != 'group-12-django-probe-django50') or extra == 'group-12-django-probe-django52' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "sqlparse", marker = "(python_full_version < '3.12' and extra != 'group-12-django-probe-django50') or extra == 'group-12-django-probe-django52' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "tzdata", marker = "(python_full_version < '3.12' and sys_platform == 'win32' and extra != 'group-12-django-probe-django50') or (sys_platform == 'win32' and extra == 'group-12-django-probe-django52') or (sys_platform != 'win32' and extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d5/d8/43e9d000519adceb189620b6869ff88031e046df91c2e9da72f8f6918399/django-5.2.17.tar.gz", hash = "sha256:9d4d93be539a18ab80d058eb515900e10951e04c537c5a6b394fc49528d3251f", size = 10889740, upload-time = "2026-08-04T15:04:03.173Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/f8/ce120525ca78f12b07daf65786679c5d0b54a75285a8958d3ae55e39da35/django-5.2.17-py3-none-any.whl", hash = "sha256:f04fb3b36ee119e1af4fa1d397d5fd6cf12700f49321e84d4f4c642c5b1973db", size = 8315563, upload-time = "2026-08-04T15:03:59.1Z" },
+]
+
+[[package]]
+name = "django"
+version = "6.0.8"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version >= '3.12' and python_full_version < '3.15'",
+]
+dependencies = [
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra == 'group-12-django-probe-django60') or (python_full_version < '3.12' and extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (sys_platform != 'win32' and extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3c/28/5fee292e588dbdb782582436d1eb62ac8809ec55b98ef27f5b9676a00e9a/django-6.0.8.tar.gz", hash = "sha256:cb0bd962d27fc866f3c514b20aae6a7df56ec80b488f9899da46d675cd051526", size = 10924565, upload-time = "2026-08-04T15:03:39.469Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/b4/23e74d261eebfa9c8baed5e8810f09858b9afd613d1037f42ff7aa95c87f/django-6.0.8-py3-none-any.whl", hash = "sha256:9b98b7e1902e0e575ea4f42c175fc9512784f7f2580898286aee3388b322219d", size = 8376956, upload-time = "2026-08-04T15:03:35.138Z" },
 ]
 
 [[package]]
@@ -475,9 +526,9 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.15'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e2/42/6cb20996733984c1f6661daeda3877990836c76c633c6c8879d39f7120eb/django-6.1.tar.gz", hash = "sha256:86a2aacd59b817e4d6ac2ebfe22356c58f66f7b24e503f71b7c2fead677ee48b", size = 11223034, upload-time = "2026-08-05T19:21:53.789Z" }
 wheels = [
@@ -490,8 +541,10 @@ version = "65.19.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
-    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.0.14", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-django-probe-django50' or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'group-12-django-probe-django50') or extra == 'group-12-django-probe-django52' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.0.8", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cf/93/776a61df6ce71f82e98afa1938c6e540ec239a8f80b2747c3c33cb9581cc/django_allauth-65.19.1.tar.gz", hash = "sha256:999d01d5c422a82734cf5804df9f5a0d1d4ddd6acbb2f807db976ed7d49f9cb3", size = 2286662, upload-time = "2026-08-13T10:02:17.956Z" }
 wheels = [
@@ -516,6 +569,12 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django", version = "5.0.14", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-django-probe-django50' or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'group-12-django-probe-django50') or extra == 'group-12-django-probe-django52' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.0.8", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "django-allauth", extra = ["socialaccount"] },
+    { name = "django-ratelimit" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -523,11 +582,27 @@ dev = [
     { name = "pytest-randomly" },
     { name = "ruff" },
 ]
+django50 = [
+    { name = "django", version = "5.0.14", source = { registry = "https://pypi.org/simple" } },
+]
+django52 = [
+    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" } },
+]
+django60 = [
+    { name = "django", version = "6.0.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
 server = [
-    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.0.14", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-django-probe-django50' or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "5.2.17", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'group-12-django-probe-django50') or extra == 'group-12-django-probe-django52' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.0.8", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60')" },
+    { name = "django", version = "6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-12-django-probe-django50' and extra != 'group-12-django-probe-django52' and extra != 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
     { name = "django-allauth", extra = ["socialaccount"] },
     { name = "django-ratelimit" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-django" },
+    { name = "pytest-randomly" },
 ]
 
 [package.metadata]
@@ -538,6 +613,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django", specifier = ">=5.0" },
+    { name = "django-allauth", extras = ["socialaccount"], specifier = ">=65" },
+    { name = "django-ratelimit", specifier = ">=4.1" },
     { name = "mypy", specifier = ">=1.13" },
     { name = "pre-commit", specifier = ">=4" },
     { name = "pytest", specifier = ">=8" },
@@ -545,10 +623,18 @@ dev = [
     { name = "pytest-randomly" },
     { name = "ruff", specifier = ">=0.8" },
 ]
+django50 = [{ name = "django", specifier = ">=5.0,<5.1" }]
+django52 = [{ name = "django", specifier = ">=5.2,<6" }]
+django60 = [{ name = "django", marker = "python_full_version >= '3.12'", specifier = ">=6.0,<6.1" }]
 server = [
     { name = "django", specifier = ">=5.0" },
     { name = "django-allauth", extras = ["socialaccount"], specifier = ">=65" },
     { name = "django-ratelimit", specifier = ">=4.1" },
+]
+test = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "pytest-django", specifier = ">=4.9" },
+    { name = "pytest-randomly" },
 ]
 
 [[package]]
@@ -577,7 +663,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12' or (python_full_version == '3.12.*' and extra == 'group-12-django-probe-django50') or (python_full_version == '3.12.*' and extra == 'group-12-django-probe-django52') or (python_full_version >= '3.13' and extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (python_full_version >= '3.13' and extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (python_full_version >= '3.13' and extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -756,10 +842,10 @@ version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ast-serialize" },
-    { name = "librt", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "librt", marker = "platform_python_implementation != 'PyPy' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
     { name = "mypy-extensions" },
     { name = "pathspec" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/82/6a/878cc1097d4035f82bd516658d0c528d2a9955bc7b363afcbd0b07fea11b/mypy-2.3.1.tar.gz", hash = "sha256:47c1b1207258513a9d93495f69c8be9de73916186f0e52703e8c461b7a623419", size = 3992554, upload-time = "2026-08-15T03:03:38.549Z" }
@@ -919,7 +1005,7 @@ name = "pyjwt"
 version = "2.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3b/81/58d0ac84e1ef3a3843791d6954d94c0b33d526c75eeb1efbce9d0a4c4077/pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423", size = 107515, upload-time = "2026-05-21T19:54:36.618Z" }
 wheels = [
@@ -936,13 +1022,13 @@ name = "pytest"
 version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
     { name = "pygments" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
 wheels = [
@@ -1197,7 +1283,7 @@ dependencies = [
     { name = "filelock" },
     { name = "platformdirs" },
     { name = "python-discovery" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/79/41/c3f34799487924f2a6f43b8a8b7acd345a6c61aac2211d4bced8621ca4f1/virtualenv-21.7.7.tar.gz", hash = "sha256:6874376f99ba6b8d4e3ee8bde67f9285412400c7d5b29ba41ee6daa5e0221bdc", size = 5347022, upload-time = "2026-08-28T18:59:50.093Z" }
 wheels = [

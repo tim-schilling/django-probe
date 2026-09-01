@@ -1,13 +1,17 @@
 default:
     @just --list
 
-# Install all dependency groups into the local venv
+# Install the dev environment (lint, test, and server dependencies) into the local venv
 install:
-    uv sync --all-groups
+    uv sync --group dev
 
 # Run the test suite
 test *ARGS:
     uv run pytest {{ARGS}}
+
+# Run the test suite against every supported Python/Django combination
+test-all *ARGS:
+    uvx tox {{ARGS}}
 
 lint:
     uv run ruff check .
