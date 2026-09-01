@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Create organization | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Organizations</p>
+  <h1>Create an organization</h1>
+  <p class="lede">You will become its first owner and can add existing users by username.</p>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create organization</button>
+  </form>
+</div>
+
+<p class="back-link"><a href="{% url 'account' %}">&larr; Back to your account</a></p>
+{% endblock %}

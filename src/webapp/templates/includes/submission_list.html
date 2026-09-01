@@ -3,7 +3,11 @@
     <li>
       <span class="item-list__title">{{ submission.created_at|date:"SHORT_DATETIME_FORMAT" }}</span>
       <span class="item-list__meta">
-        {% if submission.project_key %}Project <code>{{ submission.project_key }}</code> · {% endif %}
+        {% if submission.project %}
+          <a href="{% url 'project-detail' organization_id=submission.project.organization_id project_id=submission.project_id %}">{{ submission.project.name }}</a> ·
+        {% elif submission.project_key %}
+          Project <code>{{ submission.project_key }}</code> ·
+        {% endif %}
         Django {{ submission.django_version|default:"not detected" }} ·
         Python {{ submission.python_version }} ·
         {{ submission.files_scanned }} file{{ submission.files_scanned|pluralize }} scanned

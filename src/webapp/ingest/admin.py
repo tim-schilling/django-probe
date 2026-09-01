@@ -2,7 +2,36 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from ingest.models import ApiToken, Submission
+from ingest.models import (
+    ApiToken,
+    Organization,
+    OrganizationMembership,
+    Project,
+    Submission,
+)
+
+
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ("name", "created_at")
+    search_fields = ("name",)
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+
+@admin.register(OrganizationMembership)
+class OrganizationMembershipAdmin(admin.ModelAdmin):
+    list_display = ("organization", "user", "role", "created_at")
+    list_filter = ("role",)
+    search_fields = ("organization__name", "user__username")
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ("name", "organization", "key", "created_at")
+    list_filter = ("organization",)
+    search_fields = ("name", "key", "organization__name")
 
 
 @admin.register(Submission)
@@ -10,6 +39,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     list_display = (
         "created_at",
         "user",
+        "project",
         "project_key",
         "django_version",
         "python_version",
@@ -17,7 +47,7 @@ class SubmissionAdmin(admin.ModelAdmin):
         "total_occurrences",
     )
     list_filter = ("created_at", "django_version", "client_version")
-    search_fields = ("project_key", "user__username")
+    search_fields = ("project_key", "project__name", "user__username")
     readonly_fields = tuple(
         field.name for field in Submission._meta.fields if field.name != "id"
     )
