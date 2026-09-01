@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Members | {{ organization.name }} | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">{{ organization.name }}</p>
+  <h1>Manage members</h1>
+  <p class="lede">Add existing users directly and assign an owner or member role.</p>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+  <h2>Add member</h2>
+  <form method="post" action="{% url 'organization-member-add' organization_id=organization.pk %}">
+    {% csrf_token %}
+    {{ add_form.as_p }}
+    <button type="submit">Add member</button>
+  </form>
+</div>
+
+<h2>Current members</h2>
+<ul class="item-list">
+  {% for item in memberships %}
+    <li>
+      <span class="item-list__title">{{ item.user.get_username }}{% if item.user == user %} (you){% endif %}</span>
+      <div class="membership-actions">
+        <form class="inline-form" method="post" action="{% url 'organization-member-role' organization_id=organization.pk membership_id=item.pk %}">
+          {% csrf_token %}
+          <label class="visually-hidden" for="role-{{ item.pk }}">Role for {{ item.user.get_username }}</label>
+          <select id="role-{{ item.pk }}" name="role">
+            {% for value, label in roles %}<option value="{{ value }}"{% if item.role == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="button--secondary" type="submit">Update role</button>
+        </form>
+        <form class="inline-form" method="post" action="{% url 'organization-member-remove' organization_id=organization.pk membership_id=item.pk %}">
+          {% csrf_token %}
+          <button class="button--secondary" type="submit">Remove {{ item.user.get_username }}</button>
+        </form>
+      </div>
+    </li>
+  {% endfor %}
+</ul>
+
+<p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>
+{% endblock %}

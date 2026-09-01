@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ organization.name }} | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Organization</p>
+  <h1>{{ organization.name }}</h1>
+  <p class="lede">Your role: <strong>{{ membership.get_role_display }}</strong></p>
+</header>
+
+<div class="actions">
+  {% if membership.role == "owner" %}
+    <a class="button" href="{% url 'project-create' organization_id=organization.pk %}">Create project</a>
+    <a class="button button--secondary" href="{% url 'organization-members' organization_id=organization.pk %}">Manage members</a>
+  {% endif %}
+  <form class="inline-form" method="post" action="{% url 'organization-leave' organization_id=organization.pk %}">
+    {% csrf_token %}
+    <button class="button--secondary" type="submit">Leave organization</button>
+  </form>
+</div>
+
+<h2>Projects</h2>
+{% if projects %}
+  <ul class="item-list">
+    {% for project in projects %}
+      <li>
+        <a class="item-list__title" href="{% url 'project-detail' organization_id=organization.pk project_id=project.pk %}">{{ project.name }}</a>
+        <span class="item-list__meta"><code>{{ project.key }}</code></span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="panel">
+    <p><strong>No projects yet.</strong></p>
+    {% if membership.role == "owner" %}
+      <p>Create a project to register the UUID used by the Django Probe client.</p>
+    {% else %}
+      <p>An owner must create the first project.</p>
+    {% endif %}
+  </div>
+{% endif %}
+
+<h2>Recent submissions</h2>
+{% if recent_submissions %}
+  {% include "includes/submission_list.html" with submissions=recent_submissions %}
+{% else %}
+  <div class="panel">
+    <p><strong>No organization submissions yet.</strong></p>
+    <p>Submissions appear here after a member uses their API token with a registered project UUID.</p>
+  </div>
+{% endif %}
+
+<p class="back-link"><a href="{% url 'account' %}">&larr; Back to your account</a></p>
+{% endblock %}

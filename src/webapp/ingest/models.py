@@ -1,9 +1,92 @@
 from __future__ import annotations
 
 import secrets
+import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+
+
+class OrganizationManager(models.Manager):
+    def create_with_owner(self, *, name: str, owner) -> Organization:
+        with transaction.atomic():
+            organization = self.create(name=name)
+            OrganizationMembership.objects.create(
+                organization=organization,
+                user=owner,
+                role=OrganizationMembership.Role.OWNER,
+            )
+        return organization
+
+
+class Organization(models.Model):
+    name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="OrganizationMembership",
+        related_name="organizations",
+    )
+
+    objects = OrganizationManager()
+
+    class Meta:
+        ordering = ["name", "id"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class OrganizationMembership(models.Model):
+    class Role(models.TextChoices):
+        OWNER = "owner", "Owner"
+        MEMBER = "member", "Member"
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="organization_memberships",
+    )
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.MEMBER)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["organization__name", "user__username"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "user"],
+                name="unique_organization_membership",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(role__in=["owner", "member"]),
+                name="organization_membership_valid_role",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} in {self.organization} ({self.get_role_display()})"
+
+
+class Project(models.Model):
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="projects",
+    )
+    name = models.CharField(max_length=200)
+    key = models.UUIDField(default=uuid.uuid4, unique=True, editable=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.organization})"
 
 
 class Submission(models.Model):
@@ -27,6 +110,13 @@ class Submission(models.Model):
     # Opaque random UUID chosen by the client. Independent of accounts: an anonymous
     # project can group its own submissions over time without ever signing up.
     project_key = models.UUIDField(null=True, blank=True, db_index=True)
+    project = models.ForeignKey(
+        Project,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="submissions",
+    )
 
     schema_version = models.PositiveSmallIntegerField()
     client_version = models.CharField(max_length=128)

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Create project | {{ organization.name }} | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">{{ organization.name }}</p>
+  <h1>Create a project</h1>
+  <p class="lede">Each project belongs only to this organization.</p>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create project</button>
+  </form>
+</div>
+
+<p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>
+{% endblock %}

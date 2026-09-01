@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Your submissions | Django Probe{% endblock %}
+{% block title %}Accessible submissions | Django Probe{% endblock %}
 
 {% block content %}
 <header class="page-header">
   <p class="eyebrow">Account</p>
-  <h1>Your submissions</h1>
-  <p class="lede">The private submission history attached to your API token.</p>
+  <h1>Accessible submissions</h1>
+  <p class="lede">Submissions from organizations you currently belong to, plus your own unassigned submissions.</p>
 </header>
 
 {% if submissions %}
   {% include "includes/submission_list.html" %}
 {% else %}
   <div class="panel">
-    <p><strong>No submissions yet.</strong></p>
-    <p><a href="{% url 'token' %}">Get your API token</a> to attach future submissions.</p>
+    <p><strong>No accessible submissions yet.</strong></p>
+    <p>Create an organization and register a project before submitting with your API token.</p>
   </div>
 {% endif %}
 

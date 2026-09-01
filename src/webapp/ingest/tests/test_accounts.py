@@ -6,17 +6,26 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from ingest.models import ApiToken, Submission
+from ingest.models import (
+    ApiToken,
+    Organization,
+    OrganizationMembership,
+    Project,
+    Submission,
+)
 
 PASSWORD = "Account-test-password"
 
 
 def create_submission(
-    user: User | None, project_key: uuid.UUID | None = None
+    user: User | None,
+    project: Project | None = None,
+    project_key: uuid.UUID | None = None,
 ) -> Submission:
     return Submission.objects.create(
         user=user,
-        project_key=project_key,
+        project=project,
+        project_key=project.key if project else project_key,
         schema_version=1,
         client_version="0.1.0",
         python_version="3.12.3",
@@ -29,12 +38,14 @@ def create_submission(
 
 
 class AccountAccessTests(TestCase):
-    def test_account_requires_login(self):
+    def test_account(self):
+        """Anonymous users are redirected from the account overview to login."""
         response = self.client.get(reverse("account"))
 
         self.assertRedirects(response, f"{reverse('account_login')}?next=/account/")
 
-    def test_submissions_require_login(self):
+    def test_submissions(self):
+        """Anonymous users are redirected from submission history to login."""
         response = self.client.get(reverse("account-submissions"))
 
         self.assertRedirects(
@@ -42,7 +53,8 @@ class AccountAccessTests(TestCase):
             f"{reverse('account_login')}?next=/account/submissions/",
         )
 
-    def test_token_requires_login(self):
+    def test_token(self):
+        """Anonymous users are redirected from token management to login."""
         response = self.client.get(reverse("token"))
 
         self.assertRedirects(response, f"{reverse('account_login')}?next=/token/")
@@ -57,74 +69,84 @@ class AccountTests(TestCase):
     def setUp(self):
         self.client.force_login(self.user)
 
-    def test_empty_account_has_next_step(self):
+    def test_empty_state(self):
+        """A new account points the user toward organization and token setup."""
         response = self.client.get(reverse("account"))
 
-        self.assertContains(response, "No projects yet")
-        self.assertContains(response, "0")
+        self.assertContains(response, "No organizations yet")
+        self.assertContains(response, reverse("organization-create"))
         self.assertContains(response, reverse("token"))
 
         history_response = self.client.get(reverse("account-submissions"))
-        self.assertContains(history_response, "No submissions yet")
-        self.assertContains(history_response, reverse("token"))
+        self.assertContains(history_response, "No accessible submissions yet")
 
-    def test_account_groups_only_users_projects(self):
-        project_key = uuid.uuid4()
-        other_project_key = uuid.uuid4()
-        create_submission(self.user, project_key)
-        create_submission(self.user, project_key)
-        create_submission(self.other_user, other_project_key)
-        create_submission(None, uuid.uuid4())
-
-        response = self.client.get(reverse("account"))
-
-        self.assertContains(response, str(project_key))
-        self.assertContains(response, "2 submissions")
-        self.assertNotContains(response, str(other_project_key))
-        self.assertEqual(response.context["submission_count"], 2)
-
-    def test_recent_submissions_are_limited_and_private(self):
-        own_submissions = [create_submission(self.user) for _ in range(7)]
-        create_submission(self.other_user)
-
-        response = self.client.get(reverse("account"))
-
-        self.assertEqual(
-            list(response.context["recent_submissions"]),
-            list(reversed(own_submissions[-5:])),
+    def test_organization_scope(self):
+        """The account lists only organizations where the user is a member."""
+        own_organization = Organization.objects.create_with_owner(
+            name="Own organization", owner=self.user
+        )
+        other_organization = Organization.objects.create_with_owner(
+            name="Other organization", owner=self.other_user
         )
 
-    def test_submission_history_is_private(self):
-        own_project_key = uuid.uuid4()
-        other_project_key = uuid.uuid4()
-        create_submission(self.user, own_project_key)
-        create_submission(self.other_user, other_project_key)
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, own_organization.name)
+        self.assertContains(response, "Owner")
+        self.assertNotContains(response, other_organization.name)
+
+    def test_submission_scope(self):
+        """History includes accessible organization submissions and the user's unassigned ones."""
+        own_organization = Organization.objects.create_with_owner(
+            name="Own organization", owner=self.user
+        )
+        other_organization = Organization.objects.create_with_owner(
+            name="Other organization", owner=self.other_user
+        )
+        colleague = User.objects.create_user("colleague", password=PASSWORD)
+        OrganizationMembership.objects.create(
+            organization=own_organization,
+            user=colleague,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+        own_project = Project.objects.create(
+            organization=own_organization, name="Own project"
+        )
+        other_project = Project.objects.create(
+            organization=other_organization, name="Other project"
+        )
+        organization_submission = create_submission(colleague, own_project)
+        unassigned_submission = create_submission(self.user)
+        create_submission(self.other_user, other_project)
+        create_submission(self.other_user)
 
         response = self.client.get(reverse("account-submissions"))
 
-        self.assertContains(response, str(own_project_key))
-        self.assertNotContains(response, str(other_project_key))
         self.assertEqual(
-            list(response.context["submissions"]), list(self.user.submissions.all())
+            list(response.context["submissions"]),
+            [unassigned_submission, organization_submission],
         )
 
 
 class OwnedAccountTemplateTests(TestCase):
-    def test_login_uses_project_template(self):
+    def test_login(self):
+        """Login uses the repository-owned account template and guidance."""
         response = self.client.get(reverse("account_login"))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/login.html")
         self.assertContains(response, "manage your API token")
 
-    def test_signup_uses_project_template(self):
+    def test_signup(self):
+        """Signup uses the repository-owned account template and guidance."""
         response = self.client.get(reverse("account_signup"))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup.html")
         self.assertContains(response, "Create an account")
 
-    def test_logout_uses_project_template(self):
+    def test_logout(self):
+        """Logout uses the repository-owned confirmation template."""
         user = User.objects.create_user("owner")
         self.client.force_login(user)
 
@@ -136,7 +158,8 @@ class OwnedAccountTemplateTests(TestCase):
 
 
 class AuthenticationJourneyTests(TestCase):
-    def test_signup_signs_in_and_redirects_to_token(self):
+    def test_signup(self):
+        """Signup creates a signed-in user and continues to token management."""
         response = self.client.post(
             reverse("account_signup"),
             {
@@ -151,7 +174,8 @@ class AuthenticationJourneyTests(TestCase):
         self.assertTrue(User.objects.filter(username="new-member").exists())
         self.assertEqual(self.client.get(reverse("account")).status_code, 200)
 
-    def test_login_redirects_to_private_account(self):
+    def test_login(self):
+        """Login continues to the private account overview."""
         User.objects.create_user("returning-member", password=PASSWORD)
 
         response = self.client.post(
@@ -165,7 +189,8 @@ class AuthenticationJourneyTests(TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_logout_ends_private_session(self):
+    def test_logout(self):
+        """Logout ends the session and protects private account pages again."""
         user = User.objects.create_user("member", password=PASSWORD)
         self.client.force_login(user)
 
@@ -189,7 +214,8 @@ class TokenManagementTests(TestCase):
     def setUp(self):
         self.client.force_login(self.user)
 
-    def test_retrieval_creates_one_stable_token_for_current_user(self):
+    def test_stable_token(self):
+        """Repeated retrieval keeps one token and does not affect another user."""
         first_response = self.client.get(reverse("token"))
         second_response = self.client.get(reverse("token"))
 
@@ -198,7 +224,8 @@ class TokenManagementTests(TestCase):
         self.assertEqual(self.user.api_tokens.count(), 1)
         self.assertTrue(ApiToken.objects.filter(pk=self.other_token.pk).exists())
 
-    def test_regeneration_rotates_only_current_users_token(self):
+    def test_regeneration(self):
+        """Regeneration rotates only the current user's token."""
         first_token = ApiToken.objects.create(user=self.user)
 
         response = self.client.post(reverse("token"))
@@ -209,14 +236,16 @@ class TokenManagementTests(TestCase):
         self.assertFalse(ApiToken.objects.filter(pk=first_token.pk).exists())
         self.assertTrue(ApiToken.objects.filter(pk=self.other_token.pk).exists())
 
-    def test_token_rejects_unsupported_methods(self):
+    def test_unsupported_method(self):
+        """Token management accepts retrieval and regeneration only."""
         response = self.client.put(reverse("token"))
 
         self.assertEqual(response.status_code, 405)
 
 
 class AccountNavigationTests(TestCase):
-    def test_anonymous_navigation_offers_authentication(self):
+    def test_anonymous(self):
+        """Anonymous navigation offers authentication but no private links."""
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, reverse("account_login"))
@@ -224,7 +253,8 @@ class AccountNavigationTests(TestCase):
         self.assertNotContains(response, reverse("account"))
         self.assertNotContains(response, reverse("style-guide"))
 
-    def test_member_navigation_links_private_pages_but_not_style_guide(self):
+    def test_member_navigation(self):
+        """Member navigation links private pages but not the staff style guide."""
         user = User.objects.create_user("member", password=PASSWORD)
         self.client.force_login(user)
 
@@ -235,7 +265,8 @@ class AccountNavigationTests(TestCase):
         self.assertContains(response, reverse("account_logout"))
         self.assertNotContains(response, reverse("style-guide"))
 
-    def test_staff_navigation_links_style_guide(self):
+    def test_staff(self):
+        """Staff navigation includes the internal style guide."""
         user = User.objects.create_user("staff", password=PASSWORD, is_staff=True)
         self.client.force_login(user)
 

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">{{ organization.name }}</p>
+  <h1>{{ project.name }}</h1>
+  <p class="lede">Project UUID: <code>{{ project.key }}</code></p>
+</header>
+
+<h2>Submissions</h2>
+{% if submissions %}
+  {% include "includes/submission_list.html" %}
+{% else %}
+  <div class="panel">
+    <p><strong>No submissions for this project yet.</strong></p>
+    <p>Use this UUID with your API token to attach the next submission.</p>
+  </div>
+{% endif %}
+
+<p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>
+{% endblock %}
