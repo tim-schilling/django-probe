@@ -74,6 +74,10 @@ django52 = [ "django>=5.2,<6; python_version>='3.10'" ]
 django60 = [ "django>=6.0,<6.1; python_version>='3.12'" ]
 django61 = [ "django>=6.1,<6.2; python_version>='3.12'" ]
 djangomain = [ "django @ git+https://github.com/django/django.git@main ; python_version>='3.12'" ]
+e2e = [
+  "axe-playwright-python>=0.1.8",
+  "pytest-playwright>=0.7.1",
+]
 
 [tool.uv]
 # django61/djangomain track pre-release and dev Django builds; allow uv to
@@ -145,7 +149,7 @@ lint.isort.known-first-party = [ "config", "django_probe", "ingest", "tests" ]
 lint.isort.required-imports = [ "from __future__ import annotations" ]
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers"
+addopts = "--strict-markers --ignore=tests/e2e"
 DJANGO_SETTINGS_MODULE = "config.settings"
 pythonpath = [ ".", "src", "src/webapp" ]
 testpaths = [ "tests", "src/webapp" ]

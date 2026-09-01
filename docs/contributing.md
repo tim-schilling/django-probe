@@ -21,6 +21,7 @@ Requires [uv](https://docs.astral.sh/uv/), [pre-commit](https://pre-commit.com/)
 $ uv run pre-commit install
 $ just install
 $ just test
+$ just test-e2e
 $ just lint
 $ just migrate && just serve
 ```

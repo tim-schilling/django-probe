@@ -11,3 +11,4 @@ db.sqlite3
 .env
 /site/
 /src/webapp/staticfiles/
+/test-results/
