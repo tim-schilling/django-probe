@@ -42,6 +42,14 @@ scan path=".":
 submit path="." url="http://localhost:8000":
     uv run django-probe submit {{path}} --server-url {{url}}
 
+# Build the deployment image for src/webapp
+docker-build:
+    docker build -t django-probe-webapp .
+
+# Run the deployment image locally, using sqlite + in-process cache
+docker-run:
+    docker run --rm -p 8000:8000 -e DJANGO_PROBE_SECRET_KEY=local django-probe-webapp
+
 # Serve the documentation site locally with live reload
 docs-serve:
     uv run --group docs zensical serve

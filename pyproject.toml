@@ -49,6 +49,11 @@ webapp = [
   "django>=5.0",
   "django-allauth[socialaccount]>=65",
   "django-ratelimit>=4.1",
+  "dj-database-url>=2.3",
+  "django-redis>=5.4",
+  "gunicorn>=23",
+  "psycopg[binary]>=3.2",
+  "whitenoise>=6.8",
 ]
 test = [
   "pytest>=8",
