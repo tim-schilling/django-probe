@@ -62,5 +62,12 @@ resource:
 | `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your existing database. Falls back to a local sqlite file if unset. |
 | `REDIS_URL` | recommended | e.g. `redis://host:6379/0`. Falls back to per-process LocMemCache if unset, which breaks rate limiting across multiple workers/replicas. |
 | `DJANGO_PROBE_GITHUB_CLIENT_ID` / `DJANGO_PROBE_GITHUB_SECRET` | optional | Enables GitHub sign-in. |
+| `SENTRY_DSN` | optional | Enables Sentry error and performance monitoring. Leave unset to disable Sentry; do not use a production DSN for local development or tests. |
+| `SENTRY_ENVIRONMENT` | recommended with Sentry | Deployment name such as `production` or `staging`, used to separate events in Sentry. |
+| `SENTRY_RELEASE` | recommended with Sentry | Deployed release identifier, ideally an immutable image or Git SHA such as `django-probe@abc123`. |
+| `SENTRY_TRACES_SAMPLE_RATE` | optional | Fraction of requests whose performance traces are sent, from `0` to `1`. Defaults to `0.1` when Sentry is enabled; set to `0` to retain error monitoring while disabling traces. |
 | `WEB_CONCURRENCY` | optional | gunicorn worker count. Defaults to `3`. |
 | `PORT` | optional | Port gunicorn binds to. Defaults to `8000`; set this to match whatever port Coolify expects the container to listen on. |
+
+Sentry never initializes without `SENTRY_DSN`. When enabled, the integration does not
+send default personally identifiable information and does not capture request bodies.

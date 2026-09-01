@@ -52,6 +52,7 @@ webapp = [
   "django-redis>=5.4",
   "gunicorn>=23",
   "psycopg[binary]>=3.2",
+  "sentry-sdk[django]>=2.0,<3",
   "whitenoise>=6.8",
 ]
 test = [
