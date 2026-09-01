@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}API token | Django Probe{% endblock %}
+
+{% block content %}
+<h1>Your API token</h1>
+
+<pre><code>{{ api_token.key }}</code></pre>
+
+<p>Pass it when submitting to attach the submission to your account:</p>
+
+<pre><code>export DJANGO_PROBE_TOKEN={{ api_token.key }}
+django-probe submit .</code></pre>
+
+<p>
+  Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. The
+  client reads the token from the environment or <code>--token</code> only.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Regenerate token</button>
+</form>
+{% endblock %}

@@ -1,0 +1,128 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatchling",
+]
+
+[project]
+name = "django-probe"
+version = "0.1.0"
+description = "Count Django code patterns in a project and report the counts."
+readme = "README.md"
+keywords = [
+  "AST",
+  "Django",
+  "metrics",
+]
+license = "MIT"
+authors = [
+  { name = "Django Probe contributors" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: Django",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Typing :: Typed",
+]
+# django-upgrade internals are not a public API; pin to a tested range.
+dependencies = [
+  "django-upgrade>=1.32,<2",
+  "tokenize-rt>=5",
+]
+scripts.django-probe = "django_probe.main:main"
+urls.Repository = "https://github.com/django-probe/django-probe"
+
+[dependency-groups]
+# Groups rather than extras: they stay out of the published wheel's metadata, so
+# installing django-probe pulls in neither Django nor pytest.
+server = [
+  "django>=5.0",
+  "django-allauth[socialaccount]>=65",
+  "django-ratelimit>=4.1",
+]
+dev = [
+  "mypy>=1.13",
+  "pytest>=8",
+  "pytest-django>=4.9",
+  "pytest-randomly",
+  "ruff>=0.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/django_probe" ]
+
+[tool.ruff]
+extend-exclude = [ "*/migrations/*" ]
+lint.select = [
+  # flake8-bugbear
+  "B",
+  # flake8-comprehensions
+  "C4",
+  # pycodestyle
+  "E",
+  # Pyflakes errors
+  "F",
+  # isort
+  "I",
+  # flake8-simplify
+  "SIM",
+  # flake8-tidy-imports
+  "TID",
+  # pyupgrade
+  "UP",
+  # Pyflakes warnings
+  "W",
+]
+lint.ignore = [
+  # flake8-bugbear opinionated rules
+  "B9",
+  # line-too-long
+  "E501",
+  # suppressible-exception
+  "SIM105",
+  # if-else-block-instead-of-if-exp
+  "SIM108",
+]
+lint.extend-safe-fixes = [
+  # non-pep585-annotation
+  "UP006",
+]
+lint.isort.known-first-party = [ "config", "django_probe", "ingest", "tests" ]
+lint.isort.required-imports = [ "from __future__ import annotations" ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = [ ".", "src", "src/server" ]
+testpaths = [ "tests" ]
+
+[tool.mypy]
+mypy_path = "src/"
+namespace_packages = false
+warn_unreachable = true
+enable_error_code = [
+  "ignore-without-code",
+  "redundant-expr",
+  "truthy-bool",
+]
+strict = true
+overrides = [
+  { module = "tests.*", allow_untyped_defs = true },
+  { module = "tokenize_rt.*", ignore_missing_imports = true },
+  # The server is a Django app; annotating views and models fully needs
+  # django-stubs, which is more machinery than this POC warrants.
+  { module = "config.*", ignore_errors = true },
+  { module = "ingest.*", ignore_errors = true },
+]
+
+[tool.django_probe]
+project_key = "1f3d9c62-8a41-4b7e-9d05-6c2e8f0a3b17"

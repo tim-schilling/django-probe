@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Django Probe{% endblock %}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 40rem;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+      line-height: 1.6;
+    }
+    code, pre {
+      background: color-mix(in srgb, currentColor 8%, transparent);
+      border-radius: 4px;
+    }
+    code { padding: 0.1em 0.35em; }
+    pre { padding: 0.75rem 1rem; overflow-x: auto; }
+    nav { margin-bottom: 2rem; font-size: 0.9rem; }
+    nav a { margin-right: 1rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    {% if user.is_authenticated %}
+      <a href="/token/">API token</a>
+      <a href="/accounts/logout/">Sign out</a>
+    {% else %}
+      <a href="/accounts/login/">Sign in with GitHub</a>
+    {% endif %}
+  </nav>
+  {% block content %}{% endblock %}
+</body>
+</html>

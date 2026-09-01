@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Django Probe</h1>
+
+<p>
+  Counts of specific code patterns in Django projects. Only counts &mdash; no source
+  code, no file paths, no repository names.
+</p>
+
+<p><strong>{{ submission_count }}</strong> submission{{ submission_count|pluralize }} received.</p>
+
+<h2>Contribute</h2>
+
+<pre><code>pip install django-probe
+django-probe scan .      # see exactly what would be sent
+django-probe submit .    # send it</code></pre>
+
+<p>
+  No account required. Signing in with GitHub is optional and only lets you see your
+  own submissions attached to you; it unlocks nothing else.
+</p>
+{% endblock %}
