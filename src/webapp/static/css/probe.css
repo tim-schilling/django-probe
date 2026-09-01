@@ -403,9 +403,8 @@ input[type="radio"] {
 
 .messages {
   list-style: none;
-  margin: var(--space-5) auto 0;
-  max-width: var(--content-width);
-  padding: 0 var(--space-5);
+  margin: 0 0 var(--space-5);
+  padding: 0;
 }
 
 .messages--specimen {

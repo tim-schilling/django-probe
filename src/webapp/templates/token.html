@@ -8,11 +8,11 @@
   <p class="lede">Use this token to attach submissions to your private account history.</p>
 </header>
 
-<pre><code>{{ api_token.key }}</code></pre>
+<pre tabindex="0"><code id="api-token">{{ api_token.key }}</code></pre>
 
 <p>Pass it when submitting to attach the submission to your account:</p>
 
-<pre><code>export DJANGO_PROBE_TOKEN={{ api_token.key }}
+<pre tabindex="0"><code>export DJANGO_PROBE_TOKEN={{ api_token.key }}
 django-probe submit .</code></pre>
 
 <div class="panel panel--caution">
@@ -22,8 +22,11 @@ django-probe submit .</code></pre>
 </p>
 </div>
 
-<form method="post">
+<form method="post" class="token-regeneration">
   {% csrf_token %}
-  <button type="submit">Regenerate token</button>
+  <p><strong>Regenerating immediately invalidates your current token.</strong></p>
+  <button type="submit">Regenerate API token</button>
 </form>
+
+<p class="back-link"><a href="{% url 'account' %}">&larr; Back to your account</a></p>
 {% endblock %}

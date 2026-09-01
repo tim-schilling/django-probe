@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Your submissions | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Account</p>
+  <h1>Your submissions</h1>
+  <p class="lede">The private submission history attached to your API token.</p>
+</header>
+
+{% if submissions %}
+  {% include "includes/submission_list.html" %}
+{% else %}
+  <div class="panel">
+    <p><strong>No submissions yet.</strong></p>
+    <p><a href="{% url 'token' %}">Get your API token</a> to attach future submissions.</p>
+  </div>
+{% endif %}
+
+<p class="back-link"><a href="{% url 'account' %}">&larr; Back to your account</a></p>
+{% endblock %}

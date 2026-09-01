@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Your account | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Account</p>
+  <h1>Your account</h1>
+  <p class="lede">Signed in as <strong>{{ user.get_username }}</strong>. Your token, projects, and submission history are private to this account.</p>
+</header>
+
+<div class="panel panel--subtle stat-block">
+  <p class="stat">{{ submission_count }}</p>
+  <p class="muted">submission{{ submission_count|pluralize }} attached to your account</p>
+</div>
+
+<div class="actions">
+  <a class="button" href="{% url 'account-submissions' %}">View all submissions</a>
+  <a class="button button--secondary" href="{% url 'token' %}">Manage API token</a>
+</div>
+
+<h2>Projects in your submissions</h2>
+{% if projects %}
+  <ul class="item-list">
+    {% for project in projects %}
+      <li>
+        <span class="item-list__title"><code>{{ project.project_key }}</code></span>
+        <span class="item-list__meta">
+          {{ project.submission_count }} submission{{ project.submission_count|pluralize }},
+          latest {{ project.latest_submission|date:"SHORT_DATETIME_FORMAT" }}
+        </span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="panel">
+    <p><strong>No projects yet.</strong></p>
+    <p>Set <code>DJANGO_PROBE_TOKEN</code> and submit a project to attach it to this account.</p>
+  </div>
+{% endif %}
+
+<h2>Recent submissions</h2>
+{% if recent_submissions %}
+  {% include "includes/submission_list.html" with submissions=recent_submissions %}
+{% else %}
+  <div class="panel">
+    <p><strong>No submissions yet.</strong></p>
+    <p>Use your API token with a submission to start a private history.</p>
+  </div>
+{% endif %}
+{% endblock %}
