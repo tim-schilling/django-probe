@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "django-probe"
-version = "0.1.0"
+dynamic = [ "version" ]
 description = "Count Django code patterns in a project and report the counts."
 readme = "README.md"
 keywords = [
@@ -77,6 +77,10 @@ conflicts = [
     { group = "django60" },
   ],
 ]
+
+[tool.hatch.version]
+source = "code"
+path = "src/django_probe/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = [ "src/django_probe" ]
