@@ -1,14 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Django Probe</h1>
+<header class="page-header">
+  <p class="eyebrow">Community code census</p>
+  <h1>See how Django gets used.</h1>
+  <p class="lede">
+    Django Probe counts specific code patterns in Django projects. Only counts &mdash;
+    no source code, file paths, or repository names.
+  </p>
+</header>
 
-<p>
-  Counts of specific code patterns in Django projects. Only counts &mdash; no source
-  code, no file paths, no repository names.
-</p>
-
-<p><strong>{{ submission_count }}</strong> submission{{ submission_count|pluralize }} received.</p>
+<div class="panel panel--subtle stat-block">
+  <p class="stat">{{ submission_count }}</p>
+  <p class="muted">submission{{ submission_count|pluralize }} received</p>
+</div>
 
 <h2>Contribute</h2>
 

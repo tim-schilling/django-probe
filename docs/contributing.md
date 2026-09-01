@@ -1,8 +1,17 @@
 # Contributing
 
+Thanks for helping improve Django Probe. The guides in this section cover the
+repository's conventions as well as the mechanics of running and deploying it.
+
 ## Suggesting new probes
 
 See [Writing a probe](writing-probes.md) for the pattern, then open a PR.
+
+## Frontend changes
+
+Read the [frontend style guide](frontend-style.md) before changing webapp templates,
+styles, or shared interface components. It describes the visual foundations,
+accessibility requirements, and checks expected for frontend contributions.
 
 ## Development setup
 
