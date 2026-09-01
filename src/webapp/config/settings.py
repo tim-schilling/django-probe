@@ -5,7 +5,11 @@ from pathlib import Path
 
 import dj_database_url
 
+from config.sentry import initialize_sentry
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+initialize_sentry()
 
 SECRET_KEY = os.environ.get("DJANGO_PROBE_SECRET_KEY", "insecure-development-key")
 DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "1") == "1"
