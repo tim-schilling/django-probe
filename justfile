@@ -9,6 +9,10 @@ install:
 test *ARGS:
     uv run pytest {{ARGS}}
 
+# Run browser end-to-end tests in their dedicated tox environment
+test-e2e *ARGS:
+    uvx --with tox-uv tox run -e e2e -- {{ARGS}}
+
 # Run the test suite against every supported Python/Django combination
 test-all *ARGS:
     uvx tox {{ARGS}}
