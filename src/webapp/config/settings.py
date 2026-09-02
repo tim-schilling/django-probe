@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 initialize_sentry()
 
 SECRET_KEY = os.environ.get("DJANGO_PROBE_SECRET_KEY", "insecure-development-key")
-DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "1") == "1"
+DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "0") == "1"
+# Defaults to "dev" so a local checkout or test run never gets mistaken for a real
+# deployment: it gates whitenoise/manifest static storage below, and config.sentry
+# uses it as the Sentry environment tag so stray local events can't page anyone.
+ENVIRONMENT = os.environ.get("DJANGO_PROBE_ENVIRONMENT", "dev")
 ALLOWED_HOSTS = os.environ.get("DJANGO_PROBE_ALLOWED_HOSTS", "*").split(",")
 
 # Coolify (and most PaaS-style hosts) terminate TLS at a proxy in front of the
@@ -43,8 +47,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Skip whitenoise in dev/test so it doesn't warn about a missing directory
-    *([] if DEBUG else ["whitenoise.middleware.WhiteNoiseMiddleware"]),
+    # Only enable whitenoise in production so it doesn't warn about a missing
+    # staticfiles manifest; only that collectstatic (see Dockerfile) ever writes one.
+    *(
+        ["whitenoise.middleware.WhiteNoiseMiddleware"]
+        if ENVIRONMENT == "production"
+        else []
+    ),
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -116,9 +125,9 @@ STORAGES = {
     },
     "staticfiles": {
         "BACKEND": (
-            "django.contrib.staticfiles.storage.StaticFilesStorage"
-            if DEBUG
-            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if ENVIRONMENT == "production"
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
         ),
     },
 }

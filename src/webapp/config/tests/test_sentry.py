@@ -31,7 +31,7 @@ class SentryConfigurationTests(SimpleTestCase):
     def test_dsn_enables_error_and_performance_monitoring(self, init):
         environment = {
             "SENTRY_DSN": "https://public@example.invalid/1",
-            "SENTRY_ENVIRONMENT": "staging",
+            "DJANGO_PROBE_ENVIRONMENT": "staging",
             "SENTRY_RELEASE": "django-probe@abc123",
             "SENTRY_TRACES_SAMPLE_RATE": "0.25",
         }
@@ -65,7 +65,7 @@ class SentryConfigurationTests(SimpleTestCase):
 
         options = init.call_args.kwargs
         self.assertEqual(options["traces_sample_rate"], DEFAULT_TRACES_SAMPLE_RATE)
-        self.assertIsNone(options["environment"])
+        self.assertEqual(options["environment"], "dev")
         self.assertIsNone(options["release"])
 
     @mock.patch("config.sentry.sentry_sdk.init")

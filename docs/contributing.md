@@ -34,8 +34,8 @@ test-all` runs the full [tox](https://tox.wiki/) matrix.
 ## Deployment
 
 The root `Dockerfile` builds `src/webapp` only. On start, the
-container's `docker/entrypoint.sh` runs migrations and then serves via gunicorn, so no
-separate release step is needed.
+container's `docker/entrypoint.sh` serves via gunicorn. Coolify is configured to collectstatic
+and migrate the database on the pre-deployment step.
 
 ```console
 $ just bootstrap  # installs dependencies and hooks, starts PostgreSQL, runs migrations
@@ -69,14 +69,14 @@ resource:
 | Variable | Required | Purpose |
 |---|---|---|
 | `DJANGO_PROBE_SECRET_KEY` | yes | Django's `SECRET_KEY`. Falls back to an insecure default otherwise. |
-| `DJANGO_PROBE_DEBUG` | yes | Set to `0` in production. Defaults to `1`. |
+| `DJANGO_PROBE_DEBUG` | no | Defaults to `0`. Leave unset in production; Django's debug pages leak internals. |
+| `DJANGO_PROBE_ENVIRONMENT` | yes | Set to `production`. Gates whitenoise's manifest static storage and tags Sentry events; defaults to `dev` so a stray local/test run can't be mistaken for production. |
 | `DJANGO_PROBE_ALLOWED_HOSTS` | yes | Comma-separated hostnames, e.g. `probe.example.com`. Defaults to `*`. |
 | `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` | yes | Comma-separated origins with scheme, e.g. `https://probe.example.com`. Needed because Coolify's proxy terminates TLS in front of the container. |
 | `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your PostgreSQL database. |
 | `REDIS_URL` | recommended | e.g. `redis://host:6379/0`. Falls back to per-process LocMemCache if unset, which breaks rate limiting across multiple workers/replicas. |
 | `DJANGO_PROBE_GITHUB_CLIENT_ID` / `DJANGO_PROBE_GITHUB_SECRET` | optional | Enables GitHub sign-in. |
 | `SENTRY_DSN` | optional | Enables Sentry error and performance monitoring. Leave unset to disable Sentry; do not use a production DSN for local development or tests. |
-| `SENTRY_ENVIRONMENT` | recommended with Sentry | Deployment name such as `production` or `staging`, used to separate events in Sentry. |
 | `SENTRY_RELEASE` | recommended with Sentry | Deployed release identifier, ideally an immutable image or Git SHA such as `django-probe@abc123`. |
 | `SENTRY_TRACES_SAMPLE_RATE` | optional | Fraction of requests whose performance traces are sent, from `0` to `1`. Defaults to `0.1` when Sentry is enabled; set to `0` to retain error monitoring while disabling traces. |
 | `WEB_CONCURRENCY` | optional | gunicorn worker count. Defaults to `3`. |

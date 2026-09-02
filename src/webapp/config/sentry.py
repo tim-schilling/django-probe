@@ -35,7 +35,9 @@ def initialize_sentry() -> bool:
 
     sentry_sdk.init(
         dsn=dsn,
-        environment=os.environ.get("SENTRY_ENVIRONMENT") or None,
+        # Defaults to "dev" (see settings.ENVIRONMENT) so a local run with a real DSN
+        # never gets mistaken for production traffic and pages someone.
+        environment=os.environ.get("DJANGO_PROBE_ENVIRONMENT", "dev"),
         integrations=[
             DjangoIntegration(
                 transaction_style="url",
