@@ -1,40 +1,19 @@
 from __future__ import annotations
 
-import uuid
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from ingest.models import (
-    ApiToken,
-    Organization,
-    OrganizationMembership,
-    Project,
-    Submission,
+from ingest.models import ApiToken
+from ingest.tests.factories import (
+    PASSWORD,
+    ApiTokenFactory,
+    OrganizationFactory,
+    OrganizationMembershipFactory,
+    ProjectFactory,
+    SubmissionFactory,
+    UserFactory,
 )
-
-PASSWORD = "Account-test-password"
-
-
-def create_submission(
-    user: User | None,
-    project: Project | None = None,
-    project_key: uuid.UUID | None = None,
-) -> Submission:
-    return Submission.objects.create(
-        user=user,
-        project=project,
-        project_key=project.key if project else project_key,
-        schema_version=1,
-        client_version="0.1.0",
-        python_version="3.12.3",
-        django_version="5.1.2",
-        files_scanned=12,
-        probe_sources={"django-probe": "0.1.0"},
-        patterns={"probe:queryset_filter": 3},
-        dependencies={"django": "5.1.2"},
-    )
 
 
 class AccountAccessTests(TestCase):
@@ -63,8 +42,8 @@ class AccountAccessTests(TestCase):
 class AccountTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create_user("owner", password=PASSWORD)
-        cls.other_user = User.objects.create_user("other", password=PASSWORD)
+        cls.user = UserFactory(username="owner")
+        cls.other_user = UserFactory(username="other")
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -82,10 +61,8 @@ class AccountTests(TestCase):
 
     def test_organization_scope(self):
         """The account lists only organizations where the user is a member."""
-        own_organization = Organization.objects.create_with_owner(
-            name="Own organization", owner=self.user
-        )
-        other_organization = Organization.objects.create_with_owner(
+        own_organization = OrganizationFactory(name="Own organization", owner=self.user)
+        other_organization = OrganizationFactory(
             name="Other organization", owner=self.other_user
         )
 
@@ -97,28 +74,23 @@ class AccountTests(TestCase):
 
     def test_submission_scope(self):
         """History includes accessible organization submissions and the user's unassigned ones."""
-        own_organization = Organization.objects.create_with_owner(
-            name="Own organization", owner=self.user
-        )
-        other_organization = Organization.objects.create_with_owner(
+        own_organization = OrganizationFactory(name="Own organization", owner=self.user)
+        other_organization = OrganizationFactory(
             name="Other organization", owner=self.other_user
         )
-        colleague = User.objects.create_user("colleague", password=PASSWORD)
-        OrganizationMembership.objects.create(
+        colleague = UserFactory(username="colleague")
+        OrganizationMembershipFactory(
             organization=own_organization,
             user=colleague,
-            role=OrganizationMembership.Role.MEMBER,
         )
-        own_project = Project.objects.create(
-            organization=own_organization, name="Own project"
-        )
-        other_project = Project.objects.create(
+        own_project = ProjectFactory(organization=own_organization, name="Own project")
+        other_project = ProjectFactory(
             organization=other_organization, name="Other project"
         )
-        organization_submission = create_submission(colleague, own_project)
-        unassigned_submission = create_submission(self.user)
-        create_submission(self.other_user, other_project)
-        create_submission(self.other_user)
+        organization_submission = SubmissionFactory(user=colleague, project=own_project)
+        unassigned_submission = SubmissionFactory(user=self.user)
+        SubmissionFactory(user=self.other_user, project=other_project)
+        SubmissionFactory(user=self.other_user)
 
         response = self.client.get(reverse("account-submissions"))
 
@@ -147,7 +119,7 @@ class OwnedAccountTemplateTests(TestCase):
 
     def test_logout(self):
         """Logout uses the repository-owned confirmation template."""
-        user = User.objects.create_user("owner")
+        user = UserFactory(username="owner")
         self.client.force_login(user)
 
         response = self.client.get(reverse("account_logout"))
@@ -176,7 +148,7 @@ class AuthenticationJourneyTests(TestCase):
 
     def test_login(self):
         """Login continues to the private account overview."""
-        User.objects.create_user("returning-member", password=PASSWORD)
+        UserFactory(username="returning-member")
 
         response = self.client.post(
             reverse("account_login"),
@@ -191,7 +163,7 @@ class AuthenticationJourneyTests(TestCase):
 
     def test_logout(self):
         """Logout ends the session and protects private account pages again."""
-        user = User.objects.create_user("member", password=PASSWORD)
+        user = UserFactory(username="member")
         self.client.force_login(user)
 
         response = self.client.post(reverse("account_logout"))
@@ -207,9 +179,9 @@ class AuthenticationJourneyTests(TestCase):
 class TokenManagementTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create_user("owner", password=PASSWORD)
-        cls.other_user = User.objects.create_user("other", password=PASSWORD)
-        cls.other_token = ApiToken.objects.create(user=cls.other_user)
+        cls.user = UserFactory(username="owner")
+        cls.other_user = UserFactory(username="other")
+        cls.other_token = ApiTokenFactory(user=cls.other_user)
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -226,7 +198,7 @@ class TokenManagementTests(TestCase):
 
     def test_regeneration(self):
         """Regeneration rotates only the current user's token."""
-        first_token = ApiToken.objects.create(user=self.user)
+        first_token = ApiTokenFactory(user=self.user)
 
         response = self.client.post(reverse("token"))
 
@@ -255,7 +227,7 @@ class AccountNavigationTests(TestCase):
 
     def test_member_navigation(self):
         """Member navigation links private pages but not the staff style guide."""
-        user = User.objects.create_user("member", password=PASSWORD)
+        user = UserFactory(username="member")
         self.client.force_login(user)
 
         response = self.client.get(reverse("account"))
@@ -267,7 +239,7 @@ class AccountNavigationTests(TestCase):
 
     def test_staff(self):
         """Staff navigation includes the internal style guide."""
-        user = User.objects.create_user("staff", password=PASSWORD, is_staff=True)
+        user = UserFactory(username="staff", is_staff=True)
         self.client.force_login(user)
 
         response = self.client.get(reverse("account"))
