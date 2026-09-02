@@ -70,16 +70,15 @@ TEMPLATES = [
     },
 ]
 
-_DATABASE_URL = os.environ.get("DATABASE_URL")
-if _DATABASE_URL:
-    DATABASES = {"default": dj_database_url.parse(_DATABASE_URL, conn_max_age=600)}
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.environ.get("DJANGO_PROBE_DB", str(BASE_DIR / "db.sqlite3")),
-        }
-    }
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql://postgres:postgres@localhost:55432/django_probe",
+        ),
+        conn_max_age=600,
+    )
+}
 
 # Rate limiting is cache-backed. LocMemCache is per-process, so a real deployment
 # must point this at Redis via REDIS_URL, or limits apply per worker rather than per
@@ -104,6 +103,7 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
+AUTH_USER_MODEL = "ingest.User"
 
 SITE_ID = 1
 STATIC_URL = "static/"

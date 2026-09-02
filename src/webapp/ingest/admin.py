@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
 from ingest.models import (
     ApiToken,
@@ -8,7 +9,10 @@ from ingest.models import (
     OrganizationMembership,
     Project,
     Submission,
+    User,
 )
+
+admin.site.register(User, UserAdmin)
 
 
 @admin.register(Organization)

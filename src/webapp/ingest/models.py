@@ -4,7 +4,12 @@ import secrets
 import uuid
 
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
+
+
+class User(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
 
 
 class OrganizationManager(models.Manager):
@@ -20,6 +25,7 @@ class OrganizationManager(models.Manager):
 
 
 class Organization(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     name = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(

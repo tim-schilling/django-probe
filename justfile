@@ -1,6 +1,13 @@
 default:
     @just --list
 
+# Prepare a local development checkout
+bootstrap:
+    uv sync --group dev
+    uv run pre-commit install
+    just docker-postgres
+    uv run python src/webapp/manage.py migrate
+
 # Install the dev environment (lint, test, and webapp dependencies) into the local venv
 install:
     uv sync --group dev
@@ -50,9 +57,22 @@ submit path="." url="http://localhost:8000":
 docker-build:
     docker build -t django-probe-webapp .
 
-# Run the deployment image locally, using sqlite + in-process cache
+docker-postgres:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if docker container inspect django-probe-postgres >/dev/null 2>&1; then
+        docker start django-probe-postgres >/dev/null
+    else
+        docker run --name django-probe-postgres --detach --publish 55432:5432 --env POSTGRES_DB=django_probe --env POSTGRES_USER=postgres --env POSTGRES_PASSWORD=postgres postgres:18 >/dev/null
+    fi
+    until docker exec django-probe-postgres pg_isready -U postgres -d django_probe >/dev/null 2>&1; do
+        sleep 1
+    done
+    echo "PostgreSQL is ready on localhost:55432"
+
+# Run the deployment image locally; pass a container-reachable DATABASE_URL
 docker-run:
-    docker run --rm -p 8000:8000 -e DJANGO_PROBE_SECRET_KEY=local django-probe-webapp
+    docker run --rm -p 8000:8000 -e DJANGO_PROBE_SECRET_KEY=local -e DATABASE_URL django-probe-webapp
 
 # Serve the documentation site locally with live reload
 docs-serve:

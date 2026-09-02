@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -56,7 +57,7 @@ def _resolve_token(request) -> tuple[object | None, JsonResponse | None]:
     return token.user, None
 
 
-def _membership_or_404(request, organization_id: int) -> OrganizationMembership:
+def _membership_or_404(request, organization_id: uuid.UUID) -> OrganizationMembership:
     return get_object_or_404(
         OrganizationMembership.objects.select_related("organization"),
         organization_id=organization_id,
@@ -64,7 +65,9 @@ def _membership_or_404(request, organization_id: int) -> OrganizationMembership:
     )
 
 
-def _owner_membership_or_404(request, organization_id: int) -> OrganizationMembership:
+def _owner_membership_or_404(
+    request, organization_id: uuid.UUID
+) -> OrganizationMembership:
     membership = _membership_or_404(request, organization_id)
     if membership.role != OrganizationMembership.Role.OWNER:
         raise PermissionDenied
@@ -172,7 +175,7 @@ def organization_create(request) -> HttpResponse:
 
 
 @login_required
-def organization_detail(request, organization_id: int) -> HttpResponse:
+def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _membership_or_404(request, organization_id)
     projects = membership.organization.projects.all()
     submissions = Submission.objects.filter(
@@ -192,7 +195,7 @@ def organization_detail(request, organization_id: int) -> HttpResponse:
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def project_create(request, organization_id: int) -> HttpResponse:
+def project_create(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _owner_membership_or_404(request, organization_id)
     form = ProjectForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -213,7 +216,9 @@ def project_create(request, organization_id: int) -> HttpResponse:
 
 
 @login_required
-def project_detail(request, organization_id: int, project_id: int) -> HttpResponse:
+def project_detail(
+    request, organization_id: uuid.UUID, project_id: int
+) -> HttpResponse:
     membership = _membership_or_404(request, organization_id)
     project = get_object_or_404(
         Project,
@@ -233,7 +238,7 @@ def project_detail(request, organization_id: int, project_id: int) -> HttpRespon
 
 
 @login_required
-def organization_members(request, organization_id: int) -> HttpResponse:
+def organization_members(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _owner_membership_or_404(request, organization_id)
     return render(
         request,
@@ -250,7 +255,7 @@ def organization_members(request, organization_id: int) -> HttpResponse:
 
 @login_required
 @require_POST
-def organization_member_add(request, organization_id: int) -> HttpResponse:
+def organization_member_add(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _owner_membership_or_404(request, organization_id)
     form = MembershipAddForm(request.POST)
     if form.is_valid():
@@ -284,7 +289,7 @@ def organization_member_add(request, organization_id: int) -> HttpResponse:
 @login_required
 @require_POST
 def organization_member_role(
-    request, organization_id: int, membership_id: int
+    request, organization_id: uuid.UUID, membership_id: int
 ) -> HttpResponse:
     owner_membership = _owner_membership_or_404(request, organization_id)
     target = get_object_or_404(
@@ -307,7 +312,7 @@ def organization_member_role(
 @login_required
 @require_POST
 def organization_member_remove(
-    request, organization_id: int, membership_id: int
+    request, organization_id: uuid.UUID, membership_id: int
 ) -> HttpResponse:
     owner_membership = _owner_membership_or_404(request, organization_id)
     target = get_object_or_404(
@@ -329,7 +334,7 @@ def organization_member_remove(
 
 @login_required
 @require_POST
-def organization_leave(request, organization_id: int) -> HttpResponse:
+def organization_leave(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _membership_or_404(request, organization_id)
     organization_name = membership.organization.name
     form = MembershipDeleteForm(request.POST, membership=membership)

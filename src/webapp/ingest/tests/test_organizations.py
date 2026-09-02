@@ -11,6 +11,7 @@ from ingest.models import (
     Organization,
     OrganizationMembership,
     Project,
+    User,
 )
 from ingest.tests.factories import (
     OrganizationFactory,
@@ -37,6 +38,9 @@ class OrganizationModelTests(TestCase):
             self.owner_membership.role,
             OrganizationMembership.Role.OWNER,
         )
+
+    def test_organization_uses_uuid7_primary_key(self):
+        self.assertEqual(self.organization.pk.version, 7)
 
     def test_unique_membership(self):
         """A user has at most one membership in an organization."""
