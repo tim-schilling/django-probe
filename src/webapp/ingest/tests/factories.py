@@ -3,7 +3,6 @@ from __future__ import annotations
 import factory
 
 from ingest.models import (
-    ApiToken,
     Organization,
     OrganizationMembership,
     Project,
@@ -60,12 +59,8 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Submission
 
-    user = factory.SubFactory(UserFactory)
     project = None
-    project_key = factory.LazyAttribute(
-        lambda submission: submission.project.key if submission.project else None
-    )
-    schema_version = 1
+    schema_version = 2
     client_version = "0.2.0"
     python_version = "3.12.3"
     django_version = "5.1.2"
@@ -73,10 +68,3 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
     probe_sources = {"django-probe": "0.2.0"}
     patterns = {"probe:queryset_filter": 3}
     dependencies = {"django": "5.1.2"}
-
-
-class ApiTokenFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = ApiToken
-
-    user = factory.SubFactory(UserFactory)

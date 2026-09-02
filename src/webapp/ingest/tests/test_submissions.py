@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import uuid
-
 from django.test import override_settings
 
 from ingest.models import Submission
 from ingest.tests.factories import (
-    ApiTokenFactory,
     OrganizationFactory,
     ProjectFactory,
     UserFactory,
@@ -20,25 +17,16 @@ class AnonymousSubmissionTests(IngestTestCase):
 
         self.assertEqual(response.status_code, 201)
         submission = Submission.objects.get()
-        self.assertIsNone(submission.user)
         self.assertEqual(submission.patterns, {"probe:queryset_filter": 3})
         self.assertEqual(submission.files_scanned, 12)
 
-    def test_project_key_stored(self):
-        key = uuid.uuid4()
-
-        self.assertEqual(self.post(payload(project_key=str(key))).status_code, 201)
-        submission = Submission.objects.get()
-        self.assertEqual(submission.project_key, key)
-        self.assertIsNone(submission.project)
-
-    def test_registered_project_is_unassigned(self):
-        """Anonymous submissions cannot claim a registered project by knowing its key."""
+    def test_body_token_field_is_ignored(self):
+        """Only the Authorization header can attribute a submission to a project."""
         owner = UserFactory(username="owner")
         organization = OrganizationFactory(name="Django team", owner=owner)
         project = ProjectFactory(organization=organization, name="Website")
 
-        response = self.post(payload(project_key=str(project.key)))
+        response = self.post(payload(token=project.token))
 
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(Submission.objects.get().project)
@@ -47,57 +35,20 @@ class AnonymousSubmissionTests(IngestTestCase):
         self.assertEqual(self.client.get(self.url).status_code, 405)
 
 
-class TokenTests(IngestTestCase):
+class ProjectTokenTests(IngestTestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = UserFactory(username="dev")
-        cls.token = ApiTokenFactory(user=cls.user)
-
-    def setUp(self):
-        super().setUp()
-
-    def test_attaches_to_account(self):
-        response = self.post(payload(), HTTP_AUTHORIZATION=f"Token {self.token.key}")
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Submission.objects.get().user, self.user)
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+        cls.project = ProjectFactory(organization=cls.organization, name="Website")
 
     def test_registered_project(self):
-        """An authenticated organization member can submit to its project."""
-        organization = OrganizationFactory(name="Django team", owner=self.user)
-        project = ProjectFactory(organization=organization, name="Website")
-
         response = self.post(
-            payload(project_key=str(project.key)),
-            HTTP_AUTHORIZATION=f"Token {self.token.key}",
+            payload(), HTTP_AUTHORIZATION=f"Token {self.project.token}"
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(Submission.objects.get().project, project)
-
-    def test_unknown_project(self):
-        """Authenticated submissions cannot use an unregistered project key."""
-        response = self.post(
-            payload(project_key=str(uuid.uuid4())),
-            HTTP_AUTHORIZATION=f"Token {self.token.key}",
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(Submission.objects.count(), 0)
-
-    def test_inaccessible_project(self):
-        """Authenticated submissions cannot target another organization's project."""
-        other_user = UserFactory(username="other")
-        organization = OrganizationFactory(name="Other team", owner=other_user)
-        project = ProjectFactory(organization=organization, name="Private")
-
-        response = self.post(
-            payload(project_key=str(project.key)),
-            HTTP_AUTHORIZATION=f"Token {self.token.key}",
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(Submission.objects.count(), 0)
+        self.assertEqual(Submission.objects.get().project, self.project)
 
     def test_unknown_token_rejected(self):
         """A wrong token is an error, not a silent downgrade to anonymous."""

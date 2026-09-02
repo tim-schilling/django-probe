@@ -13,7 +13,6 @@ MEMBER_USERNAME = "organization-member"
 MEMBER_PASSWORD = "Organization-member-password"
 ORGANIZATION_NAME = "Django team"
 PROJECT_NAME = "Django website"
-PROJECT_KEY = "4dd9b8fb-65f7-4d09-8af7-4407c9e07de4"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -35,29 +34,10 @@ def test_account_journey(
     page.get_by_label("Password:", exact=True).fill(PASSWORD)
     page.get_by_label("Password (again):").fill(PASSWORD)
     page.get_by_role("button", name="Create account").click()
-    page.wait_for_url("**/token/")
-
-    token = page.locator("#api-token")
-    expect(token).to_be_visible()
-    original_token = token.inner_text()
-    expect(page.get_by_role("link", name="Style guide")).to_have_count(0)
-    assert_no_accessibility_violations(page)
-
-    page.get_by_role("button", name="Regenerate API token").click()
-    page.wait_for_url("**/token/")
-    replacement_token = token.inner_text()
-    assert replacement_token != original_token
-
-    rejected = page.request.post(
-        f"{live_server.url}/api/submissions/",
-        headers={"Authorization": f"Token {original_token}"},
-        data=payload(project_key=PROJECT_KEY),
-    )
-    assert rejected.status == 401
-
-    page.get_by_role("link", name="Account", exact=True).click()
+    page.wait_for_url("**/account/")
     expect(page.get_by_role("heading", name="Your account")).to_be_visible()
     expect(page.get_by_text("No organizations yet.")).to_be_visible()
+    expect(page.get_by_role("link", name="Style guide")).to_have_count(0)
     assert_no_accessibility_violations(page)
 
     page.get_by_role("link", name="Create organization").click()
@@ -73,11 +53,28 @@ def test_account_journey(
     expect(page.get_by_role("heading", name="Create a project")).to_be_visible()
     assert_no_accessibility_violations(page)
     page.get_by_label("Name:").fill(PROJECT_NAME)
-    page.get_by_label("Key:").fill(PROJECT_KEY)
     page.get_by_role("button", name="Create project").click()
     expect(page.get_by_role("heading", name=PROJECT_NAME)).to_be_visible()
-    expect(page.get_by_role("code").filter(has_text=PROJECT_KEY)).to_be_visible()
     assert_no_accessibility_violations(page)
+
+    token = page.locator("#project-token")
+    expect(token).to_be_visible()
+    page.get_by_role("button", name="Show token").click()
+    original_token = token.inner_text()
+    assert len(original_token) == 64
+    assert_no_accessibility_violations(page)
+
+    page.get_by_role("button", name="Regenerate token").click()
+    page.get_by_role("button", name="Show token").click()
+    replacement_token = token.inner_text()
+    assert replacement_token != original_token
+
+    rejected = page.request.post(
+        f"{live_server.url}/api/submissions/",
+        headers={"Authorization": f"Token {original_token}"},
+        data=payload(),
+    )
+    assert rejected.status == 401
 
     page.get_by_role("link", name=f"← Back to {ORGANIZATION_NAME}").click()
     page.get_by_role("link", name="Manage members").click()
@@ -92,7 +89,7 @@ def test_account_journey(
     accepted = page.request.post(
         f"{live_server.url}/api/submissions/",
         headers={"Authorization": f"Token {replacement_token}"},
-        data=payload(project_key=PROJECT_KEY),
+        data=payload(),
     )
     assert accepted.status == 201
 

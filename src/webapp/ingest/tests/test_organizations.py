@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import uuid
-
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
@@ -99,9 +97,9 @@ class OrganizationAccessTests(TestCase):
         )
 
     def test_member_access(self):
-        """Members see organization projects and submissions from every member."""
-        owner_submission = SubmissionFactory(user=self.owner, project=self.project)
-        member_submission = SubmissionFactory(user=self.member, project=self.project)
+        """Members see organization projects and all of a project's submissions."""
+        first_submission = SubmissionFactory(project=self.project)
+        second_submission = SubmissionFactory(project=self.project)
         self.client.force_login(self.member)
 
         organization_response = self.client.get(
@@ -114,11 +112,11 @@ class OrganizationAccessTests(TestCase):
         self.assertContains(organization_response, self.project.name)
         self.assertEqual(
             list(organization_response.context["recent_submissions"]),
-            [member_submission, owner_submission],
+            [second_submission, first_submission],
         )
         self.assertEqual(
             list(project_response.context["submissions"]),
-            [member_submission, owner_submission],
+            [second_submission, first_submission],
         )
 
     def test_outsider_access(self):
@@ -155,11 +153,24 @@ class OrganizationAccessTests(TestCase):
         )
         project_response = self.client.post(
             reverse("project-create", args=[self.organization.pk]),
-            {"name": "New project", "key": str(uuid.uuid4())},
+            {"name": "New project"},
         )
 
         self.assertEqual(members_response.status_code, 403)
         self.assertEqual(project_response.status_code, 403)
+
+    def test_member_cannot_regenerate_token(self):
+        """Ordinary members cannot regenerate a project's token."""
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse(
+                "project-token-regenerate",
+                args=[self.organization.pk, self.project.pk],
+            )
+        )
+
+        self.assertEqual(response.status_code, 403)
 
 
 class OrganizationManagementViewTests(TestCase):
@@ -191,21 +202,39 @@ class OrganizationManagementViewTests(TestCase):
         )
 
     def test_create_project(self):
-        """Owners can create projects within their organization."""
-        key = uuid.uuid4()
-
+        """Owners can create projects within their organization; the token is generated."""
         response = self.client.post(
             reverse("project-create", args=[self.organization.pk]),
-            {"name": "Website", "key": str(key)},
+            {"name": "Website"},
         )
 
         project = Project.objects.get(organization=self.organization)
-        self.assertEqual(project.key, key)
+        self.assertTrue(project.token)
         self.assertRedirects(
             response,
             reverse("project-detail", args=[self.organization.pk, project.pk]),
             fetch_redirect_response=False,
         )
+
+    def test_regenerate_token(self):
+        """Owners can regenerate a project's token."""
+        project = ProjectFactory(organization=self.organization, name="Website")
+        original_token = project.token
+
+        response = self.client.post(
+            reverse(
+                "project-token-regenerate",
+                args=[self.organization.pk, project.pk],
+            )
+        )
+
+        project.refresh_from_db()
+        self.assertRedirects(
+            response,
+            reverse("project-detail", args=[self.organization.pk, project.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertNotEqual(project.token, original_token)
 
     def test_member_lifecycle(self):
         """Owners can add, promote, demote, and remove another member."""
