@@ -8,4 +8,4 @@ __all__ = ["__version__"]
 
 # Suffixed with DJANGO_PROBE_VERSION_DEV so CI can build throwaway dev
 # distributions to test the release process. See .github/workflows/test_release.yml
-__version__ = "0.1.0" + os.environ.get("DJANGO_PROBE_VERSION_DEV", "")
+__version__ = "0.2.0" + os.environ.get("DJANGO_PROBE_VERSION_DEV", "")
