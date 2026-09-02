@@ -27,12 +27,11 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["schema_version"], 2)
         self.assertEqual(payload["files_scanned"], 1)
         self.assertEqual(payload["patterns"]["probe:transaction_atomic"], 1)
         self.assertEqual(payload["patterns"]["probe:queryset_filter"], 1)
         self.assertIn("django-probe", payload["probe_sources"])
-        self.assertIsNone(payload["project_key"])
 
     def test_leaks_nothing_identifying(self):
         """The privacy claim, asserted rather than assumed."""
