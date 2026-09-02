@@ -59,9 +59,7 @@ so Coolify can pull it with no registry credentials.
 In Coolify, add the app as a **Docker Image** resource (not a Dockerfile build)
 pointing at that image tag. To redeploy automatically when CI publishes a new image,
 copy the resource's deploy webhook URL and an API token from Coolify, and add them to
-the repo as Actions variables/secrets: `COOLIFY_WEBHOOK_URL` (repository variable) and
-`COOLIFY_API_TOKEN` (repository secret). The workflow's last step calls that webhook
-once the push succeeds; omit the variable to skip it and redeploy manually instead.
+the repo as Actions secrets: `COOLIFY_WEBHOOK_URL` and `COOLIFY_API_TOKEN`.
 
 Whichever way the image reaches Coolify, set these environment variables on the
 resource:

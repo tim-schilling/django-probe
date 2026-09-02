@@ -55,10 +55,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trigger Coolify redeploy
-        if: ${{ vars.COOLIFY_WEBHOOK_URL != '' }}
+        if: ${{ secrets.COOLIFY_WEBHOOK_URL != '' }}
         env:
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-          COOLIFY_WEBHOOK_URL: ${{ vars.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
         run: |
           curl --fail --silent --show-error \
             -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
