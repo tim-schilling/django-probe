@@ -63,5 +63,5 @@ jobs:
 
 | Env var | Purpose |
 |---|---|
-| `DJANGO_PROBE_SERVER` | Overrides the default submit target (`https://api.djangoprobe.org`). |
+| `DJANGO_PROBE_SERVER` | Overrides the default submit target (`https://djangoprobe.org`). |
 | `DJANGO_PROBE_PROJECT_KEY` | Groups submissions into a project. |
