@@ -19,12 +19,11 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project --group webapp
 
 COPY src/webapp ./src/webapp
-COPY docker/entrypoint.sh ./docker/entrypoint.sh
 # ENVIRONMENT must be non-dev here so collectstatic uses the same whitenoise
 # manifest storage as production; otherwise no staticfiles.json is baked into
 # the image and requests fail at runtime with "Missing staticfiles manifest entry".
-RUN chmod +x docker/entrypoint.sh \
+RUN chmod +x src/webapp/docker/entrypoint.sh \
     && DJANGO_PROBE_ENVIRONMENT=production python src/webapp/manage.py collectstatic --noinput
 
 EXPOSE 8000
-ENTRYPOINT ["docker/entrypoint.sh"]
+ENTRYPOINT ["src/webapp/docker/entrypoint.sh"]

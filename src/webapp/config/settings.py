@@ -48,7 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     # Only enable whitenoise in production so it doesn't warn about a missing
-    # staticfiles manifest; only that collectstatic (see Dockerfile) ever writes one.
+    # staticfiles manifest; only that collectstatic (see src/webapp/Dockerfile) ever writes one.
     *(
         ["whitenoise.middleware.WhiteNoiseMiddleware"]
         if ENVIRONMENT == "production"

@@ -33,8 +33,8 @@ test-all` runs the full [tox](https://tox.wiki/) matrix.
 
 ## Deployment
 
-The root `Dockerfile` builds `src/webapp` only. On start, the
-container's `docker/entrypoint.sh` serves via gunicorn. Coolify is configured to collectstatic
+`src/webapp/Dockerfile` builds `src/webapp` only. On start, the
+container's `src/webapp/docker/entrypoint.sh` serves via gunicorn. Coolify is configured to collectstatic
 and migrate the database on the pre-deployment step.
 
 ```console
@@ -48,8 +48,8 @@ $ just serve      # serves on http://localhost:8000
 Images are built in CI rather than by Coolify itself:
 [`.github/workflows/webapp-image.yml`](https://github.com/django-probe/django-probe/blob/main/.github/workflows/webapp-image.yml)
 builds and pushes `ghcr.io/<owner>/<repo>:latest` (plus a short-SHA tag) on every push
-to `main` that touches `src/webapp/`, the `Dockerfile`, or `docker/`. It's scoped to
-those paths, and never triggers on tags, so it can't collide with tag-based PyPI
+to `main` that touches `src/webapp/`. It's scoped to
+that path, and never triggers on tags, so it can't collide with tag-based PyPI
 releases of `django_probe` later.
 
 Note: The first push creates the GHCR package as private

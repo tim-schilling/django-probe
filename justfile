@@ -55,7 +55,7 @@ submit path="." url="http://localhost:8000":
 
 # Build the deployment image for src/webapp
 docker-build:
-    docker build -t django-probe-webapp .
+    docker build -f src/webapp/Dockerfile -t django-probe-webapp .
 
 docker-postgres:
     #!/usr/bin/env bash
