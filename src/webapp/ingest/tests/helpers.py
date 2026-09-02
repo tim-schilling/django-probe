@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from django.core.cache import cache
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
@@ -27,8 +26,6 @@ def payload(**overrides: Any) -> dict[str, Any]:
 
 class IngestTestCase(TestCase):
     def setUp(self):
-        # Rate limits are cache-backed; a leaked bucket would fail later tests.
-        cache.clear()
         self.url = reverse("submissions")
 
     def post(self, body: Any, **extra: Any) -> HttpResponse:

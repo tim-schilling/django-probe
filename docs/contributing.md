@@ -74,7 +74,6 @@ resource:
 | `DJANGO_PROBE_ALLOWED_HOSTS` | yes | Comma-separated hostnames, e.g. `probe.example.com`. Defaults to `*`. |
 | `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` | yes | Comma-separated origins with scheme, e.g. `https://probe.example.com`. Needed because Coolify's proxy terminates TLS in front of the container. |
 | `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your PostgreSQL database. |
-| `REDIS_URL` | recommended | e.g. `redis://host:6379/0`. Falls back to per-process LocMemCache if unset, which breaks rate limiting across multiple workers/replicas. |
 | `DJANGO_PROBE_GITHUB_CLIENT_ID` / `DJANGO_PROBE_GITHUB_SECRET` | optional | Enables GitHub sign-in. |
 | `SENTRY_DSN` | optional | Enables Sentry error and performance monitoring. Leave unset to disable Sentry; do not use a production DSN for local development or tests. |
 | `SENTRY_RELEASE` | recommended with Sentry | Deployed release identifier, ideally an immutable image or Git SHA such as `django-probe@abc123`. |
