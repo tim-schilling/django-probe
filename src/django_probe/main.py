@@ -6,10 +6,10 @@ import argparse
 import json
 import os
 import sys
-import uuid
 from collections.abc import Sequence
 from pathlib import Path
 
+from django_probe.config import resolve_token
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
@@ -45,17 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the payload instead of sending it.",
     )
 
-    sub.add_parser("init", help="Print a random project key.")
-
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-
-    if args.command == "init":
-        print(uuid.uuid4())
-        return 0
 
     root = Path(args.path).resolve()
 
@@ -70,7 +64,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     try:
-        response = submit(payload, args.server_url)
+        response = submit(payload, args.server_url, token=resolve_token(root))
     except SubmitError as exc:
         print(str(exc), file=sys.stderr)
         return 1

@@ -56,7 +56,11 @@ urlpatterns = [
         views.project_detail,
         name="project-detail",
     ),
-    path("token/", views.token, name="token"),
+    path(
+        "organizations/<uuid:organization_id>/projects/<int:project_id>/regenerate-token/",
+        views.project_token_regenerate,
+        name="project-token-regenerate",
+    ),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
 ]

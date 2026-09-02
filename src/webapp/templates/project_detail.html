@@ -1,12 +1,65 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ project.name }} | Django Probe{% endblock %}
 
 {% block content %}
 <header class="page-header">
   <p class="eyebrow">{{ organization.name }}</p>
   <h1>{{ project.name }}</h1>
-  <p class="lede">Project UUID: <code>{{ project.key }}</code></p>
+  <p class="lede">Use this token to attach submissions to this project.</p>
 </header>
+
+<div class="token-field">
+  <pre tabindex="0"><code id="project-token">{{ project.token }}</code></pre>
+  <button type="button" class="button button--secondary" data-token-toggle="project-token" aria-pressed="false">
+    <span data-token-toggle-label>Show token</span>
+  </button>
+</div>
+
+{% if membership.role == "owner" %}
+<form method="post" action="{% url 'project-token-regenerate' organization_id=organization.pk project_id=project.pk %}" class="token-regeneration">
+  {% csrf_token %}
+  <p><strong>Regenerating immediately invalidates the current token.</strong></p>
+  <button type="submit">Regenerate token</button>
+</form>
+{% endif %}
+
+<div class="panel panel--caution">
+<p>
+  Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. Set
+  <code>DJANGO_PROBE_TOKEN</code> in your environment instead (a CI secret, or a local
+  <code>.env</code> you don't commit).
+</p>
+</div>
+
+<h2>Use it locally</h2>
+<p>Pass it when submitting to attach the submission to this project:</p>
+
+<pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=&lt;paste the token above&gt;
+django-probe submit .</code></pre>
+
+<h2>Use it in CI</h2>
+
+<h3>GitHub Actions</h3>
+<p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then reference it in your workflow:</p>
+
+{% verbatim %}
+<pre tabindex="0"><code>- name: Report Django Probe metrics
+  env:
+    DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+  run: |
+    pip install django-probe
+    django-probe submit .</code></pre>
+{% endverbatim %}
+
+<h3>GitLab CI</h3>
+<p>Add a masked CI/CD variable named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; CI/CD &rarr; Variables</strong> &mdash; GitLab exposes it to the job automatically, no extra config needed:</p>
+
+<pre tabindex="0"><code>report_probe:
+  stage: test
+  script:
+    - pip install django-probe
+    - django-probe submit .</code></pre>
 
 <h2>Submissions</h2>
 {% if submissions %}
@@ -14,9 +67,11 @@
 {% else %}
   <div class="panel">
     <p><strong>No submissions for this project yet.</strong></p>
-    <p>Use this UUID with your API token to attach the next submission.</p>
+    <p>Use the token above to attach the next submission.</p>
   </div>
 {% endif %}
 
 <p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>
 {% endblock %}
+
+{% block scripts %}<script src="{% static 'js/token-reveal.js' %}" defer></script>{% endblock %}

@@ -8,8 +8,6 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
-from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -23,7 +21,6 @@ from ingest.forms import (
     ProjectForm,
 )
 from ingest.models import (
-    ApiToken,
     Organization,
     OrganizationMembership,
     Project,
@@ -36,24 +33,24 @@ def _error(message: str, status: int) -> JsonResponse:
     return JsonResponse({"status": "error", "detail": message}, status=status)
 
 
-def _resolve_token(request) -> tuple[object | None, JsonResponse | None]:
-    """Resolve an optional API token.
+def _resolve_project(request) -> tuple[Project | None, JsonResponse | None]:
+    """Resolve an optional project token from the Authorization header.
 
     Submitting without a token is the default path and must stay frictionless. A token
-    that is present but invalid returns an error rather than falling back to an
-    anonymous submission, so that a typo does not quietly detach a user's submissions
-    from their account.
+    that is present but doesn't match a real project returns an error rather than
+    falling back to an anonymous submission, so that a typo does not quietly detach a
+    submission from its project.
     """
     header = request.headers.get("Authorization", "")
     if not header:
         return None, None
-    scheme, _, key = header.partition(" ")
-    if scheme.lower() != "token" or not key:
+    scheme, _, token = header.partition(" ")
+    if scheme.lower() != "token" or not token:
         return None, _error("malformed Authorization header", 401)
-    token = ApiToken.objects.filter(key=key).select_related("user").first()
-    if token is None:
-        return None, _error("unknown API token", 401)
-    return token.user, None
+    project = Project.objects.filter(token=token).select_related("organization").first()
+    if project is None:
+        return None, _error("unknown token", 401)
+    return project, None
 
 
 def _membership_or_404(request, organization_id: uuid.UUID) -> OrganizationMembership:
@@ -84,7 +81,7 @@ def submissions(request) -> JsonResponse:
     except (UnicodeDecodeError, json.JSONDecodeError):
         return _error("body must be valid UTF-8 JSON", 400)
 
-    user, auth_error = _resolve_token(request)
+    project, auth_error = _resolve_project(request)
     if auth_error is not None:
         return auth_error
 
@@ -93,20 +90,7 @@ def submissions(request) -> JsonResponse:
     except ValidationError as exc:
         return _error(str(exc), 400)
 
-    project = None
-    if user is not None and cleaned["project_key"] is not None:
-        project = (
-            Project.objects.filter(
-                key=cleaned["project_key"],
-                organization__memberships__user=user,
-            )
-            .select_related("organization")
-            .first()
-        )
-        if project is None:
-            return _error("unknown or inaccessible project", 403)
-
-    Submission.objects.create(user=user, project=project, **cleaned)
+    Submission.objects.create(project=project, **cleaned)
     return JsonResponse({"status": "ok"}, status=201)
 
 
@@ -139,8 +123,7 @@ def account_submissions(request) -> HttpResponse:
         "organization_id", flat=True
     )
     submissions = Submission.objects.filter(
-        Q(project__organization_id__in=organization_ids)
-        | Q(project__isnull=True, user=request.user)
+        project__organization_id__in=organization_ids
     ).select_related("project", "project__organization")
     return render(
         request,
@@ -169,7 +152,7 @@ def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
     projects = membership.organization.projects.all()
     submissions = Submission.objects.filter(
         project__organization=membership.organization
-    ).select_related("project", "user")[:10]
+    ).select_related("project")[:10]
     return render(
         request,
         "organization_detail.html",
@@ -221,8 +204,25 @@ def project_detail(
             "membership": membership,
             "organization": membership.organization,
             "project": project,
-            "submissions": project.submissions.select_related("user"),
+            "submissions": project.submissions.all(),
         },
+    )
+
+
+@login_required
+@require_POST
+def project_token_regenerate(
+    request, organization_id: uuid.UUID, project_id: int
+) -> HttpResponse:
+    membership = _owner_membership_or_404(request, organization_id)
+    project = get_object_or_404(
+        Project,
+        pk=project_id,
+        organization=membership.organization,
+    )
+    project.regenerate_token()
+    return redirect(
+        "project-detail", organization_id=organization_id, project_id=project_id
     )
 
 
@@ -333,22 +333,3 @@ def organization_leave(request, organization_id: uuid.UUID) -> HttpResponse:
     form.save()
     messages.success(request, f"You left {organization_name}.")
     return redirect("account")
-
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def token(request) -> HttpResponse:
-    """Show the signed-in user's API token, and let them roll it.
-
-    Scanning, submitting, and grouping by project key all work without visiting it.
-    """
-    if request.method == "POST":
-        with transaction.atomic():
-            ApiToken.objects.filter(user=request.user).delete()
-            ApiToken.objects.create(user=request.user)
-        return redirect("token")
-
-    api_token = ApiToken.objects.filter(user=request.user).first()
-    if api_token is None:
-        api_token = ApiToken.objects.create(user=request.user)
-    return render(request, "token.html", {"api_token": api_token})

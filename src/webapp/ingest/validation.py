@@ -12,9 +12,7 @@ enforced; the count and length caps bound the damage instead.
 
 from __future__ import annotations
 
-import uuid
-
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
@@ -82,19 +80,11 @@ def validate_payload(payload: object) -> dict:
     if not 0 <= files_scanned <= MAX_FILES:
         raise ValidationError("files_scanned out of range")
 
-    project_key = payload.get("project_key")
-    if project_key is not None:
-        try:
-            project_key = uuid.UUID(str(project_key))
-        except (ValueError, AttributeError, TypeError):
-            raise ValidationError("project_key must be a UUID") from None
-
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": _string(payload.get("client_version", ""), "client_version"),
         "python_version": _string(payload.get("python_version", ""), "python_version"),
         "django_version": _string(payload.get("django_version", ""), "django_version"),
-        "project_key": project_key,
         "files_scanned": files_scanned,
         "probe_sources": _str_map(
             payload.get("probe_sources", {}), "probe_sources", MAX_PROBE_SOURCES
