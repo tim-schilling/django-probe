@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import uuid
 
-from django.contrib.auth.models import User
 from django.test import override_settings
 
-from ingest.models import ApiToken, Organization, Project, Submission
+from ingest.models import Submission
+from ingest.tests.factories import (
+    ApiTokenFactory,
+    OrganizationFactory,
+    ProjectFactory,
+    UserFactory,
+)
 from ingest.tests.helpers import IngestTestCase, payload
 
 
@@ -29,11 +34,9 @@ class AnonymousSubmissionTests(IngestTestCase):
 
     def test_registered_project_is_unassigned(self):
         """Anonymous submissions cannot claim a registered project by knowing its key."""
-        owner = User.objects.create_user("owner")
-        organization = Organization.objects.create_with_owner(
-            name="Django team", owner=owner
-        )
-        project = Project.objects.create(organization=organization, name="Website")
+        owner = UserFactory(username="owner")
+        organization = OrganizationFactory(name="Django team", owner=owner)
+        project = ProjectFactory(organization=organization, name="Website")
 
         response = self.post(payload(project_key=str(project.key)))
 
@@ -47,8 +50,8 @@ class AnonymousSubmissionTests(IngestTestCase):
 class TokenTests(IngestTestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create_user("dev")
-        cls.token = ApiToken.objects.create(user=cls.user)
+        cls.user = UserFactory(username="dev")
+        cls.token = ApiTokenFactory(user=cls.user)
 
     def setUp(self):
         super().setUp()
@@ -61,10 +64,8 @@ class TokenTests(IngestTestCase):
 
     def test_registered_project(self):
         """An authenticated organization member can submit to its project."""
-        organization = Organization.objects.create_with_owner(
-            name="Django team", owner=self.user
-        )
-        project = Project.objects.create(organization=organization, name="Website")
+        organization = OrganizationFactory(name="Django team", owner=self.user)
+        project = ProjectFactory(organization=organization, name="Website")
 
         response = self.post(
             payload(project_key=str(project.key)),
@@ -86,11 +87,9 @@ class TokenTests(IngestTestCase):
 
     def test_inaccessible_project(self):
         """Authenticated submissions cannot target another organization's project."""
-        other_user = User.objects.create_user("other")
-        organization = Organization.objects.create_with_owner(
-            name="Other team", owner=other_user
-        )
-        project = Project.objects.create(organization=organization, name="Private")
+        other_user = UserFactory(username="other")
+        organization = OrganizationFactory(name="Other team", owner=other_user)
+        project = ProjectFactory(organization=organization, name="Private")
 
         response = self.post(
             payload(project_key=str(project.key)),

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
@@ -13,16 +12,20 @@ from ingest.models import (
     OrganizationMembership,
     Project,
 )
-from ingest.tests.test_accounts import PASSWORD, create_submission
+from ingest.tests.factories import (
+    OrganizationFactory,
+    OrganizationMembershipFactory,
+    ProjectFactory,
+    SubmissionFactory,
+    UserFactory,
+)
 
 
 class OrganizationModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.owner = User.objects.create_user("owner", password=PASSWORD)
-        cls.organization = Organization.objects.create_with_owner(
-            name="Django team", owner=cls.owner
-        )
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
         cls.owner_membership = cls.owner.organization_memberships.get(
             organization=cls.organization
         )
@@ -38,7 +41,7 @@ class OrganizationModelTests(TestCase):
     def test_unique_membership(self):
         """A user has at most one membership in an organization."""
         with self.assertRaises(IntegrityError):
-            OrganizationMembership.objects.create(
+            OrganizationMembershipFactory(
                 organization=self.organization,
                 user=self.owner,
                 role=OrganizationMembership.Role.MEMBER,
@@ -46,7 +49,7 @@ class OrganizationModelTests(TestCase):
 
     def test_valid_roles(self):
         """Membership roles are limited to the declared choices."""
-        member = User.objects.create_user("member")
+        member = UserFactory(username="member")
         membership = OrganizationMembership(
             organization=self.organization,
             user=member,
@@ -58,11 +61,11 @@ class OrganizationModelTests(TestCase):
 
     def test_project_organization(self):
         """Every project belongs to exactly one organization."""
-        project = Project.objects.create(
+        project = ProjectFactory(
             organization=self.organization,
             name="Website",
         )
-        second_project = Project.objects.create(
+        second_project = ProjectFactory(
             organization=self.organization,
             name="Documentation",
         )
@@ -78,26 +81,24 @@ class OrganizationModelTests(TestCase):
 class OrganizationAccessTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.owner = User.objects.create_user("owner", password=PASSWORD)
-        cls.member = User.objects.create_user("member", password=PASSWORD)
-        cls.outsider = User.objects.create_user("outsider", password=PASSWORD)
-        cls.organization = Organization.objects.create_with_owner(
-            name="Django team", owner=cls.owner
-        )
-        OrganizationMembership.objects.create(
+        cls.owner = UserFactory(username="owner")
+        cls.member = UserFactory(username="member")
+        cls.outsider = UserFactory(username="outsider")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+        OrganizationMembershipFactory(
             organization=cls.organization,
             user=cls.member,
             role=OrganizationMembership.Role.MEMBER,
         )
-        cls.project = Project.objects.create(
+        cls.project = ProjectFactory(
             organization=cls.organization,
             name="Website",
         )
 
     def test_member_access(self):
         """Members see organization projects and submissions from every member."""
-        owner_submission = create_submission(self.owner, self.project)
-        member_submission = create_submission(self.member, self.project)
+        owner_submission = SubmissionFactory(user=self.owner, project=self.project)
+        member_submission = SubmissionFactory(user=self.member, project=self.project)
         self.client.force_login(self.member)
 
         organization_response = self.client.get(
@@ -133,9 +134,7 @@ class OrganizationAccessTests(TestCase):
 
     def test_cross_organization_lookup(self):
         """A project URL cannot address the project through another organization."""
-        other_organization = Organization.objects.create_with_owner(
-            name="Other team", owner=self.member
-        )
+        other_organization = OrganizationFactory(name="Other team", owner=self.member)
         self.client.force_login(self.member)
 
         response = self.client.get(
@@ -163,11 +162,9 @@ class OrganizationAccessTests(TestCase):
 class OrganizationManagementViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.owner = User.objects.create_user("owner", password=PASSWORD)
-        cls.member = User.objects.create_user("member", password=PASSWORD)
-        cls.organization = Organization.objects.create_with_owner(
-            name="Django team", owner=cls.owner
-        )
+        cls.owner = UserFactory(username="owner")
+        cls.member = UserFactory(username="member")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
 
     def setUp(self):
         self.client.force_login(self.owner)
@@ -258,7 +255,7 @@ class OrganizationManagementViewTests(TestCase):
             reverse("organization-member-add", args=[self.organization.pk]),
             {"username": "missing", "role": "member"},
         )
-        OrganizationMembership.objects.create(
+        OrganizationMembershipFactory(
             organization=self.organization,
             user=self.member,
             role=OrganizationMembership.Role.MEMBER,
@@ -315,7 +312,7 @@ class OrganizationManagementViewTests(TestCase):
 
     def test_member_leave(self):
         """An ordinary member can leave an organization."""
-        membership = OrganizationMembership.objects.create(
+        membership = OrganizationMembershipFactory(
             organization=self.organization,
             user=self.member,
             role=OrganizationMembership.Role.MEMBER,
@@ -337,8 +334,8 @@ class OrganizationManagementViewTests(TestCase):
 
     def test_owner_leave_with_successor(self):
         """An owner can leave when another owner remains."""
-        second_owner = User.objects.create_user("second-owner", password=PASSWORD)
-        OrganizationMembership.objects.create(
+        second_owner = UserFactory(username="second-owner")
+        OrganizationMembershipFactory(
             organization=self.organization,
             user=second_owner,
             role=OrganizationMembership.Role.OWNER,

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+
+from ingest.tests.factories import UserFactory
 
 
 class StyleGuideTests(TestCase):
     def test_style_guide_requires_staff_access(self):
-        user = User.objects.create_user("member")
+        user = UserFactory(username="member")
         self.client.force_login(user)
 
         response = self.client.get(reverse("style-guide"))
@@ -18,7 +19,7 @@ class StyleGuideTests(TestCase):
         )
 
     def test_style_guide_renders_component_catalog(self):
-        user = User.objects.create_user("reviewer", is_staff=True)
+        user = UserFactory(username="reviewer", is_staff=True)
         self.client.force_login(user)
 
         response = self.client.get(reverse("style-guide"))
