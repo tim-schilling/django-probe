@@ -15,15 +15,13 @@ $ django-probe submit .    # send it, anonymously
 
 ## Reporting on a schedule
 
-The project key is what groups all submissions to the same project. To configure, generate a project key:
+A project's token is what groups its submissions and attributes them to your
+organization. Create an organization and a project at
+[djangoprobe.org](https://djangoprobe.org) — the token is generated for you on the
+project's page.
 
-```console
-$ django-probe init
-9f2c1e04-…
-```
-
-Then add it as a repository secret at **Settings → Secrets and variables → Actions → New
-repository secret**, named `DJANGO_PROBE_PROJECT_KEY`, then add a workflow like:
+Add it as a repository secret at **Settings → Secrets and variables → Actions → New
+repository secret**, named `DJANGO_PROBE_TOKEN`, then add a workflow like:
 
 ```yaml
 # .github/workflows/django-probe.yml
@@ -49,8 +47,19 @@ jobs:
       - run: pip install . django-probe
 
       - env:
-          DJANGO_PROBE_PROJECT_KEY: ${{ secrets.DJANGO_PROBE_PROJECT_KEY }}
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
         run: django-probe submit .
+```
+
+On GitLab CI, add a masked CI/CD variable named `DJANGO_PROBE_TOKEN` under
+**Settings → CI/CD → Variables** — GitLab exposes it to the job automatically:
+
+```yaml
+report_probe:
+  stage: test
+  script:
+    - pip install . django-probe
+    - django-probe submit .
 ```
 
 ## CLI reference
@@ -59,9 +68,8 @@ jobs:
 |---|---|
 | `django-probe scan [path]` | Print the payload as JSON without sending anything. |
 | `django-probe submit [path] [--server-url] [--dry-run]` | Scan, then send the payload to a server. |
-| `django-probe init` | Print a random project key. |
 
 | Env var | Purpose |
 |---|---|
 | `DJANGO_PROBE_SERVER` | Overrides the default submit target (`https://djangoprobe.org`). |
-| `DJANGO_PROBE_PROJECT_KEY` | Groups submissions into a project. |
+| `DJANGO_PROBE_TOKEN` | The token copied from a project's page; attributes submissions to it. |
