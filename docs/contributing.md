@@ -38,9 +38,12 @@ container's `docker/entrypoint.sh` runs migrations and then serves via gunicorn,
 separate release step is needed.
 
 ```console
-$ just docker-build
-$ just docker-run    # serves on http://localhost:8000, using sqlite + in-process cache
+$ just bootstrap  # installs dependencies and hooks, starts PostgreSQL, runs migrations
+$ just serve      # serves on http://localhost:8000
 ```
+
+`just bootstrap` is safe to rerun. It starts the existing
+`django-probe-postgres` container when present instead of creating a duplicate.
 
 Images are built in CI rather than by Coolify itself:
 [`.github/workflows/webapp-image.yml`](https://github.com/django-probe/django-probe/blob/main/.github/workflows/webapp-image.yml)
@@ -69,7 +72,7 @@ resource:
 | `DJANGO_PROBE_DEBUG` | yes | Set to `0` in production. Defaults to `1`. |
 | `DJANGO_PROBE_ALLOWED_HOSTS` | yes | Comma-separated hostnames, e.g. `probe.example.com`. Defaults to `*`. |
 | `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` | yes | Comma-separated origins with scheme, e.g. `https://probe.example.com`. Needed because Coolify's proxy terminates TLS in front of the container. |
-| `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your existing database. Falls back to a local sqlite file if unset. |
+| `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your PostgreSQL database. |
 | `REDIS_URL` | recommended | e.g. `redis://host:6379/0`. Falls back to per-process LocMemCache if unset, which breaks rate limiting across multiple workers/replicas. |
 | `DJANGO_PROBE_GITHUB_CLIENT_ID` / `DJANGO_PROBE_GITHUB_SECRET` | optional | Enables GitHub sign-in. |
 | `SENTRY_DSN` | optional | Enables Sentry error and performance monitoring. Leave unset to disable Sentry; do not use a production DSN for local development or tests. |

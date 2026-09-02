@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from ingest.models import ApiToken
+from ingest.models import ApiToken, User
 from ingest.tests.factories import (
     PASSWORD,
     ApiTokenFactory,
@@ -47,6 +46,9 @@ class AccountTests(TestCase):
 
     def setUp(self):
         self.client.force_login(self.user)
+
+    def test_user_uses_uuid7_primary_key(self):
+        self.assertEqual(self.user.pk.version, 7)
 
     def test_empty_state(self):
         """A new account points the user toward organization and token setup."""

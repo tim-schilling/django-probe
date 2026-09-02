@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import factory
-from django.contrib.auth.models import User
 
 from ingest.models import (
     ApiToken,
@@ -9,6 +8,7 @@ from ingest.models import (
     OrganizationMembership,
     Project,
     Submission,
+    User,
 )
 
 PASSWORD = "Account-test-password"

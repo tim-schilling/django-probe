@@ -2,7 +2,7 @@
 
 # Runs the src/webapp server only. The django-probe client package (src/django_probe)
 # is never imported by the webapp, so it isn't copied into this image.
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
