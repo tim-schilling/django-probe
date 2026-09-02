@@ -13,7 +13,7 @@ from pathlib import Path
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
-DEFAULT_SERVER = "https://api.djangoprobe.org"
+DEFAULT_SERVER = "https://djangoprobe.org"
 
 
 def build_parser() -> argparse.ArgumentParser:
