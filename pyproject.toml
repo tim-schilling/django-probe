@@ -155,6 +155,7 @@ addopts = "--strict-markers --ignore=tests/e2e"
 DJANGO_SETTINGS_MODULE = "config.settings"
 pythonpath = [ ".", "src", "src/webapp" ]
 testpaths = [ "tests", "src/webapp" ]
+filterwarnings = [ "error" ]
 markers = [
   "webapp: exercises src/webapp rather than the django_probe library",
 ]

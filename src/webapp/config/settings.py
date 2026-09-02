@@ -43,7 +43,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    # Skip whitenoise in dev/test so it doesn't warn about a missing directory
+    *([] if DEBUG else ["whitenoise.middleware.WhiteNoiseMiddleware"]),
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

@@ -11,7 +11,6 @@ from ingest.models import (
     Organization,
     OrganizationMembership,
     Project,
-    User,
 )
 from ingest.tests.factories import (
     OrganizationFactory,
