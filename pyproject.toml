@@ -175,6 +175,3 @@ overrides = [
   { module = "config.*", ignore_errors = true },
   { module = "ingest.*", ignore_errors = true },
 ]
-
-[tool.django_probe]
-project_key = "1f3d9c62-8a41-4b7e-9d05-6c2e8f0a3b17"

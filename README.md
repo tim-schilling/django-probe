@@ -14,15 +14,17 @@ $ django-probe scan .                    # inspect the payload
 $ django-probe submit .                  # send it, anonymously
 ```
 
-No account is required. See [Getting started](https://docs.djangoprobe.org/getting-started/)
-for project keys, and [Privacy](https://docs.djangoprobe.org/privacy/)
-for exactly what a payload contains.
+No account is required for an anonymous, one-off report. See
+[Getting started](https://docs.djangoprobe.org/getting-started/) for project tokens,
+and [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload
+contains.
 
 ### Reporting automatically
 
-You should avoid reporting this manually. The project key can be set as an environment
-variable (`DJANGO_PROBE_PROJECT_KEY`), so it drops straight into a scheduled GitHub
-Action as a repository secret. See
+You should avoid reporting this manually. Create a project on
+[djangoprobe.org](https://djangoprobe.org) and copy its token, then set it as an
+environment variable (`DJANGO_PROBE_TOKEN`), so it drops straight into a scheduled
+GitHub Action as a repository secret. See
 [Getting started](https://docs.djangoprobe.org/getting-started/#reporting-on-a-schedule)
 for a workflow you can copy.
 
