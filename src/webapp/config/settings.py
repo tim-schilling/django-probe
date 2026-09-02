@@ -117,7 +117,7 @@ USE_TZ = True
 
 LOGIN_REDIRECT_URL = "/account/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-ACCOUNT_SIGNUP_REDIRECT_URL = "/token/"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/account/"
 
 # Accounts are strictly optional, so the server must run and ingest normally with no
 # GitHub credentials configured. The provider is only wired up when both are present.

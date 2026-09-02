@@ -1,8 +1,8 @@
-"""Read the optional project key from pyproject.toml.
+"""Read the optional project token from pyproject.toml.
 
-The key is a random UUID rather than a hash of the git remote. A hashed remote would
-be zero-config, but public repositories are enumerable, so such a hash is reversible
-by dictionary attack. A UUID has no preimage.
+The token isn't derived from anything about the project (like a hash of the git
+remote) — it's an opaque value copied from a project's page on the Django Probe web
+app, so it carries no information an attacker could work backward from.
 """
 
 from __future__ import annotations
@@ -16,14 +16,14 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-PROJECT_KEY_ENV = "DJANGO_PROBE_PROJECT_KEY"
+TOKEN_ENV = "DJANGO_PROBE_TOKEN"
 
 
 def pyproject_path(root: Path) -> Path:
     return root / "pyproject.toml"
 
 
-def read_project_key(root: Path) -> str | None:
+def read_token(root: Path) -> str | None:
     path = pyproject_path(root)
     if not path.is_file():
         return None
@@ -31,15 +31,15 @@ def read_project_key(root: Path) -> str | None:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
         return None
-    key = data.get("tool", {}).get("django_probe", {}).get("project_key")
-    return key if isinstance(key, str) and key else None
+    token = data.get("tool", {}).get("django_probe", {}).get("token")
+    return token if isinstance(token, str) and token else None
 
 
-def resolve_project_key(root: Path) -> str | None:
-    """Resolve the project key, preferring `DJANGO_PROBE_PROJECT_KEY` over pyproject.toml.
+def resolve_token(root: Path) -> str | None:
+    """Resolve the token, preferring `DJANGO_PROBE_TOKEN` over pyproject.toml.
 
-    The environment variable lets a private repository report as a stable project
-    without committing a project_key to pyproject.toml.
+    The environment variable lets a token be kept out of a committed pyproject.toml,
+    e.g. as a CI secret.
     """
-    env_key = os.environ.get(PROJECT_KEY_ENV)
-    return env_key or read_project_key(root)
+    env_token = os.environ.get(TOKEN_ENV)
+    return env_token or read_token(root)

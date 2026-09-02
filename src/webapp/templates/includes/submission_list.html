@@ -5,8 +5,6 @@
       <span class="item-list__meta">
         {% if submission.project %}
           <a href="{% url 'project-detail' organization_id=submission.project.organization_id project_id=submission.project_id %}">{{ submission.project.name }}</a> ·
-        {% elif submission.project_key %}
-          Project <code>{{ submission.project_key }}</code> ·
         {% endif %}
         Django {{ submission.django_version|default:"not detected" }} ·
         Python {{ submission.python_version }} ·

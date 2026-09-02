@@ -15,10 +15,7 @@ class OrganizationForm(forms.ModelForm):
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ["name", "key"]
-        help_texts = {
-            "key": "Use the project UUID configured in your Django Probe client.",
-        }
+        fields = ["name"]
 
 
 class MembershipAddForm(forms.Form):

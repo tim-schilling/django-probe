@@ -486,6 +486,20 @@ input[type="radio"] {
   margin: 0;
 }
 
+.token-field {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.token-field pre {
+  flex: 1 1 20rem;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
 .membership-actions {
   align-items: center;
   display: flex;

@@ -25,7 +25,7 @@
     {% for project in projects %}
       <li>
         <a class="item-list__title" href="{% url 'project-detail' organization_id=organization.pk project_id=project.pk %}">{{ project.name }}</a>
-        <span class="item-list__meta"><code>{{ project.key }}</code></span>
+        <span class="item-list__meta">Created {{ project.created_at|date:"SHORT_DATE_FORMAT" }}</span>
       </li>
     {% endfor %}
   </ul>
@@ -33,7 +33,7 @@
   <div class="panel">
     <p><strong>No projects yet.</strong></p>
     {% if membership.role == "owner" %}
-      <p>Create a project to register the UUID used by the Django Probe client.</p>
+      <p>Create a project and Django Probe will generate its token for you.</p>
     {% else %}
       <p>An owner must create the first project.</p>
     {% endif %}
@@ -46,7 +46,7 @@
 {% else %}
   <div class="panel">
     <p><strong>No organization submissions yet.</strong></p>
-    <p>Submissions appear here after a member uses their API token with a registered project UUID.</p>
+    <p>Submissions appear here after a project's token is used to submit.</p>
   </div>
 {% endif %}
 

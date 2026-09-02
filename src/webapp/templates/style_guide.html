@@ -128,7 +128,7 @@ django-probe submit .</code></pre>
   <h3>Empty state</h3>
   <div class="panel">
     <p><strong>No submissions yet.</strong></p>
-    <p><a href="{% url 'token' %}">Get your API token</a> to attach a future submission.</p>
+    <p><a href="{% url 'organization-create' %}">Create a project</a> to attach a future submission.</p>
   </div>
 </section>
 
@@ -139,7 +139,7 @@ django-probe submit .</code></pre>
   <button type="button" data-dialog-open="guide-dialog">Open dialog example</button>
   <dialog id="guide-dialog">
     <form method="dialog">
-      <h2>Regenerate API token?</h2>
+      <h2>Regenerate token?</h2>
       <p>Your current token will stop working immediately.</p>
       <div class="actions">
         <button value="confirm">Regenerate token</button>

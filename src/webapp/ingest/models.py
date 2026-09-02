@@ -85,11 +85,20 @@ class Project(models.Model):
         related_name="projects",
     )
     name = models.CharField(max_length=200)
-    key = models.UUIDField(default=uuid.uuid4, unique=True, editable=True)
+    token = models.CharField(max_length=64, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["name", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_hex(32)
+        return super().save(*args, **kwargs)
+
+    def regenerate_token(self) -> None:
+        self.token = secrets.token_hex(32)
+        self.save(update_fields=["token"])
 
     def __str__(self) -> str:
         return f"{self.name} ({self.organization})"
@@ -106,16 +115,6 @@ class Submission(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     # Null for anonymous submissions, which are the default and fully supported path.
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="submissions",
-    )
-    # Opaque random UUID chosen by the client. Independent of accounts: an anonymous
-    # project can group its own submissions over time without ever signing up.
-    project_key = models.UUIDField(null=True, blank=True, db_index=True)
     project = models.ForeignKey(
         Project,
         null=True,
@@ -140,27 +139,9 @@ class Submission(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        who = self.user or "anonymous"
+        who = self.project or "anonymous"
         return f"{who} @ {self.created_at:%Y-%m-%d %H:%M}"
 
     @property
     def total_occurrences(self) -> int:
         return sum(self.patterns.values())
-
-
-class ApiToken(models.Model):
-    """Opt-in credential attaching submissions to an account."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_tokens"
-    )
-    key = models.CharField(max_length=64, unique=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        if not self.key:
-            self.key = secrets.token_hex(32)
-        return super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return f"token for {self.user}"

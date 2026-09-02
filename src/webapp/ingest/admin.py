@@ -4,7 +4,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from ingest.models import (
-    ApiToken,
     Organization,
     OrganizationMembership,
     Project,
@@ -33,25 +32,23 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "organization", "key", "created_at")
+    list_display = ("name", "organization", "token", "created_at")
     list_filter = ("organization",)
-    search_fields = ("name", "key", "organization__name")
+    search_fields = ("name", "token", "organization__name")
 
 
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
     list_display = (
         "created_at",
-        "user",
         "project",
-        "project_key",
         "django_version",
         "python_version",
         "files_scanned",
         "total_occurrences",
     )
     list_filter = ("created_at", "django_version", "client_version")
-    search_fields = ("project_key", "project__name", "user__username")
+    search_fields = ("project__name",)
     readonly_fields = tuple(
         field.name for field in Submission._meta.fields if field.name != "id"
     )
@@ -64,9 +61,3 @@ class SubmissionAdmin(admin.ModelAdmin):
     def has_add_permission(self, request) -> bool:
         # Submissions arrive over the API; hand-authoring them would pollute the data.
         return False
-
-
-@admin.register(ApiToken)
-class ApiTokenAdmin(admin.ModelAdmin):
-    list_display = ("user", "created_at")
-    search_fields = ("user__username",)
