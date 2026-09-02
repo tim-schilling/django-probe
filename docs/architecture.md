@@ -21,6 +21,5 @@ The central Django application that receives submissions, hosted at [djangoprobe
    `{key: count}` payload via `payload.py`.
 2. `django-probe submit` sends that payload, plus `probe_sources`, to the ingest
    server's `views.py`.
-3. `validation.py` checks shape, `throttle.py` checks rate limits, and the raw
-   submission is stored as-is — see [Third-party probe packages](third-party-probes.md)
-   for why nothing gets normalized or described at this point.
+3. `validation.py` checks shape, and the raw submission is stored as-is. See
+   [Third-party probe packages](third-party-probes.md) for why nothing gets normalized or described at this point.

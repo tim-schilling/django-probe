@@ -29,7 +29,6 @@ from ingest.models import (
     Project,
     Submission,
 )
-from ingest.throttle import ip_limited, project_limited
 from ingest.validation import MAX_BODY_BYTES, ValidationError, validate_payload
 
 
@@ -86,13 +85,6 @@ def submissions(request) -> JsonResponse:
         return _error("body must be valid UTF-8 JSON", 400)
 
     user, auth_error = _resolve_token(request)
-
-    # Rate limit before surfacing an auth error, not after: otherwise guessing tokens
-    # is unlimited, since every wrong guess would return 401 without touching a
-    # bucket. A bad token spends the anonymous allowance.
-    if ip_limited(request, authenticated=user is not None):
-        return _error("rate limit exceeded", 429)
-
     if auth_error is not None:
         return auth_error
 
@@ -100,9 +92,6 @@ def submissions(request) -> JsonResponse:
         cleaned = validate_payload(raw)
     except ValidationError as exc:
         return _error(str(exc), 400)
-
-    if project_limited(request, cleaned["project_key"]):
-        return _error("rate limit exceeded for this project", 429)
 
     project = None
     if user is not None and cleaned["project_key"] is not None:

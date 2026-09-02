@@ -7,7 +7,14 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from django_probe import __version__
+
 ENDPOINT = "/api/submissions/"
+
+# Identifies the request as coming from this library rather than a browser, so the
+# server can allowlist it separately from browser traffic (e.g. Cloudflare's Browser
+# Integrity Check, which otherwise 403s Python's default urllib User-Agent).
+USER_AGENT = f"django-probe/{__version__}"
 
 
 class SubmitError(Exception):
@@ -20,7 +27,7 @@ def submit(
     url = server_url.rstrip("/") + ENDPOINT
     body = json.dumps(payload).encode("utf-8")
 
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "User-Agent": USER_AGENT}
     if token:
         headers["Authorization"] = f"Token {token}"
 

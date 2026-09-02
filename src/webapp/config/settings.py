@@ -90,25 +90,6 @@ DATABASES = {
     )
 }
 
-# Rate limiting is cache-backed. LocMemCache is per-process, so a real deployment
-# must point this at Redis via REDIS_URL, or limits apply per worker rather than per
-# server.
-_REDIS_URL = os.environ.get("REDIS_URL")
-if _REDIS_URL:
-    CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": _REDIS_URL,
-        }
-    }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "django-probe",
-        }
-    }
-
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
