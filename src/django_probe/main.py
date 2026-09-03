@@ -13,6 +13,7 @@ from pathlib import Path
 from django_probe.config import resolve_token
 from django_probe.init import init
 from django_probe.login import login
+from django_probe.logout import logout
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
@@ -77,6 +78,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--name", help="Project name (defaults to the directory name)."
     )
 
+    sub.add_parser(
+        "logout", help="Revoke and forget the locally stored login credential."
+    )
+
     return parser
 
 
@@ -85,6 +90,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "login":
         return login(args.server_url, args.org_slug, socket.gethostname())
+
+    if args.command == "logout":
+        return logout()
 
     root = Path(args.path).resolve()
 

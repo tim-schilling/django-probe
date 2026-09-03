@@ -4,7 +4,12 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase, mock
 
-from django_probe.auth import Credential, load_credential, save_credential
+from django_probe.auth import (
+    Credential,
+    load_any_credential,
+    load_credential,
+    save_credential,
+)
 
 CREDENTIAL = Credential(
     server_url="https://example.test",
@@ -43,3 +48,12 @@ class CredentialStorageTests(TestCase):
 
         mode = self.path.stat().st_mode & 0o777
         self.assertEqual(mode, 0o600)
+
+    def test_load_any_credential_ignores_server(self):
+        """Unlike load_credential, this doesn't require knowing the server first."""
+        save_credential(CREDENTIAL)
+
+        self.assertEqual(load_any_credential(), CREDENTIAL)
+
+    def test_load_any_credential_absent_without_a_stored_credential(self):
+        self.assertIsNone(load_any_credential())

@@ -35,15 +35,13 @@ def save_credential(credential: Credential) -> None:
     os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
 
 
-def load_credential(server_url: str) -> Credential | None:
+def _read_stored_credential() -> Credential | None:
     path = credentials_path()
     if not path.is_file():
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return None
-    if data.get("server_url") != server_url:
         return None
     try:
         return Credential(
@@ -54,3 +52,19 @@ def load_credential(server_url: str) -> Credential | None:
         )
     except KeyError:
         return None
+
+
+def load_credential(server_url: str) -> Credential | None:
+    credential = _read_stored_credential()
+    if credential is None or credential.server_url != server_url:
+        return None
+    return credential
+
+
+def load_any_credential() -> Credential | None:
+    """Read whatever credential is stored, regardless of which server it's for.
+
+    Used by `logout`, which needs to revoke and remove the single stored
+    credential without already knowing which server it belongs to.
+    """
+    return _read_stored_credential()

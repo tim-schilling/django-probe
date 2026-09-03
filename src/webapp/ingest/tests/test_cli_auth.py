@@ -372,3 +372,42 @@ class CliProjectsApiTests(TestCase):
         response = self.post({}, HTTP_AUTHORIZATION="CliToken issued-token")
 
         self.assertEqual(response.status_code, 400)
+
+
+class CliCredentialsRevokeApiTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+        cls.credential = CliCredentialFactory(
+            organization=cls.organization, user=cls.owner, token="issued-token"
+        )
+
+    def revoke(self, **extra: str):
+        return self.client.post(reverse("cli-credentials-revoke"), **extra)
+
+    def test_revokes_own_token(self):
+        response = self.revoke(HTTP_AUTHORIZATION="CliToken issued-token")
+
+        self.assertEqual(response.status_code, 200)
+        self.credential.refresh_from_db()
+        self.assertIsNotNone(self.credential.revoked_at)
+
+    def test_cannot_be_replayed(self):
+        self.revoke(HTTP_AUTHORIZATION="CliToken issued-token")
+
+        second = self.revoke(HTTP_AUTHORIZATION="CliToken issued-token")
+
+        self.assertEqual(second.status_code, 401)
+
+    def test_missing_authorization_header_rejected(self):
+        response = self.revoke()
+
+        self.assertEqual(response.status_code, 401)
+        self.credential.refresh_from_db()
+        self.assertIsNone(self.credential.revoked_at)
+
+    def test_get_not_allowed(self):
+        response = self.client.get(reverse("cli-credentials-revoke"))
+
+        self.assertEqual(response.status_code, 405)

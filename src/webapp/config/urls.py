@@ -19,6 +19,11 @@ urlpatterns = [
         views.cli_projects_create,
         name="cli-projects-create",
     ),
+    path(
+        "api/cli/credentials/revoke/",
+        views.cli_credentials_revoke,
+        name="cli-credentials-revoke",
+    ),
     path("account/", views.account, name="account"),
     path("style-guide/", views.style_guide, name="style-guide"),
     path(

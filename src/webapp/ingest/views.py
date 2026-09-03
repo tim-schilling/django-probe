@@ -236,6 +236,18 @@ def cli_projects_create(request) -> JsonResponse:
     )
 
 
+@csrf_exempt
+@require_POST
+def cli_credentials_revoke(request) -> JsonResponse:
+    credential, auth_error = _resolve_cli_credential(request)
+    if auth_error is not None:
+        return auth_error
+
+    credential.revoked_at = timezone.now()
+    credential.save(update_fields=["revoked_at"])
+    return JsonResponse({"status": "revoked"})
+
+
 def home(request) -> HttpResponse:
     return render(
         request,
