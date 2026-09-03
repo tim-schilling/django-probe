@@ -6,6 +6,7 @@ import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
+from django.utils.text import slugify
 
 
 class User(AbstractUser):
@@ -27,6 +28,12 @@ class OrganizationManager(models.Manager):
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     name = models.CharField(max_length=200)
+    # A stable, typeable identifier for the CLI (e.g. `django-probe init --org`),
+    # since the UUID pk isn't something anyone would type by hand.
+    # unique=True already creates an index; db_index=False avoids SlugField's
+    # default second one, which collides with it during the AddField/AlterField
+    # migration steps needed to backfill existing rows.
+    slug = models.SlugField(max_length=220, unique=True, editable=False, db_index=False)
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -38,6 +45,20 @@ class Organization(models.Model):
 
     class Meta:
         ordering = ["name", "id"]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+        return super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self) -> str:
+        base = slugify(self.name) or "org"
+        slug = base
+        suffix = 2
+        while Organization.objects.filter(slug=slug).exists():
+            slug = f"{base}-{suffix}"
+            suffix += 1
+        return slug
 
     def __str__(self) -> str:
         return self.name

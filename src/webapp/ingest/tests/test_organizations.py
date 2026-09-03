@@ -39,6 +39,21 @@ class OrganizationModelTests(TestCase):
     def test_organization_uses_uuid7_primary_key(self):
         self.assertEqual(self.organization.pk.version, 7)
 
+    def test_slug_generated_from_name(self):
+        self.assertEqual(self.organization.slug, "django-team")
+
+    def test_slug_collision_gets_a_suffix(self):
+        """Two organizations with the same name get distinct slugs."""
+        other = OrganizationFactory(name="Django team", owner=self.owner)
+
+        self.assertEqual(other.slug, "django-team-2")
+
+    def test_slug_stable_across_unrelated_saves(self):
+        self.organization.name = "Renamed team"
+        self.organization.save()
+
+        self.assertEqual(self.organization.slug, "django-team")
+
     def test_unique_membership(self):
         """A user has at most one membership in an organization."""
         with self.assertRaises(IntegrityError):

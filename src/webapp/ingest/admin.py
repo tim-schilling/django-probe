@@ -16,8 +16,8 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ("name", "created_at")
-    search_fields = ("name",)
+    list_display = ("name", "slug", "created_at")
+    search_fields = ("name", "slug")
 
     def has_add_permission(self, request) -> bool:
         return False
