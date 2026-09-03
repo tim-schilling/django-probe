@@ -11,9 +11,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from ingest.forms import (
     MembershipAddForm,
@@ -23,6 +24,7 @@ from ingest.forms import (
     ProjectForm,
 )
 from ingest.models import (
+    CLI_AUTH_REQUEST_TTL,
     CliCredential,
     Organization,
     OrganizationMembership,
@@ -95,6 +97,75 @@ def submissions(request) -> JsonResponse:
 
     Submission.objects.create(project=project, **cleaned)
     return JsonResponse({"status": "ok"}, status=201)
+
+
+@csrf_exempt
+@require_POST
+def cli_auth_start(request) -> JsonResponse:
+    try:
+        raw = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return _error("body must be valid UTF-8 JSON", 400)
+    if not isinstance(raw, dict):
+        return _error("body must be a JSON object", 400)
+
+    organization = None
+    org_slug = raw.get("org_slug")
+    if org_slug:
+        organization = Organization.objects.filter(slug=org_slug).first()
+        if organization is None:
+            return _error("unknown org_slug", 400)
+
+    label = raw.get("label")
+    label = label[:200] if isinstance(label, str) else ""
+
+    credential = CliCredential.objects.create(organization=organization, label=label)
+
+    return JsonResponse(
+        {
+            "code": credential.code,
+            "verify_url": request.build_absolute_uri(
+                reverse("cli-auth-verify", args=[credential.code])
+            ),
+            "expires_in": int(CLI_AUTH_REQUEST_TTL.total_seconds()),
+        },
+        status=201,
+    )
+
+
+@require_GET
+def cli_auth_poll(request, code: str) -> JsonResponse:
+    credential = (
+        CliCredential.objects.filter(code=code).select_related("organization").first()
+    )
+    if credential is None:
+        return _error("unknown code", 404)
+
+    if credential.token is not None:
+        # Single-use: the next poll of an already-retrieved code 404s, limiting
+        # how long a leaked code could be replayed to fetch the credential.
+        if credential.retrieved_at is not None:
+            return _error("unknown code", 404)
+        credential.retrieved_at = timezone.now()
+        credential.save(update_fields=["retrieved_at"])
+        return JsonResponse(
+            {
+                "status": "approved",
+                "token": credential.token,
+                "organization": {
+                    "slug": credential.organization.slug,
+                    "name": credential.organization.name,
+                },
+            }
+        )
+
+    if credential.denied_at is not None:
+        return JsonResponse({"status": "denied"})
+
+    if credential.expires_at <= timezone.now():
+        return JsonResponse({"status": "expired"})
+
+    return JsonResponse({"status": "pending"})
 
 
 def home(request) -> HttpResponse:

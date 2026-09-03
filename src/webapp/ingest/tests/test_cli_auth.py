@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from ingest.models import CLI_AUTH_REQUEST_TTL, OrganizationMembership
+from ingest.models import CLI_AUTH_REQUEST_TTL, CliCredential, OrganizationMembership
 from ingest.tests.factories import (
     CliCredentialFactory,
     OrganizationFactory,
@@ -181,3 +182,87 @@ class CliAuthVerifyViewTests(TestCase):
         credential.refresh_from_db()
         self.assertContains(response, "no longer valid")
         self.assertEqual(credential.token, "already-issued")
+
+
+class CliAuthApiTests(TestCase):
+    def start(self, body: dict | None = None):
+        return self.client.post(
+            reverse("cli-auth-start"),
+            data=json.dumps(body if body is not None else {}),
+            content_type="application/json",
+        )
+
+    def poll(self, code: str):
+        return self.client.get(reverse("cli-auth-poll", args=[code]))
+
+    def test_start_creates_a_pending_request(self):
+        response = self.start()
+
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertIn("code", body)
+        self.assertIn(body["code"], body["verify_url"])
+        self.assertEqual(body["expires_in"], 600)
+        credential = CliCredential.objects.get(code=body["code"])
+        self.assertIsNone(credential.organization)
+
+    def test_start_with_org_slug(self):
+        owner = UserFactory(username="owner")
+        organization = OrganizationFactory(name="Django team", owner=owner)
+
+        response = self.start({"org_slug": organization.slug, "label": "laptop"})
+
+        self.assertEqual(response.status_code, 201)
+        credential = CliCredential.objects.get(code=response.json()["code"])
+        self.assertEqual(credential.organization, organization)
+        self.assertEqual(credential.label, "laptop")
+
+    def test_start_rejects_unknown_org_slug(self):
+        response = self.start({"org_slug": "does-not-exist"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(CliCredential.objects.exists())
+
+    def test_start_get_not_allowed(self):
+        self.assertEqual(self.client.get(reverse("cli-auth-start")).status_code, 405)
+
+    def test_poll_unknown_code(self):
+        self.assertEqual(self.poll("nope").status_code, 404)
+
+    def test_poll_pending(self):
+        credential = CliCredentialFactory()
+
+        self.assertEqual(self.poll(credential.code).json(), {"status": "pending"})
+
+    def test_poll_denied(self):
+        credential = CliCredentialFactory(denied_at=timezone.now())
+
+        self.assertEqual(self.poll(credential.code).json(), {"status": "denied"})
+
+    def test_poll_expired(self):
+        credential = CliCredentialFactory(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+
+        self.assertEqual(self.poll(credential.code).json(), {"status": "expired"})
+
+    def test_poll_approved_returns_the_token_once(self):
+        """A second poll of the same code 404s once the token has been retrieved."""
+        owner = UserFactory(username="owner")
+        organization = OrganizationFactory(name="Django team", owner=owner)
+        credential = CliCredentialFactory(
+            organization=organization, token="issued-token", user=owner
+        )
+
+        first = self.poll(credential.code)
+        second = self.poll(credential.code)
+
+        self.assertEqual(
+            first.json(),
+            {
+                "status": "approved",
+                "token": "issued-token",
+                "organization": {"slug": organization.slug, "name": organization.name},
+            },
+        )
+        self.assertEqual(second.status_code, 404)

@@ -8,6 +8,12 @@ from ingest import views
 urlpatterns = [
     path("", views.home, name="home"),
     path("api/submissions/", views.submissions, name="submissions"),
+    path("api/cli/auth/", views.cli_auth_start, name="cli-auth-start"),
+    path(
+        "api/cli/auth/<str:code>/poll/",
+        views.cli_auth_poll,
+        name="cli-auth-poll",
+    ),
     path("account/", views.account, name="account"),
     path("style-guide/", views.style_guide, name="style-guide"),
     path(
