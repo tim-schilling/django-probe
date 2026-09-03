@@ -3,6 +3,7 @@ from __future__ import annotations
 import factory
 
 from ingest.models import (
+    CliCredential,
     Organization,
     OrganizationMembership,
     Project,
@@ -53,6 +54,13 @@ class ProjectFactory(factory.django.DjangoModelFactory):
 
     organization = factory.SubFactory(OrganizationFactory)
     name = factory.Sequence(lambda number: f"Project {number}")
+
+
+class CliCredentialFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CliCredential
+
+    label = "test-device"
 
 
 class SubmissionFactory(factory.django.DjangoModelFactory):

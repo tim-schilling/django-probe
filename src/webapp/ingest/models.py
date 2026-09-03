@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models, transaction
+from django.utils import timezone
 from django.utils.text import slugify
+
+CLI_AUTH_REQUEST_TTL = timedelta(minutes=10)
+
+
+def _cli_auth_request_expiry() -> datetime:
+    return timezone.now() + CLI_AUTH_REQUEST_TTL
 
 
 class User(AbstractUser):
@@ -123,6 +131,61 @@ class Project(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.organization})"
+
+
+class CliCredential(models.Model):
+    """A CLI device-login request and, once approved, the resulting credential.
+
+    A request and its credential are the same row at different life stages, so
+    state is derived from these fields rather than tracked in a parallel status
+    field: pending (`token` and `denied_at` both null, `expires_at` in the
+    future), expired (same, but `expires_at` has passed), denied (`denied_at`
+    set), approved (`token` set).
+    """
+
+    # The ephemeral device-flow value embedded in the verify URL and used for
+    # polling — deliberately not the same secret as `token`, so a URL that ends
+    # up in browser history or access logs can never double as the long-lived
+    # credential.
+    code = models.CharField(max_length=64, unique=True, editable=False)
+    token = models.CharField(
+        max_length=64, unique=True, null=True, blank=True, editable=False
+    )
+    label = models.CharField(max_length=200, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="cli_credentials",
+    )
+    organization = models.ForeignKey(
+        Organization,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="cli_credentials",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=_cli_auth_request_expiry)
+    denied_at = models.DateTimeField(null=True, blank=True)
+    # Set the first time an approved credential's token is handed back over
+    # `poll`; a second poll attempt is treated as not-found, giving single-use
+    # retrieval without needing to delete the row (it lives on as the credential).
+    retrieved_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = secrets.token_urlsafe(32)
+        return super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.label or self.code[:8]
 
 
 class Submission(models.Model):

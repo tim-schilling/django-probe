@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from ingest.models import (
+    CliCredential,
     Organization,
     OrganizationMembership,
     Project,
@@ -35,6 +36,25 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ("name", "organization", "token", "created_at")
     list_filter = ("organization",)
     search_fields = ("name", "token", "organization__name")
+
+
+@admin.register(CliCredential)
+class CliCredentialAdmin(admin.ModelAdmin):
+    list_display = (
+        "label",
+        "user",
+        "organization",
+        "token",
+        "created_at",
+        "last_used_at",
+        "revoked_at",
+    )
+    list_filter = ("organization",)
+    search_fields = ("label", "user__username", "organization__name")
+
+    def has_add_permission(self, request) -> bool:
+        # Credentials are only ever created through the login/approve flow.
+        return False
 
 
 @admin.register(Submission)
