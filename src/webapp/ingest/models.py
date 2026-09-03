@@ -144,9 +144,8 @@ class CliCredential(models.Model):
     """
 
     # The ephemeral device-flow value embedded in the verify URL and used for
-    # polling — deliberately not the same secret as `token`, so a URL that ends
-    # up in browser history or access logs can never double as the long-lived
-    # credential.
+    # polling. It's a separate secret from `token`, so a URL that ends up in
+    # browser history or access logs can't double as the long-lived credential.
     code = models.CharField(max_length=64, unique=True, editable=False)
     token = models.CharField(
         max_length=64, unique=True, null=True, blank=True, editable=False

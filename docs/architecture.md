@@ -26,11 +26,10 @@ The central Django application that receives submissions, hosted at [djangoprobe
 
 ## How `login` and `init` work
 
-A lightweight, first-party device-authorization flow — not full OAuth, since the
-CLI and web app are both ours. `login.py` and `init.py` talk to `views.py`'s
-`cli_auth_start`/`cli_auth_poll`/`cli_projects_create`; the browser side is
-`cli_auth_verify`. A `CliCredential` row (`models.py`) is both the short-lived
-login request and, once approved, the long-lived credential `init` uses.
+A device-authorization flow. `login` asks the server for a short-lived code and
+a verification URL, opens that URL in a browser, and polls until the request is
+approved there. Approval issues a credential scoped to one organization, stored
+locally. `init` uses that credential to create a project and print its token.
 
 ```mermaid
 sequenceDiagram
@@ -50,7 +49,7 @@ sequenceDiagram
     Browser->>Server: GET /cli-auth/{code}/ (signs in if needed)
     Server-->>Browser: confirm org, or pick from owned orgs
     Browser->>Server: POST /cli-auth/{code}/ action=approve
-    Note over Server: CliCredential gets a token, tied to<br/>this user + organization
+    Note over Server: the credential is now tied to<br/>this user and organization
 
     CLI->>Server: GET /api/cli/auth/{code}/poll/
     Server-->>CLI: {status: approved, token, organization}

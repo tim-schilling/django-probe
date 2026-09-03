@@ -1,9 +1,7 @@
 """Browser-handoff login: get a personal credential for `django-probe init`.
 
-A lightweight device-authorization-style flow, not full OAuth — the CLI and
-web app are both first-party, so there's no client registration or scopes.
-The CLI asks the server for a code, the user approves it in a browser, and
-the CLI polls until that happens.
+A lightweight device-authorization flow. The CLI asks the server for a code,
+the user approves it in a browser, and the CLI polls until that happens.
 """
 
 from __future__ import annotations

@@ -26,15 +26,15 @@ $ django-probe init                # once per repo, creates a project and prints
 ```
 
 `login` authenticates this machine for a single organization. Pass `--org
-<slug>` (find it on the organization's page) to skip picking one in the
-browser — handy when scripting `init` across many repos:
+<slug>` (found on the organization's page) to skip the picker when scripting
+`init` across many repos:
 
 ```console
 $ django-probe login --org my-team
 ```
 
-`init` then creates a project — its name defaults to the current directory — and
-prints the resulting token. Nothing is written to disk; run it once per repository:
+`init` creates a project, named after the current directory by default, and
+prints its token. Copy it now, since it isn't saved anywhere:
 
 ```console
 $ django-probe init
@@ -43,10 +43,9 @@ Token: 1f2e3d4c5b6a...
 Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
 ```
 
-Prefer not to run the CLI locally, or bootstrapping the very first CI secret?
-Create an organization and a project directly at
-[djangoprobe.org](https://djangoprobe.org) — the token is generated for you on the
-project's page.
+You can also create an organization and a project directly at
+[djangoprobe.org](https://djangoprobe.org); the project's page generates the
+token for you.
 
 ### Use it in CI
 

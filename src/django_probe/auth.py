@@ -1,7 +1,7 @@
 """Local storage for the CLI's personal login credential.
 
-`django-probe login` stores one credential per machine here. It's not a
-project token (see ``config.py``) — it's the CLI's own credential, used by
+`django-probe login` stores one credential per machine here: the CLI's own
+credential (distinct from a project token, see ``config.py``), used by
 `django-probe init` to create projects on the signed-in user's behalf. v1
 keeps only the most recently issued one; logging in again, including for a
 different org, overwrites it.
