@@ -168,6 +168,74 @@ def cli_auth_poll(request, code: str) -> JsonResponse:
     return JsonResponse({"status": "pending"})
 
 
+def _resolve_cli_credential(
+    request,
+) -> tuple[CliCredential | None, JsonResponse | None]:
+    """Resolve a personal CLI credential from the Authorization header.
+
+    A distinct `CliToken` scheme from the `Token` used for submissions, so the two
+    credential types can never be confused with each other.
+    """
+    header = request.headers.get("Authorization", "")
+    scheme, _, token = header.partition(" ")
+    if scheme.lower() != "clitoken" or not token:
+        return None, _error("malformed Authorization header", 401)
+    credential = (
+        CliCredential.objects.filter(token=token, revoked_at__isnull=True)
+        .select_related("organization", "user")
+        .first()
+    )
+    if credential is None:
+        return None, _error("unknown or revoked token", 401)
+    return credential, None
+
+
+@csrf_exempt
+@require_POST
+def cli_projects_create(request) -> JsonResponse:
+    credential, auth_error = _resolve_cli_credential(request)
+    if auth_error is not None:
+        return auth_error
+
+    # Membership can have been revoked since the credential was issued; re-check it
+    # at request time rather than trusting what was true at login.
+    if not _is_org_owner(credential.user, credential.organization):
+        return _error("no longer an owner of that organization", 403)
+
+    try:
+        raw = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return _error("body must be valid UTF-8 JSON", 400)
+    if not isinstance(raw, dict):
+        return _error("body must be a JSON object", 400)
+
+    name = raw.get("name")
+    if not isinstance(name, str) or not name.strip():
+        return _error("name is required", 400)
+
+    org_slug = raw.get("org_slug")
+    if org_slug and org_slug != credential.organization.slug:
+        return _error("token is scoped to a different organization", 400)
+
+    project = Project.objects.create(
+        organization=credential.organization, name=name.strip()
+    )
+    credential.last_used_at = timezone.now()
+    credential.save(update_fields=["last_used_at"])
+
+    return JsonResponse(
+        {
+            "name": project.name,
+            "token": project.token,
+            "organization": {
+                "slug": credential.organization.slug,
+                "name": credential.organization.name,
+            },
+        },
+        status=201,
+    )
+
+
 def home(request) -> HttpResponse:
     return render(
         request,

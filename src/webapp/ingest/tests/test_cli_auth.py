@@ -7,7 +7,12 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from ingest.models import CLI_AUTH_REQUEST_TTL, CliCredential, OrganizationMembership
+from ingest.models import (
+    CLI_AUTH_REQUEST_TTL,
+    CliCredential,
+    OrganizationMembership,
+    Project,
+)
 from ingest.tests.factories import (
     CliCredentialFactory,
     OrganizationFactory,
@@ -266,3 +271,104 @@ class CliAuthApiTests(TestCase):
             },
         )
         self.assertEqual(second.status_code, 404)
+
+
+class CliProjectsApiTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+        cls.credential = CliCredentialFactory(
+            organization=cls.organization, user=cls.owner, token="issued-token"
+        )
+
+    def post(self, body: dict, **extra: str):
+        return self.client.post(
+            reverse("cli-projects-create"),
+            data=json.dumps(body),
+            content_type="application/json",
+            **extra,
+        )
+
+    def test_creates_project(self):
+        response = self.post(
+            {"name": "Website"}, HTTP_AUTHORIZATION="CliToken issued-token"
+        )
+
+        self.assertEqual(response.status_code, 201)
+        body = response.json()
+        self.assertEqual(body["name"], "Website")
+        self.assertEqual(body["organization"]["slug"], self.organization.slug)
+        project = Project.objects.get(organization=self.organization)
+        self.assertEqual(project.token, body["token"])
+
+    def test_updates_last_used_at(self):
+        self.assertIsNone(self.credential.last_used_at)
+
+        self.post({"name": "Website"}, HTTP_AUTHORIZATION="CliToken issued-token")
+
+        self.credential.refresh_from_db()
+        self.assertIsNotNone(self.credential.last_used_at)
+
+    def test_missing_authorization_header_rejected(self):
+        response = self.post({"name": "Website"})
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(Project.objects.exists())
+
+    def test_wrong_scheme_rejected(self):
+        response = self.post(
+            {"name": "Website"}, HTTP_AUTHORIZATION="Token issued-token"
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_unknown_token_rejected(self):
+        response = self.post({"name": "Website"}, HTTP_AUTHORIZATION="CliToken nope")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_revoked_token_rejected(self):
+        self.credential.revoked_at = timezone.now()
+        self.credential.save(update_fields=["revoked_at"])
+
+        response = self.post(
+            {"name": "Website"}, HTTP_AUTHORIZATION="CliToken issued-token"
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_membership_revoked_since_login_rejected(self):
+        """Losing ownership after login cuts off project creation immediately."""
+        OrganizationMembership.objects.filter(
+            organization=self.organization, user=self.owner
+        ).delete()
+
+        response = self.post(
+            {"name": "Website"}, HTTP_AUTHORIZATION="CliToken issued-token"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Project.objects.exists())
+
+    def test_org_slug_mismatch_rejected(self):
+        response = self.post(
+            {"name": "Website", "org_slug": "some-other-org"},
+            HTTP_AUTHORIZATION="CliToken issued-token",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Project.objects.exists())
+
+    def test_matching_org_slug_accepted(self):
+        response = self.post(
+            {"name": "Website", "org_slug": self.organization.slug},
+            HTTP_AUTHORIZATION="CliToken issued-token",
+        )
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_missing_name_rejected(self):
+        response = self.post({}, HTTP_AUTHORIZATION="CliToken issued-token")
+
+        self.assertEqual(response.status_code, 400)

@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from django_probe.config import resolve_token
+from django_probe.init import init
 from django_probe.login import login
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
@@ -59,6 +60,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Organization slug to log in for (see the organization's page).",
     )
 
+    init_parser = sub.add_parser(
+        "init",
+        help="Create a project using your stored login and print its token.",
+    )
+    add_common(init_parser)
+    init_parser.add_argument(
+        "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
+    )
+    init_parser.add_argument(
+        "--org",
+        dest="org_slug",
+        help="Must match the org you're logged in for; a safety check, not a selector.",
+    )
+    init_parser.add_argument(
+        "--name", help="Project name (defaults to the directory name)."
+    )
+
     return parser
 
 
@@ -73,6 +91,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)
         return 2
+
+    if args.command == "init":
+        return init(root, args.server_url, args.org_slug, args.name)
 
     payload = build_payload(root)
 

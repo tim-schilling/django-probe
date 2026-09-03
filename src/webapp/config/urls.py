@@ -14,6 +14,11 @@ urlpatterns = [
         views.cli_auth_poll,
         name="cli-auth-poll",
     ),
+    path(
+        "api/cli/projects/",
+        views.cli_projects_create,
+        name="cli-projects-create",
+    ),
     path("account/", views.account, name="account"),
     path("style-guide/", views.style_guide, name="style-guide"),
     path(
