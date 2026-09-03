@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import uuid
 
 from django.contrib import messages
@@ -10,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -21,6 +23,7 @@ from ingest.forms import (
     ProjectForm,
 )
 from ingest.models import (
+    CliCredential,
     Organization,
     OrganizationMembership,
     Project,
@@ -333,3 +336,86 @@ def organization_leave(request, organization_id: uuid.UUID) -> HttpResponse:
     form.save()
     messages.success(request, f"You left {organization_name}.")
     return redirect("account")
+
+
+def _is_org_owner(user, organization: Organization) -> bool:
+    return OrganizationMembership.objects.filter(
+        organization=organization,
+        user=user,
+        role=OrganizationMembership.Role.OWNER,
+    ).exists()
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def cli_auth_verify(request, code: str) -> HttpResponse:
+    credential = get_object_or_404(CliCredential, code=code)
+
+    if request.method == "POST":
+        return _cli_auth_verify_post(request, credential)
+
+    if not credential.is_pending:
+        return render(
+            request,
+            "cli_auth_verify.html",
+            {"credential": credential, "state": "invalid"},
+        )
+
+    if credential.organization_id is not None:
+        state = (
+            "confirm"
+            if _is_org_owner(request.user, credential.organization)
+            else "forbidden"
+        )
+        return render(
+            request, "cli_auth_verify.html", {"credential": credential, "state": state}
+        )
+
+    owned_organizations = Organization.objects.filter(
+        memberships__user=request.user,
+        memberships__role=OrganizationMembership.Role.OWNER,
+    )
+    return render(
+        request,
+        "cli_auth_verify.html",
+        {
+            "credential": credential,
+            "state": "choose" if owned_organizations else "no-organizations",
+            "organizations": owned_organizations,
+        },
+    )
+
+
+def _cli_auth_verify_post(request, credential: CliCredential) -> HttpResponse:
+    if not credential.is_pending:
+        return render(
+            request,
+            "cli_auth_verify.html",
+            {"credential": credential, "state": "invalid"},
+        )
+
+    if request.POST.get("action") == "deny":
+        credential.denied_at = timezone.now()
+        credential.save(update_fields=["denied_at"])
+        return render(
+            request,
+            "cli_auth_verify.html",
+            {"credential": credential, "state": "denied"},
+        )
+
+    organization = credential.organization
+    if organization is None:
+        organization = get_object_or_404(
+            Organization, pk=request.POST.get("organization_id")
+        )
+
+    if not _is_org_owner(request.user, organization):
+        raise PermissionDenied
+
+    credential.organization = organization
+    credential.user = request.user
+    credential.token = secrets.token_hex(32)
+    credential.save(update_fields=["organization", "user", "token"])
+    return render(
+        request, "cli_auth_verify.html", {"credential": credential, "state": "approved"}
+    )

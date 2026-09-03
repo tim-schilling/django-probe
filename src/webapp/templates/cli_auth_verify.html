@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Approve CLI access | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">CLI login</p>
+  <h1>Approve CLI access</h1>
+</header>
+
+{% if state == "invalid" %}
+  <div class="panel panel--caution">
+    <p><strong>This request is no longer valid.</strong></p>
+    <p>Run <code>django-probe login</code> again from your terminal to start over.</p>
+  </div>
+{% elif state == "forbidden" %}
+  <div class="panel panel--caution">
+    <p><strong>You don't have owner access to {{ credential.organization.name }}.</strong></p>
+    <p>Ask an owner of that organization to run <code>django-probe login</code> instead.</p>
+  </div>
+{% elif state == "no-organizations" %}
+  <div class="panel">
+    <p><strong>You don't own any organizations yet.</strong></p>
+    <p><a href="{% url 'organization-create' %}">Create one</a>, then run <code>django-probe login</code> again.</p>
+  </div>
+{% elif state == "denied" %}
+  <div class="panel">
+    <p><strong>Access denied.</strong> You can return to your terminal.</p>
+  </div>
+{% elif state == "approved" %}
+  <div class="panel">
+    <p><strong>Approved.</strong> You can return to your terminal.</p>
+  </div>
+{% elif state == "confirm" %}
+  <p class="lede">
+    Approve CLI access to <strong>{{ credential.organization.name }}</strong> for
+    {% if credential.label %}<strong>{{ credential.label }}</strong>{% else %}this device{% endif %}?
+  </p>
+  <div class="panel panel--subtle auth-panel">
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" name="action" value="approve">Approve</button>
+      <button type="submit" name="action" value="deny" class="button--secondary">Deny</button>
+    </form>
+  </div>
+{% elif state == "choose" %}
+  <p class="lede">
+    Choose an organization to approve CLI access for
+    {% if credential.label %}<strong>{{ credential.label }}</strong>{% else %}this device{% endif %}:
+  </p>
+  <div class="panel panel--subtle auth-panel">
+    <form method="post">
+      {% csrf_token %}
+      <ul class="item-list">
+        {% for organization in organizations %}
+          <li>
+            <label>
+              <input type="radio" name="organization_id" value="{{ organization.pk }}"{% if forloop.first %} checked{% endif %}>
+              {{ organization.name }}
+            </label>
+          </li>
+        {% endfor %}
+      </ul>
+      <button type="submit" name="action" value="approve">Approve</button>
+      <button type="submit" name="action" value="deny" class="button--secondary">Deny</button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

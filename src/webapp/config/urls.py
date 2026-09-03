@@ -61,6 +61,11 @@ urlpatterns = [
         views.project_token_regenerate,
         name="project-token-regenerate",
     ),
+    path(
+        "cli-auth/<str:code>/",
+        views.cli_auth_verify,
+        name="cli-auth-verify",
+    ),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
 ]

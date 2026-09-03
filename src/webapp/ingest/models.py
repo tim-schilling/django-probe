@@ -184,6 +184,15 @@ class CliCredential(models.Model):
             self.code = secrets.token_urlsafe(32)
         return super().save(*args, **kwargs)
 
+    @property
+    def is_pending(self) -> bool:
+        """Still awaiting a decision, and not yet expired."""
+        return (
+            self.token is None
+            and self.denied_at is None
+            and self.expires_at > timezone.now()
+        )
+
     def __str__(self) -> str:
         return self.label or self.code[:8]
 
