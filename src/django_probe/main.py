@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 
 from django_probe.config import resolve_token
+from django_probe.login import login
 from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
@@ -45,11 +47,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the payload instead of sending it.",
     )
 
+    login_parser = sub.add_parser(
+        "login", help="Authenticate this machine via your browser."
+    )
+    login_parser.add_argument(
+        "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
+    )
+    login_parser.add_argument(
+        "--org",
+        dest="org_slug",
+        help="Organization slug to log in for (see the organization's page).",
+    )
+
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.command == "login":
+        return login(args.server_url, args.org_slug, socket.gethostname())
 
     root = Path(args.path).resolve()
 
