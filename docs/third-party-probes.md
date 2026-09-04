@@ -9,7 +9,7 @@ namespace requires no server release and no migration.
 
 `probe_sources` records which probe packages ran during a scan, separate from the
 `{key: count}` payload. Without it, the server can't tell whether a pattern key is
-absent because it wasn't found or because the probe that reports it wasn't installed.
+absent because it wasn't found or because the probe that provides it wasn't installed.
 
 Display metadata — a pattern key's label, description, and category — lives in a
 server-side registry, not in the submission. That lets us fix a typo or reclassify a

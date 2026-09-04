@@ -6,7 +6,7 @@
 <header class="page-header">
   <p class="eyebrow">{{ organization.name }}</p>
   <h1>{{ project.name }}</h1>
-  <p class="lede">Use this token to attach submissions to this project.</p>
+  <p class="lede">Add this token to CI to attach scheduled submissions to this project.</p>
 </header>
 
 <div class="token-field">
@@ -27,39 +27,49 @@
 <div class="panel panel--caution">
 <p>
   Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. Set
-  <code>DJANGO_PROBE_TOKEN</code> in your environment instead (a CI secret, or a local
-  <code>.env</code> you don't commit).
+  <code>DJANGO_PROBE_TOKEN</code> in your CI secret store instead.
 </p>
 </div>
 
-<h2>Use it locally</h2>
-<p>Pass it when submitting to attach the submission to this project:</p>
-
-<pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=&lt;paste the token above&gt;
-django-probe submit .</code></pre>
-
-<h2>Use it in CI</h2>
+<h2>Add it to CI</h2>
 
 <h3>GitHub Actions</h3>
 <p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then reference it in your workflow:</p>
 
 {% verbatim %}
-<pre tabindex="0"><code>- name: Report Django Probe metrics
-  env:
-    DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
-  run: |
-    pip install django-probe
-    django-probe submit .</code></pre>
+<pre tabindex="0"><code>name: Django Probe
+on:
+  schedule:
+    # Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10
+      - run: uv run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
 
 <h3>GitLab CI</h3>
 <p>Add a masked CI/CD variable named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; CI/CD &rarr; Variables</strong> &mdash; GitLab exposes it to the job automatically, no extra config needed:</p>
 
 <pre tabindex="0"><code>report_probe:
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - pip install django-probe
-    - django-probe submit .</code></pre>
+    - uv run django-probe submit .</code></pre>
+
+<h2>Inspect it locally</h2>
+<p>Preview the exact payload without sending anything:</p>
+
+<pre tabindex="0"><code>uv run django-probe scan .</code></pre>
+
+<p>To test a manual submission, export the token as
+<code>DJANGO_PROBE_TOKEN</code> and run <code>uv run django-probe submit .</code>.</p>
 
 <h2>Submissions</h2>
 {% if submissions %}

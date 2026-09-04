@@ -4,31 +4,55 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
+from config import environment
 from config.sentry import initialize_sentry
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 initialize_sentry()
 
-SECRET_KEY = os.environ.get("DJANGO_PROBE_SECRET_KEY", "insecure-development-key")
-DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "0") == "1"
-# Defaults to "dev" so a local checkout or test run never gets mistaken for a real
-# deployment: it gates whitenoise/manifest static storage below, and config.sentry
-# uses it as the Sentry environment tag so stray local events can't page anyone.
-ENVIRONMENT = os.environ.get("DJANGO_PROBE_ENVIRONMENT", "dev")
-ALLOWED_HOSTS = os.environ.get("DJANGO_PROBE_ALLOWED_HOSTS", "*").split(",")
+ENVIRONMENT = environment.name()
+IS_PRODUCTION = environment.is_production()
 
-# Coolify (and most PaaS-style hosts) terminate TLS at a proxy in front of the
-# container, so Django only ever sees plain HTTP. Without these two settings it
-# would think every request is insecure and reject admin/allauth POSTs with a CSRF
-# failure once ALLOWED_HOSTS is locked down to a real domain.
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Both fall back to a development value outside production and are a hard error
+# inside it: a deployment that boots on the shared SECRET_KEY or with a wildcard
+# ALLOWED_HOSTS looks perfectly healthy from the outside.
+SECRET_KEY = environment.required(
+    "DJANGO_PROBE_SECRET_KEY", default="insecure-development-key"
+)
+ALLOWED_HOSTS = environment.required("DJANGO_PROBE_ALLOWED_HOSTS", default="*").split(
+    ","
+)
+
+DEBUG = os.environ.get("DJANGO_PROBE_DEBUG", "0") == "1"
+if DEBUG and IS_PRODUCTION:
+    raise ImproperlyConfigured(
+        "DJANGO_PROBE_DEBUG must not be enabled when "
+        f"DJANGO_PROBE_ENVIRONMENT={environment.PRODUCTION}: Django's debug pages "
+        "expose the settings module, including SECRET_KEY and DATABASE_URL."
+    )
+
 CSRF_TRUSTED_ORIGINS = [
     origin
     for origin in os.environ.get("DJANGO_PROBE_CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin
 ]
+
+if IS_PRODUCTION:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # TODO: Raise it towards a year once satisfied nothing needs plain HTTP
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # security.W021 asks for SECURE_HSTS_PRELOAD. Preloading is a separate, largely
+    # one-way commitment - it needs a year-long max-age and a submission browsers
+    # ship in their binaries - so it is declined deliberately rather than left as a
+    # standing warning that trains everyone to skim `check --deploy` output.
+    SILENCED_SYSTEM_CHECKS = ["security.W021"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -49,18 +73,19 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     # Only enable whitenoise in production so it doesn't warn about a missing
     # staticfiles manifest; only that collectstatic (see src/webapp/Dockerfile) ever writes one.
-    *(
-        ["whitenoise.middleware.WhiteNoiseMiddleware"]
-        if ENVIRONMENT == "production"
-        else []
-    ),
+    *(["whitenoise.middleware.WhiteNoiseMiddleware"] if IS_PRODUCTION else []),
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
+
+# Nothing here is ever legitimately framed, and the CLI approval page turns a single
+# click into an issued credential, so a clickjacked frame is worth more than usual.
+X_FRAME_OPTIONS = "DENY"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -107,7 +132,7 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": (
             "whitenoise.storage.CompressedManifestStaticFilesStorage"
-            if ENVIRONMENT == "production"
+            if IS_PRODUCTION
             else "django.contrib.staticfiles.storage.StaticFilesStorage"
         ),
     },

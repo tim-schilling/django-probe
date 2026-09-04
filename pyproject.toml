@@ -7,7 +7,7 @@ requires = [
 [project]
 name = "django-probe"
 dynamic = [ "version" ]
-description = "Count Django code patterns in a project and report the counts."
+description = "Share aggregate Django code-pattern usage with the community."
 readme = "README.md"
 keywords = [
   "AST",

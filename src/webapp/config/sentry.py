@@ -7,6 +7,8 @@ import sentry_sdk
 from django.core.exceptions import ImproperlyConfigured
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from config import environment
+
 DEFAULT_TRACES_SAMPLE_RATE = 0.1
 
 
@@ -35,9 +37,7 @@ def initialize_sentry() -> bool:
 
     sentry_sdk.init(
         dsn=dsn,
-        # Defaults to "dev" (see settings.ENVIRONMENT) so a local run with a real DSN
-        # never gets mistaken for production traffic and pages someone.
-        environment=os.environ.get("DJANGO_PROBE_ENVIRONMENT", "dev"),
+        environment=environment.name(),
         integrations=[
             DjangoIntegration(
                 transaction_style="url",

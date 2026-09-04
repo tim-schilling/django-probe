@@ -2,55 +2,51 @@
 
 ## Install
 
+Add Django Probe to the development dependencies of the project whose usage you want
+to share:
+
 ```console
-$ pip install django-probe
+$ uv add --dev django-probe
 ```
 
-## Scan and submit
+## Create a project token
+
+A project token groups scheduled submissions under your organization. Generate one
+from the CLI:
 
 ```console
-$ django-probe scan .      # inspect the payload, sends nothing
-$ django-probe submit .    # send it, anonymously
-```
-
-## Reporting on a schedule
-
-A project's token is what groups its submissions and attributes them to your
-organization.
-
-### Get a token
-
-```console
-$ django-probe login               # once per machine, approve in your browser
-$ django-probe init                # once per repo, creates a project and prints its token
+$ uv run django-probe login       # approve access in your browser
+$ uv run django-probe init        # creates a project and prints its token
 ```
 
 `login` authenticates this machine for a single organization. Pass `--org
-<slug>` (found on the organization's page) to skip the picker when scripting
-`init` across many repos:
+<slug>` (found on the organization's page) to skip the picker when setting up many
+repositories:
 
 ```console
-$ django-probe login --org my-team
+$ uv run django-probe login --org my-team
 ```
 
-`init` creates a project, named after the current directory by default, and
-prints its token. Copy it now, since it isn't saved anywhere:
+`login` saves its organization credential in your user configuration directory.
+`init` uses that credential, names the project after the current directory by default,
+and prints a separate project token. Copy that token now, since it is not saved:
 
 ```console
-$ django-probe init
+$ uv run django-probe init
 Created project 'my-repo' in My Team.
 Token: 1f2e3d4c5b6a...
 Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
 ```
 
-You can also create an organization and a project directly at
-[djangoprobe.org](https://djangoprobe.org); the project's page generates the
-token for you.
+You can also create an organization and project directly at
+[djangoprobe.org](https://djangoprobe.org) and copy the token from the project page.
 
-### Use it in CI
+## Add Django Probe to CI
 
-Add the token as a repository secret at **Settings → Secrets and variables → Actions → New
-repository secret**, named `DJANGO_PROBE_TOKEN`, then add a workflow like:
+### GitHub Actions
+
+Add the token as a repository secret named `DJANGO_PROBE_TOKEN` under **Settings →
+Secrets and variables → Actions → New repository secret**, then commit this workflow:
 
 ```yaml
 # .github/workflows/django-probe.yml
@@ -58,7 +54,8 @@ name: Django Probe
 
 on:
   schedule:
-    - cron: "0 0 1 * *"  # 00:00 UTC on the 1st of each month
+    # Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
   workflow_dispatch:
 
 jobs:
@@ -67,29 +64,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
+      - uses: astral-sh/setup-uv@v10
 
-      # Install your project too: django_version and dependencies are read from
-      # what's installed, not from pyproject.toml.
-      - run: pip install . django-probe
-
-      - env:
+      - run: uv run django-probe submit .
+        env:
           DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
-        run: django-probe submit .
 ```
 
-On GitLab CI, add a masked CI/CD variable named `DJANGO_PROBE_TOKEN` under
-**Settings → CI/CD → Variables** — GitLab exposes it to the job automatically:
+The job is scheduled rather than added to every pull request because aggregate usage
+data does not need to block or slow down normal builds. `workflow_dispatch` also lets
+you test it immediately from the Actions tab.
+
+### GitLab CI
+
+Add a masked CI/CD variable named `DJANGO_PROBE_TOKEN` under **Settings → CI/CD →
+Variables**. GitLab exposes it to the job automatically:
 
 ```yaml
 report_probe:
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - pip install . django-probe
-    - django-probe submit .
+    - uv run django-probe submit .
 ```
+
+Schedule the pipeline under **Build → Pipeline schedules**. You can also run the job
+once manually to verify the integration.
+
+## Inspect or submit manually
+
+Run the same scan locally before enabling CI if you want to review the data:
+
+```console
+$ uv run django-probe scan .      # prints the payload and sends nothing
+$ uv run django-probe submit .    # sends the payload
+```
+
+Set `DJANGO_PROBE_TOKEN` first to attribute a manual submission to your project. If it
+is unset, `submit` sends an anonymous submission.
 
 ## CLI reference
 

@@ -4,7 +4,7 @@ This contributor guide applies to changes under `src/webapp/templates/` and
 `src/webapp/static/`. Read it before introducing or modifying a shared visual pattern.
 
 Django Probe's interface is utilitarian, technical, and content-first. It should feel
-like a precise companion to a command-line tool rather than a marketing site or an
+like a precise companion to a CI tool rather than a marketing site or an
 application dashboard. A small satellite (`🛰️`) is the Probe brand motif; always
 pair it with the Django Probe name and never make the emoji carry the identity alone.
 
@@ -63,7 +63,7 @@ link, minimum 44px control height, and reduced-motion preferences. Emoji used as
 brand motif is decorative and must be hidden from assistive technology.
 
 Before introducing a new visual pattern, check whether plain prose, a link, a panel,
-or an item list already expresses the content. Reports, charts, and dashboard layouts
+or an item list already expresses the content. Data summaries, charts, and dashboard layouts
 are outside this interface unless the product itself gains that requirement.
 
 ## Contributor checklist

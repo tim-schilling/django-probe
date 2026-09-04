@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import timedelta
 
-from django.test import TestCase
+from django.db import connection
+from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -289,6 +291,46 @@ class CliAuthApiTests(TestCase):
             },
         )
         self.assertEqual(second.status_code, 404)
+
+
+class CliAuthPollConcurrencyTests(TransactionTestCase):
+    """The single-use guarantee has to hold for simultaneous pollers, not just
+    sequential ones: a read-then-save would let every request that reads before the
+    first one commits walk away with the same token."""
+
+    POLLERS = 8
+
+    def test_only_one_concurrent_poll_receives_the_token(self):
+        owner = UserFactory(username="race-owner")
+        organization = OrganizationFactory(name="Race team", owner=owner)
+        credential = CliCredentialFactory(
+            organization=organization, token="issued-token", user=owner
+        )
+        url = reverse("cli-auth-poll", args=[credential.code])
+        # Hold every thread until all of them are ready, so the polls actually
+        # overlap instead of trickling through one at a time.
+        start = threading.Barrier(self.POLLERS)
+        statuses: list[int] = []
+        lock = threading.Lock()
+
+        def poll() -> None:
+            try:
+                start.wait(timeout=10)
+                response = Client().get(url)
+                with lock:
+                    statuses.append(response.status_code)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=poll) for _ in range(self.POLLERS)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        self.assertEqual(len(statuses), self.POLLERS)
+        self.assertEqual(statuses.count(200), 1)
+        self.assertEqual(statuses.count(404), self.POLLERS - 1)
 
 
 class CliProjectsApiTests(TestCase):

@@ -1,4 +1,4 @@
-"""Django Probe. Count Django code patterns and report only the counts."""
+"""Django Probe. Count Django code patterns and share only the counts."""
 
 from __future__ import annotations
 

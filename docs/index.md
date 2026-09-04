@@ -8,25 +8,26 @@ By sharing what your project uses, you help support the Django community. This a
 
 ## Quickstart
 
+Install Django Probe in your project, then create a project token:
+
 ```console
-$ pip install django-probe
-$ django-probe scan .                    # inspect the payload
-$ django-probe submit .                  # send it, anonymously
+$ uv add --dev django-probe
+$ uv run django-probe login
+$ uv run django-probe init
 ```
 
-No account is required for an anonymous, one-off report. See
-[Getting started](https://docs.djangoprobe.org/getting-started/) for project tokens,
-and [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload
+`login` stores an organization credential in your user configuration directory.
+`init` prints a separate project token; copy it, then inspect and submit the first scan:
+
+```console
+$ export DJANGO_PROBE_TOKEN=&lt;the token printed by init&gt;
+$ uv run django-probe scan .      # inspect the payload; sends nothing
+$ uv run django-probe submit .    # share the first scan
+```
+
+Next, [add Django Probe to CI](getting-started.md#add-django-probe-to-ci) so the
+project shares data on a schedule. See [Privacy](privacy.md) for exactly what a payload
 contains.
-
-### Reporting automatically
-
-You should avoid reporting this manually. Create a project on
-[djangoprobe.org](https://djangoprobe.org) and copy its token, then set it as an
-environment variable (`DJANGO_PROBE_TOKEN`), so it drops straight into a scheduled
-GitHub Action as a repository secret. See
-[Getting started](https://docs.djangoprobe.org/getting-started/#reporting-on-a-schedule)
-for a workflow you can copy.
 
 ## What we're looking to learn
 

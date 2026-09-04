@@ -1,4 +1,4 @@
-"""django-probe command line interface."""
+"""Commands used by Django Probe CI jobs and local inspection workflows."""
 
 from __future__ import annotations
 
@@ -24,8 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="django-probe",
         description=(
-            "Count how often a Django project uses particular APIs. Only counts are "
-            "reported. Source code, file paths and repository names are never sent."
+            "Share aggregate Django API usage from CI, or inspect the payload "
+            "locally. Source code, file paths and repository names are never sent."
         ),
     )
     sub = parser.add_subparsers(dest="command", required=True)
