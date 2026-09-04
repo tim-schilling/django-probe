@@ -46,25 +46,11 @@ You can also create an organization and project directly at
 A project token is an **association identifier, not an authorization credential**.
 It answers "which project do these counts belong to?" and nothing else.
 
-It grants no access. No endpoint reads data with it: it cannot fetch your
-submissions, your organization, your projects or your account. All it does is
-attribute a submission that would otherwise be anonymous, and anonymous submission
-is still fully supported — so the token adds attribution, not permission.
-
-The worst a leaked token allows is someone attributing submissions to your project
-and skewing its numbers. It exposes nothing. Regenerate the token from the project
-page if that happens; the old one stops working immediately, and you can update CI
-afterwards.
-
-That is why the token belongs in a CI secret rather than a committed
-`pyproject.toml` — not because the value is sensitive, but because you would rather
-strangers not write to your project's numbers.
+It does not grant access to anything.
 
 The credential `login` stores is a different thing, and is a real secret. It
-authenticates *you* and can create projects in your organization. It lives in your
-user configuration directory with owner-only permissions, and `django-probe logout`
-revokes it server-side and deletes it. Don't put it in CI — CI needs a project
-token, which is what `init` prints.
+authenticates *you* and can create projects in your organization. Don't put it in CI.
+CI needs a project token, which is what `init` prints.
 
 ## Add Django Probe to CI
 
