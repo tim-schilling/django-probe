@@ -28,7 +28,7 @@ def test_cli_auth_approve_journey(
         name=SECOND_ORGANIZATION_NAME, owner=owner
     )
     preset_credential = CliCredential.objects.create(
-        organization=organization, label="laptop"
+        requested_org_slug=organization.slug, label="laptop"
     )
     picker_credential = CliCredential.objects.create(label="workstation")
 

@@ -26,6 +26,7 @@ class Migration(migrations.Migration):
                 ('retrieved_at', models.DateTimeField(blank=True, null=True)),
                 ('last_used_at', models.DateTimeField(blank=True, null=True)),
                 ('revoked_at', models.DateTimeField(blank=True, null=True)),
+                ('requested_org_slug', models.CharField(blank=True, editable=False, max_length=220)),
                 ('organization', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='cli_credentials', to='ingest.organization')),
                 ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='cli_credentials', to=settings.AUTH_USER_MODEL)),
             ],

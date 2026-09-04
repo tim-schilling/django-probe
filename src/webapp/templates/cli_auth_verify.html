@@ -14,12 +14,12 @@
   </div>
 {% elif state == "forbidden" %}
   <div class="panel panel--caution">
-    <p><strong>You don't have owner access to {{ credential.organization.name }}.</strong></p>
-    <p>Ask an owner of that organization to run <code>django-probe login</code> instead.</p>
+    <p><strong>You're not a member of {{ organization.name }}.</strong></p>
+    <p>Ask a member of that organization to run <code>django-probe login</code> instead.</p>
   </div>
 {% elif state == "no-organizations" %}
   <div class="panel">
-    <p><strong>You don't own any organizations yet.</strong></p>
+    <p><strong>You're not a member of any organizations yet.</strong></p>
     <p><a href="{% url 'organization-create' %}">Create one</a>, then run <code>django-probe login</code> again.</p>
   </div>
 {% elif state == "denied" %}
@@ -32,7 +32,7 @@
   </div>
 {% elif state == "confirm" %}
   <p class="lede">
-    Approve CLI access to <strong>{{ credential.organization.name }}</strong> for
+    Approve CLI access to <strong>{{ organization.name }}</strong> for
     {% if credential.label %}<strong>{{ credential.label }}</strong>{% else %}this device{% endif %}?
   </p>
   <div class="panel panel--subtle auth-panel">

@@ -43,6 +43,7 @@ class CliCredentialAdmin(admin.ModelAdmin):
     list_display = (
         "label",
         "user",
+        "requested_org_slug",
         "organization",
         "token",
         "created_at",

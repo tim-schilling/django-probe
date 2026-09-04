@@ -114,17 +114,16 @@ def cli_auth_start(request) -> JsonResponse:
     if not isinstance(raw, dict):
         return _error("body must be a JSON object", 400)
 
-    organization = None
     org_slug = raw.get("org_slug")
-    if org_slug:
-        organization = Organization.objects.filter(slug=org_slug).first()
-        if organization is None:
-            return _error("unknown org_slug", 400)
+    if org_slug and not Organization.objects.filter(slug=org_slug).exists():
+        return _error("unknown org_slug", 400)
 
     label = raw.get("label")
     label = label[:200] if isinstance(label, str) else ""
 
-    credential = CliCredential.objects.create(organization=organization, label=label)
+    credential = CliCredential.objects.create(
+        requested_org_slug=org_slug or "", label=label
+    )
 
     return JsonResponse(
         {
@@ -502,6 +501,13 @@ def _is_org_owner(user, organization: Organization) -> bool:
     ).exists()
 
 
+def _is_org_member(user, organization: Organization) -> bool:
+    return OrganizationMembership.objects.filter(
+        organization=organization,
+        user=user,
+    ).exists()
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def cli_auth_verify(request, code: str) -> HttpResponse:
@@ -517,27 +523,36 @@ def cli_auth_verify(request, code: str) -> HttpResponse:
             {"credential": credential, "state": "invalid"},
         )
 
-    if credential.organization_id is not None:
+    requested_organization = None
+    if credential.requested_org_slug:
+        requested_organization = Organization.objects.filter(
+            slug=credential.requested_org_slug
+        ).first()
+
+    if requested_organization is not None:
         state = (
             "confirm"
-            if _is_org_owner(request.user, credential.organization)
+            if _is_org_member(request.user, requested_organization)
             else "forbidden"
         )
         return render(
-            request, "cli_auth_verify.html", {"credential": credential, "state": state}
+            request,
+            "cli_auth_verify.html",
+            {
+                "credential": credential,
+                "state": state,
+                "organization": requested_organization,
+            },
         )
 
-    owned_organizations = Organization.objects.filter(
-        memberships__user=request.user,
-        memberships__role=OrganizationMembership.Role.OWNER,
-    )
+    member_organizations = Organization.objects.filter(memberships__user=request.user)
     return render(
         request,
         "cli_auth_verify.html",
         {
             "credential": credential,
-            "state": "choose" if owned_organizations else "no-organizations",
-            "organizations": owned_organizations,
+            "state": "choose" if member_organizations else "no-organizations",
+            "organizations": member_organizations,
         },
     )
 
@@ -559,13 +574,16 @@ def _cli_auth_verify_post(request, credential: CliCredential) -> HttpResponse:
             {"credential": credential, "state": "denied"},
         )
 
-    organization = credential.organization
-    if organization is None:
+    if credential.requested_org_slug:
+        organization = get_object_or_404(
+            Organization, slug=credential.requested_org_slug
+        )
+    else:
         organization = get_object_or_404(
             Organization, pk=request.POST.get("organization_id")
         )
 
-    if not _is_org_owner(request.user, organization):
+    if not _is_org_member(request.user, organization):
         raise PermissionDenied
 
     credential.organization = organization

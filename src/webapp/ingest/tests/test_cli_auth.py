@@ -41,6 +41,7 @@ class CliAuthVerifyViewTests(TestCase):
     def setUpTestData(cls):
         cls.owner = UserFactory(username="owner")
         cls.member = UserFactory(username="member")
+        cls.outsider = UserFactory(username="outsider")
         cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
         OrganizationMembershipFactory(
             organization=cls.organization,
@@ -52,7 +53,7 @@ class CliAuthVerifyViewTests(TestCase):
         return reverse("cli-auth-verify", args=[credential.code])
 
     def test_anonymous_redirects_to_login(self):
-        credential = CliCredentialFactory(organization=self.organization)
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
 
         response = self.client.get(self.url(credential))
 
@@ -61,7 +62,7 @@ class CliAuthVerifyViewTests(TestCase):
 
     def test_owner_sees_confirm_state(self):
         """An owner of the credential's organization is shown a plain confirm."""
-        credential = CliCredentialFactory(organization=self.organization)
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
         self.client.force_login(self.owner)
 
         response = self.client.get(self.url(credential))
@@ -69,18 +70,28 @@ class CliAuthVerifyViewTests(TestCase):
         self.assertContains(response, "Django team")
         self.assertContains(response, "Approve")
 
-    def test_non_owner_sees_forbidden_state(self):
-        """A non-owner sees a friendly explanation rather than a hard error."""
-        credential = CliCredentialFactory(organization=self.organization)
+    def test_member_sees_confirm_state(self):
+        """A plain member, not just an owner, can confirm access for their org."""
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
         self.client.force_login(self.member)
 
         response = self.client.get(self.url(credential))
 
+        self.assertContains(response, "Django team")
+        self.assertContains(response, "Approve")
+
+    def test_non_member_sees_forbidden_state(self):
+        """Someone with no relationship to the org sees an explanation, not a hard error."""
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url(credential))
+
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "don't have owner access")
+        self.assertContains(response, "not a member of")
 
     def test_approve_sets_token_and_user(self):
-        credential = CliCredentialFactory(organization=self.organization)
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
         self.client.force_login(self.owner)
 
         response = self.client.post(self.url(credential), {"action": "approve"})
@@ -91,7 +102,7 @@ class CliAuthVerifyViewTests(TestCase):
         self.assertEqual(credential.user, self.owner)
 
     def test_deny_leaves_no_token(self):
-        credential = CliCredentialFactory(organization=self.organization)
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
         self.client.force_login(self.owner)
 
         self.client.post(self.url(credential), {"action": "deny"})
@@ -100,9 +111,21 @@ class CliAuthVerifyViewTests(TestCase):
         self.assertIsNone(credential.token)
         self.assertIsNotNone(credential.denied_at)
 
-    def test_non_owner_cannot_approve(self):
-        credential = CliCredentialFactory(organization=self.organization)
+    def test_member_can_approve(self):
+        """A plain member, not just an owner, can approve access for their org."""
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
         self.client.force_login(self.member)
+
+        response = self.client.post(self.url(credential), {"action": "approve"})
+
+        credential.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(credential.token)
+        self.assertEqual(credential.user, self.member)
+
+    def test_non_member_cannot_approve(self):
+        credential = CliCredentialFactory(requested_org_slug=self.organization.slug)
+        self.client.force_login(self.outsider)
 
         response = self.client.post(self.url(credential), {"action": "approve"})
 
@@ -110,11 +133,16 @@ class CliAuthVerifyViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertIsNone(credential.token)
 
-    def test_choose_state_lists_owned_organizations(self):
+    def test_choose_state_lists_member_organizations(self):
         """When login wasn't given --org, the approve page offers a picker."""
         second_organization = OrganizationFactory(name="Second team", owner=self.owner)
+        OrganizationMembershipFactory(
+            organization=second_organization,
+            user=self.member,
+            role=OrganizationMembership.Role.MEMBER,
+        )
         credential = CliCredentialFactory(organization=None)
-        self.client.force_login(self.owner)
+        self.client.force_login(self.member)
 
         response = self.client.get(self.url(credential))
 
@@ -132,18 +160,18 @@ class CliAuthVerifyViewTests(TestCase):
         self.assertTrue(credential.token)
 
     def test_no_organizations_state(self):
-        """A user who owns no organizations is guided to create one."""
+        """A user who isn't a member of any organization is guided to create one."""
         credential = CliCredentialFactory(organization=None)
-        self.client.force_login(self.member)
+        self.client.force_login(self.outsider)
 
         response = self.client.get(self.url(credential))
 
-        self.assertContains(response, "don't own any organizations")
+        self.assertContains(response, "not a member of any organizations")
 
-    def test_cannot_approve_an_organization_not_owned(self):
+    def test_cannot_approve_an_organization_not_a_member_of(self):
         """Posting a tampered organization_id is still authorization-checked."""
         credential = CliCredentialFactory(organization=None)
-        self.client.force_login(self.member)
+        self.client.force_login(self.outsider)
 
         response = self.client.post(
             self.url(credential),
@@ -156,7 +184,7 @@ class CliAuthVerifyViewTests(TestCase):
 
     def test_expired_request_shows_invalid_state(self):
         credential = CliCredentialFactory(
-            organization=self.organization,
+            requested_org_slug=self.organization.slug,
             expires_at=timezone.now() - timedelta(seconds=1),
         )
         self.client.force_login(self.owner)
@@ -208,7 +236,8 @@ class CliAuthApiTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         credential = CliCredential.objects.get(code=response.json()["code"])
-        self.assertEqual(credential.organization, organization)
+        self.assertIsNone(credential.organization)
+        self.assertEqual(credential.requested_org_slug, organization.slug)
         self.assertEqual(credential.label, "laptop")
 
     def test_start_rejects_unknown_org_slug(self):

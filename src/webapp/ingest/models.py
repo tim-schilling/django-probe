@@ -169,6 +169,12 @@ class CliCredential(models.Model):
         on_delete=models.CASCADE,
         related_name="cli_credentials",
     )
+    # Set from `login --org` at request time, before anyone has authenticated. It is
+    # only a hint for `cli_auth_verify` to resolve and check membership against - it
+    # must never be trusted to imply the requester belongs to that org.
+    requested_org_slug = models.CharField(max_length=220, blank=True, editable=False)
+    # Only set once an authenticated member of this organization has approved the
+    # request; never assigned from unauthenticated input.
     organization = models.ForeignKey(
         Organization,
         null=True,
