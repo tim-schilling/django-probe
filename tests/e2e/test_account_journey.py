@@ -119,8 +119,10 @@ def test_account_journey(
 
     page.get_by_role("link", name=ORGANIZATION_NAME).click()
     expect(page.get_by_text("Member", exact=True)).to_be_visible()
-    expect(page.get_by_role("link", name="Create project")).to_have_count(0)
-    expect(page.get_by_role("link", name="Manage members")).to_have_count(0)
+    # `role` is a label, not a permission: a member gets the same actions as the
+    # person who created the organization.
+    expect(page.get_by_role("link", name="Create project")).to_be_visible()
+    expect(page.get_by_role("link", name="Manage members")).to_be_visible()
     expect(page.get_by_role("link", name=PROJECT_NAME).first).to_be_visible()
     assert_no_accessibility_violations(page)
 

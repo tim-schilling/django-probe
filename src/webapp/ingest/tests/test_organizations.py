@@ -162,8 +162,13 @@ class OrganizationAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_member_permissions(self):
-        """Ordinary members cannot manage membership or create projects."""
+    def test_members_can_do_everything_the_organization_offers(self):
+        """Membership is the only thing authorization asks about.
+
+        `role` is recorded but not enforced, so a member manages people and projects
+        exactly as the creator does. Revisit this test first when roles start
+        meaning something.
+        """
         self.client.force_login(self.member)
 
         members_response = self.client.get(
@@ -173,22 +178,30 @@ class OrganizationAccessTests(TestCase):
             reverse("project-create", args=[self.organization.pk]),
             {"name": "New project"},
         )
-
-        self.assertEqual(members_response.status_code, 403)
-        self.assertEqual(project_response.status_code, 403)
-
-    def test_member_cannot_regenerate_token(self):
-        """Ordinary members cannot regenerate a project's token."""
-        self.client.force_login(self.member)
-
-        response = self.client.post(
+        regenerate_response = self.client.post(
             reverse(
                 "project-token-regenerate",
                 args=[self.organization.pk, self.project.pk],
             )
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(members_response.status_code, 200)
+        self.assertEqual(project_response.status_code, 302)
+        self.assertEqual(regenerate_response.status_code, 302)
+
+    def test_a_non_member_is_still_shut_out(self):
+        """The boundary that does exist: belonging to the organization at all."""
+        self.client.force_login(self.outsider)
+
+        for name, args in [
+            ("organization-detail", [self.organization.pk]),
+            ("organization-members", [self.organization.pk]),
+            ("project-create", [self.organization.pk]),
+        ]:
+            with self.subTest(view=name):
+                self.assertEqual(
+                    self.client.get(reverse(name, args=args)).status_code, 404
+                )
 
 
 class OrganizationManagementViewTests(TestCase):

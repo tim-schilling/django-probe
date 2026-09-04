@@ -16,13 +16,11 @@
   </button>
 </div>
 
-{% if membership.role == "owner" %}
 <form method="post" action="{% url 'project-token-regenerate' organization_id=organization.pk project_id=project.pk %}" class="token-regeneration">
   {% csrf_token %}
   <p><strong>Regenerating immediately invalidates the current token.</strong></p>
   <button type="submit">Regenerate token</button>
 </form>
-{% endif %}
 
 <div class="panel panel--caution">
 <p>

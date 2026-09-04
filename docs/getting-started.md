@@ -19,9 +19,9 @@ $ uv run django-probe login       # approve access in your browser
 $ uv run django-probe init        # creates a project and prints its token
 ```
 
-`login` authenticates this machine for a single organization. Pass `--org
-<slug>` (found on the organization's page) to skip the picker when setting up many
-repositories:
+`login` authenticates this machine for a single organization you belong to. Pass
+`--org <slug>` (found on the organization's page) to skip the picker when setting up
+many repositories:
 
 ```console
 $ uv run django-probe login --org my-team

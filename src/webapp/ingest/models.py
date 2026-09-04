@@ -105,6 +105,14 @@ class Organization(models.Model):
 
 class OrganizationMembership(models.Model):
     class Role(models.TextChoices):
+        """Descriptive only: nothing is authorized on it.
+
+        Every action an organization has - creating projects, regenerating tokens,
+        adding and removing people - is available to any member. The distinction is
+        recorded so it is there to build on once there is enough adoption to need
+        it, but do not read it as a permission boundary today.
+        """
+
         OWNER = "owner", "Owner"
         MEMBER = "member", "Member"
 

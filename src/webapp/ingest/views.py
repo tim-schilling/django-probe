@@ -68,15 +68,6 @@ def _membership_or_404(request, organization_id: uuid.UUID) -> OrganizationMembe
     )
 
 
-def _owner_membership_or_404(
-    request, organization_id: uuid.UUID
-) -> OrganizationMembership:
-    membership = _membership_or_404(request, organization_id)
-    if membership.role != OrganizationMembership.Role.OWNER:
-        raise PermissionDenied
-    return membership
-
-
 @csrf_exempt
 @require_POST
 def submissions(request) -> JsonResponse:
@@ -223,8 +214,8 @@ def cli_projects_create(request) -> JsonResponse:
 
     # Membership can have been revoked since the credential was issued; re-check it
     # at request time rather than trusting what was true at login.
-    if not _is_org_owner(credential.user, credential.organization):
-        return _error("no longer an owner of that organization", 403)
+    if not _is_org_member(credential.user, credential.organization):
+        return _error("no longer a member of that organization", 403)
 
     try:
         raw = json.loads(request.body.decode("utf-8")) if request.body else {}
@@ -366,7 +357,7 @@ def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def project_create(request, organization_id: uuid.UUID) -> HttpResponse:
-    membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     form = ProjectForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         project = form.save(commit=False)
@@ -412,7 +403,7 @@ def project_detail(
 def project_token_regenerate(
     request, organization_id: uuid.UUID, project_id: int
 ) -> HttpResponse:
-    membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     project = get_object_or_404(
         Project,
         pk=project_id,
@@ -426,7 +417,7 @@ def project_token_regenerate(
 
 @login_required
 def organization_members(request, organization_id: uuid.UUID) -> HttpResponse:
-    membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     return render(
         request,
         "organization_members.html",
@@ -443,7 +434,7 @@ def organization_members(request, organization_id: uuid.UUID) -> HttpResponse:
 @login_required
 @require_POST
 def organization_member_add(request, organization_id: uuid.UUID) -> HttpResponse:
-    membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     form = MembershipAddForm(request.POST)
     if form.is_valid():
         user_model = get_user_model()
@@ -478,11 +469,11 @@ def organization_member_add(request, organization_id: uuid.UUID) -> HttpResponse
 def organization_member_role(
     request, organization_id: uuid.UUID, membership_id: int
 ) -> HttpResponse:
-    owner_membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     target = get_object_or_404(
         OrganizationMembership,
         pk=membership_id,
-        organization=owner_membership.organization,
+        organization=membership.organization,
     )
     form = MembershipRoleForm(request.POST, membership=target)
     if form.is_valid():
@@ -491,9 +482,7 @@ def organization_member_role(
         messages.success(request, f"Updated {target.user.get_username()}.")
     else:
         messages.error(request, form.errors["role"][0])
-    return redirect(
-        "organization-members", organization_id=owner_membership.organization_id
-    )
+    return redirect("organization-members", organization_id=membership.organization_id)
 
 
 @login_required
@@ -501,11 +490,11 @@ def organization_member_role(
 def organization_member_remove(
     request, organization_id: uuid.UUID, membership_id: int
 ) -> HttpResponse:
-    owner_membership = _owner_membership_or_404(request, organization_id)
+    membership = _membership_or_404(request, organization_id)
     target = get_object_or_404(
         OrganizationMembership,
         pk=membership_id,
-        organization=owner_membership.organization,
+        organization=membership.organization,
     )
     username = target.user.get_username()
     form = MembershipDeleteForm(request.POST, membership=target)
@@ -514,9 +503,7 @@ def organization_member_remove(
         messages.success(request, f"Removed {username}.")
     else:
         messages.error(request, form.non_field_errors()[0])
-    return redirect(
-        "organization-members", organization_id=owner_membership.organization_id
-    )
+    return redirect("organization-members", organization_id=membership.organization_id)
 
 
 @login_required
@@ -531,14 +518,6 @@ def organization_leave(request, organization_id: uuid.UUID) -> HttpResponse:
     form.save()
     messages.success(request, f"You left {organization_name}.")
     return redirect("account")
-
-
-def _is_org_owner(user, organization: Organization) -> bool:
-    return OrganizationMembership.objects.filter(
-        organization=organization,
-        user=user,
-        role=OrganizationMembership.Role.OWNER,
-    ).exists()
 
 
 def _is_org_member(user, organization: Organization) -> bool:

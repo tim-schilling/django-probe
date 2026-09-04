@@ -10,10 +10,8 @@
 </header>
 
 <div class="actions">
-  {% if membership.role == "owner" %}
-    <a class="button" href="{% url 'project-create' organization_id=organization.pk %}">Create project</a>
-    <a class="button button--secondary" href="{% url 'organization-members' organization_id=organization.pk %}">Manage members</a>
-  {% endif %}
+  <a class="button" href="{% url 'project-create' organization_id=organization.pk %}">Create project</a>
+  <a class="button button--secondary" href="{% url 'organization-members' organization_id=organization.pk %}">Manage members</a>
   <form class="inline-form" method="post" action="{% url 'organization-leave' organization_id=organization.pk %}">
     {% csrf_token %}
     <button class="button--secondary" type="submit">Leave organization</button>
@@ -33,11 +31,7 @@
 {% else %}
   <div class="panel">
     <p><strong>No projects yet.</strong></p>
-    {% if membership.role == "owner" %}
-      <p>Create a project and Django Probe will generate its token for you.</p>
-    {% else %}
-      <p>An owner must create the first project.</p>
-    {% endif %}
+    <p>Create a project and Django Probe will generate its token for you.</p>
   </div>
 {% endif %}
 
