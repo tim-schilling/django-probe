@@ -19,11 +19,13 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project --group webapp
 
 COPY src/webapp ./src/webapp
-# ENVIRONMENT must be non-dev here so collectstatic uses the same whitenoise
-# manifest storage as production; otherwise no staticfiles.json is baked into
-# the image and requests fail at runtime with "Missing staticfiles manifest entry".
+# collectstatic must use the same whitenoise manifest storage as production, or no
+# staticfiles.json is baked into the image and requests fail at runtime with
+# "Missing staticfiles manifest entry". It asks for that directly rather than by
+# setting ENVIRONMENT=production, which would also demand the real secrets that only
+# exist at deploy time.
 RUN chmod +x src/webapp/docker/entrypoint.sh \
-    && DJANGO_PROBE_ENVIRONMENT=production python src/webapp/manage.py collectstatic --noinput
+    && DJANGO_PROBE_STATIC_MANIFEST=1 python src/webapp/manage.py collectstatic --noinput
 
 EXPOSE 8000
 ENTRYPOINT ["src/webapp/docker/entrypoint.sh"]

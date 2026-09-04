@@ -125,6 +125,14 @@ SITE_ID = 1
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+# Manifest static storage is what bakes staticfiles.json into the image, and that
+# happens at build time - where there is no secret, no database and nothing serving
+# traffic. Keeping it separate from ENVIRONMENT lets the Dockerfile ask for the
+# manifest without also claiming to be a production deployment.
+USE_STATIC_MANIFEST = (
+    os.environ.get("DJANGO_PROBE_STATIC_MANIFEST", "1" if IS_PRODUCTION else "0") == "1"
+)
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -132,7 +140,7 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": (
             "whitenoise.storage.CompressedManifestStaticFilesStorage"
-            if IS_PRODUCTION
+            if USE_STATIC_MANIFEST
             else "django.contrib.staticfiles.storage.StaticFilesStorage"
         ),
     },
