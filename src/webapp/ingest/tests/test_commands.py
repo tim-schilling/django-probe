@@ -12,6 +12,7 @@ from ingest.tests.factories import (
     CliCredentialFactory,
     OrganizationFactory,
     UserFactory,
+    issue_cli_credential,
 )
 
 
@@ -52,16 +53,12 @@ class PurgeCliAuthRequestsTests(TestCase):
         self.assertTrue(CliCredential.objects.filter(pk=pending.pk).exists())
 
     def test_never_deletes_an_approved_credential(self):
-        """Approved rows are live credentials, however old. They get revoked, not
+        """Collected rows are live credentials, however old. They get revoked, not
         purged; deleting one would silently break a working CLI install."""
         owner = UserFactory(username="owner")
         organization = OrganizationFactory(name="Django team", owner=owner)
-        credential = _aged(
-            CliCredentialFactory(
-                organization=organization, user=owner, token="issued-token"
-            ),
-            days=365,
-        )
+        credential, _ = issue_cli_credential(organization=organization, user=owner)
+        _aged(credential, days=365)
 
         self.purge()
 

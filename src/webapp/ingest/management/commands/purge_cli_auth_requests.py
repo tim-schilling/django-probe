@@ -38,7 +38,7 @@ class Command(BaseCommand):
             self.stderr.write("--days must be at least 1.")
             raise SystemExit(2)
 
-        # A row with no token never got approved, so it is pending, expired or
+        # A row with no digest never had a credential collected, so it is pending, expired or
         # denied - none of which can turn into a credential later. Selecting on age
         # rather than on `expires_at` keeps the query to one condition and puts the
         # in-flight requests (a ten minute TTL) far out of reach of any sane
@@ -46,7 +46,9 @@ class Command(BaseCommand):
         # Approved rows are live credentials and are never touched here; those are
         # revoked, not purged.
         cutoff = timezone.now() - timedelta(days=days)
-        stale = CliCredential.objects.filter(token__isnull=True, created_at__lt=cutoff)
+        stale = CliCredential.objects.filter(
+            token_digest__isnull=True, created_at__lt=cutoff
+        )
 
         if options["dry_run"]:
             self.stdout.write(

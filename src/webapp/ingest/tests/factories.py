@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import factory
+from django.utils import timezone
 
 from ingest.models import (
     CliCredential,
@@ -57,10 +58,25 @@ class ProjectFactory(factory.django.DjangoModelFactory):
 
 
 class CliCredentialFactory(factory.django.DjangoModelFactory):
+    """A pending login request. Pass ``approved_at`` for one awaiting collection."""
+
     class Meta:
         model = CliCredential
 
     label = "test-device"
+
+
+def issue_cli_credential(**kwargs) -> tuple[CliCredential, str]:
+    """Create a live credential, returning it alongside its one raw token.
+
+    Mirrors production, where the token exists only in the response that delivers
+    it: the row keeps a digest, and a test that needs to authenticate has to hold
+    on to the value returned here.
+    """
+    credential = CliCredentialFactory(approved_at=timezone.now(), **kwargs)
+    token = credential.issue_token()
+    credential.save(update_fields=["token_digest", "token_expires_at", "retrieved_at"])
+    return credential, token
 
 
 class SubmissionFactory(factory.django.DjangoModelFactory):

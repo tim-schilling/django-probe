@@ -25,11 +25,13 @@ from ingest.forms import (
 )
 from ingest.models import (
     CLI_AUTH_REQUEST_TTL,
+    CLI_CREDENTIAL_TTL,
     CliCredential,
     Organization,
     OrganizationMembership,
     Project,
     Submission,
+    hash_cli_token,
 )
 from ingest.validation import MAX_BODY_BYTES, ValidationError, validate_payload
 
@@ -145,18 +147,34 @@ def cli_auth_poll(request, code: str) -> JsonResponse:
     if credential is None:
         return _error("unknown code", 404)
 
-    if credential.token is not None:
+    if credential.approved_at is not None:
+        now = timezone.now()
+        # An approval only counts inside the request window the CLI is still
+        # polling. Otherwise a code recovered later - from a proxy log, or browser
+        # history - could be redeemed for a credential long after the CLI gave up.
+        if credential.expires_at <= now:
+            return JsonResponse({"status": "expired"})
+        # The token is minted here rather than at approval, so the only copy that
+        # ever exists is the one in this response - the row keeps just a digest.
+        token = secrets.token_hex(32)
         # Single-use: the next poll of an already-retrieved code 404s, limiting how
-        # long a leaked code could be replayed to fetch the credential.
+        # long a leaked code could be replayed to fetch the credential. Writing the
+        # digest in the same conditional UPDATE that claims the row keeps the two
+        # inseparable, so a lost race cannot mint a second token over the first.
         claimed = CliCredential.objects.filter(
             pk=credential.pk, retrieved_at__isnull=True
-        ).update(retrieved_at=timezone.now())
+        ).update(
+            retrieved_at=now,
+            token_digest=hash_cli_token(token),
+            token_expires_at=now + CLI_CREDENTIAL_TTL,
+        )
         if not claimed:
             return _error("unknown code", 404)
         return JsonResponse(
             {
                 "status": "approved",
-                "token": credential.token,
+                "token": token,
+                "expires_at": (now + CLI_CREDENTIAL_TTL).isoformat(),
                 "organization": {
                     "slug": credential.organization.slug,
                     "name": credential.organization.name,
@@ -186,12 +204,13 @@ def _resolve_cli_credential(
     if scheme.lower() != "clitoken" or not token:
         return None, _error("malformed Authorization header", 401)
     credential = (
-        CliCredential.objects.filter(token=token, revoked_at__isnull=True)
+        CliCredential.objects.active()
+        .filter(token_digest=hash_cli_token(token))
         .select_related("organization", "user")
         .first()
     )
     if credential is None:
-        return None, _error("unknown or revoked token", 401)
+        return None, _error("unknown, expired or revoked token", 401)
     return credential, None
 
 
@@ -589,8 +608,8 @@ def _cli_auth_verify_post(request, credential: CliCredential) -> HttpResponse:
 
     credential.organization = organization
     credential.user = request.user
-    credential.token = secrets.token_hex(32)
-    credential.save(update_fields=["organization", "user", "token"])
+    credential.approved_at = timezone.now()
+    credential.save(update_fields=["organization", "user", "approved_at"])
     return render(
         request, "cli_auth_verify.html", {"credential": credential, "state": "approved"}
     )
