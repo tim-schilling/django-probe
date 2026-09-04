@@ -4,7 +4,7 @@ This contributor guide applies to changes under `src/webapp/templates/` and
 `src/webapp/static/`. Read it before introducing or modifying a shared visual pattern.
 
 Django Probe's interface is utilitarian, technical, and content-first. It should feel
-like a precise companion to a command-line tool rather than a marketing site or an
+like a precise companion to a CI tool rather than a marketing site or an
 application dashboard. A small satellite (`🛰️`) is the Probe brand motif; always
 pair it with the Django Probe name and never make the emoji carry the identity alone.
 

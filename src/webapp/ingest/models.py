@@ -215,7 +215,7 @@ class Submission(models.Model):
     """
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    # Null for anonymous submissions, which are the default and fully supported path.
+    # Null for anonymous submissions, which remain supported for manual reports.
     project = models.ForeignKey(
         Project,
         null=True,

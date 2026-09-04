@@ -5,8 +5,8 @@
   <p class="eyebrow">Community code census</p>
   <h1>See how Django gets used.</h1>
   <p class="lede">
-    Django Probe counts specific code patterns in Django projects. Only counts &mdash;
-    no source code, file paths, or repository names.
+    Add Django Probe to CI to report counts of specific code patterns on a schedule.
+    No source code, file paths, or repository names leave your build.
   </p>
 </header>
 
@@ -15,14 +15,31 @@
   <p class="muted">submission{{ submission_count|pluralize }} received</p>
 </div>
 
-<h2>Contribute</h2>
+<h2>Add it to GitHub Actions</h2>
 
-<pre><code>pip install django-probe
-django-probe scan .      # see exactly what would be sent
-django-probe submit .    # send it</code></pre>
+{% verbatim %}
+<pre><code>name: Django Probe
+on:
+  schedule:
+    # Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10
+      - run: uv run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
 
 <p>
-  No account required. Creating one is optional and lets organization members share
-  private project and submission history.
+  First, run <code>uv add --dev django-probe</code>. Then
+  {% if user.is_authenticated %}<a href="{% url 'account' %}">create a project</a>{% else %}<a href="{% url 'account_signup' %}">create an account</a> and project{% endif %},
+  save its token as the <code>DJANGO_PROBE_TOKEN</code> repository secret, and commit
+  the workflow. Run <code>uv run django-probe scan .</code> locally to inspect the
+  payload without sending it.
 </p>
 {% endblock %}
