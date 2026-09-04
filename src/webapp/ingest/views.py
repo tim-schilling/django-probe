@@ -102,6 +102,11 @@ def submissions(request) -> JsonResponse:
 @csrf_exempt
 @require_POST
 def cli_auth_start(request) -> JsonResponse:
+    """Begin a device-login flow: `django-probe login` calls this first.
+
+    Issues a pending `CliCredential` and a verify URL for the user to open in a
+    browser; the CLI then polls `cli_auth_poll` until it's approved or denied.
+    """
     try:
         raw = json.loads(request.body.decode("utf-8")) if request.body else {}
     except (UnicodeDecodeError, json.JSONDecodeError):
