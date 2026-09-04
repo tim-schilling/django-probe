@@ -124,3 +124,16 @@ If a WAF rule allowlists the `django-probe/<version>` User-Agent past Cloudflare
 Browser Integrity Check (see `src/django_probe/__init__.py`), confirm it skips *only*
 that check and not rate limiting. The header is client-supplied, so anyone who reads
 the source can set it.
+
+### Scheduled maintenance
+
+Expired and denied CLI login requests accumulate as rows that can never become
+credentials. Run this daily, alongside the pre-deployment steps:
+
+```console
+$ python src/webapp/manage.py purge_cli_auth_requests
+```
+
+It deletes unapproved requests older than seven days (`--days` to change,
+`--dry-run` to preview). Approved rows are live credentials and are never touched;
+those get revoked, not purged.
