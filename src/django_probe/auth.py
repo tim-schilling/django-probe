@@ -25,7 +25,7 @@ class Credential:
 
 
 def credentials_path() -> Path:
-    return Path.home() / ".django-probe" / "credentials.json"
+    return Path.home() / ".config" / "django-probe" / "credentials.json"
 
 
 def save_credential(credential: Credential) -> None:
