@@ -6,11 +6,12 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
 CLI_AUTH_REQUEST_TTL = timedelta(minutes=10)
+SLUG_COLLISION_RETRIES = 5
 
 
 def _cli_auth_request_expiry() -> datetime:
@@ -54,9 +55,24 @@ class Organization(models.Model):
         ordering = ["name", "id"]
 
     def save(self, *args, **kwargs):
-        if not self.slug:
+        if self.slug:
+            return super().save(*args, **kwargs)
+
+        # Picking a free slug and inserting it are two steps, so two organizations
+        # created with the same name at the same time can choose the same one and
+        # the loser hits the unique constraint. Retrying rereads the slugs the
+        # winner committed, so the second attempt picks the next suffix.
+        for _ in range(SLUG_COLLISION_RETRIES):
             self.slug = self._generate_unique_slug()
-        return super().save(*args, **kwargs)
+            try:
+                with transaction.atomic():
+                    return super().save(*args, **kwargs)
+            except IntegrityError:
+                continue
+        raise IntegrityError(
+            f"could not find a free slug for {self.name!r} after "
+            f"{SLUG_COLLISION_RETRIES} attempts"
+        )
 
     def _generate_unique_slug(self) -> str:
         base = slugify(self.name) or "org"
