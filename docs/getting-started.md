@@ -100,6 +100,12 @@ report_probe:
 | `django-probe login [--org] [--server-url]` | Authenticate this machine via your browser. |
 | `django-probe init [path] [--org] [--name] [--server-url]` | Create a project using your stored login and print its token. |
 
+Every command that reaches a server takes `--server-url`, and refuses a plain-HTTP
+one — each request carries a credential in a header, and HTTP puts it in front of
+anyone on the network path. Loopback addresses are exempt, since a local
+development server is not a network hop. To point the CLI at a self-hosted server
+that has no TLS, pass `--allow-insecure-http`.
+
 | Env var | Purpose |
 |---|---|
 | `DJANGO_PROBE_SERVER` | Overrides the default submit target (`https://djangoprobe.org`). |

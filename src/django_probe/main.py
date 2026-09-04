@@ -7,6 +7,7 @@ import json
 import os
 import socket
 import sys
+import urllib.parse
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -18,6 +19,29 @@ from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
 DEFAULT_SERVER = "https://djangoprobe.org"
+#: Plain HTTP to one of these is a local development server, not a network hop.
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def insecure_server_url(server_url: str) -> str | None:
+    """Return a message explaining why `server_url` is unsafe, or None if it isn't.
+
+    Everything the CLI sends a server carries a credential in a header - a project
+    token for `submit`, the personal one for `login` and `init` - so plain HTTP puts
+    it in front of anyone on the path.
+    """
+    parsed = urllib.parse.urlparse(server_url)
+    if parsed.scheme == "https":
+        return None
+    if parsed.scheme != "http":
+        return f"unsupported scheme in {server_url!r}: expected http:// or https://."
+    if parsed.hostname in LOOPBACK_HOSTS:
+        return None
+    return (
+        f"refusing to send a credential to {server_url} over plain HTTP, where "
+        "anyone on the network path can read it. Use an https:// URL, or pass "
+        "--allow-insecure-http to override."
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
     def add_common(p: argparse.ArgumentParser) -> None:
         p.add_argument("path", nargs="?", default=".", help="Project root to scan.")
 
+    def add_server(p: argparse.ArgumentParser) -> None:
+        p.add_argument(
+            "--server-url",
+            default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER),
+        )
+        p.add_argument(
+            "--allow-insecure-http",
+            action="store_true",
+            help="Permit a plain-HTTP server URL. Sends your credential in the clear.",
+        )
+
     scan = sub.add_parser(
         "scan", help="Print the payload as JSON without sending anything."
     )
@@ -40,9 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     send = sub.add_parser("submit", help="Scan, then send the payload to a server.")
     add_common(send)
-    send.add_argument(
-        "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
-    )
+    add_server(send)
     send.add_argument(
         "--dry-run",
         action="store_true",
@@ -52,9 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
     login_parser = sub.add_parser(
         "login", help="Authenticate this machine via your browser."
     )
-    login_parser.add_argument(
-        "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
-    )
+    add_server(login_parser)
     login_parser.add_argument(
         "--org",
         dest="org_slug",
@@ -66,9 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Create a project using your stored login and print its token.",
     )
     add_common(init_parser)
-    init_parser.add_argument(
-        "--server-url", default=os.environ.get("DJANGO_PROBE_SERVER", DEFAULT_SERVER)
-    )
+    add_server(init_parser)
     init_parser.add_argument(
         "--org",
         dest="org_slug",
@@ -87,6 +116,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    # `scan` takes no server, and `submit --dry-run` prints the payload instead of
+    # sending it, so neither puts a credential on the wire.
+    contacts_server = args.command in {"submit", "login", "init"} and not getattr(
+        args, "dry_run", False
+    )
+    if contacts_server:
+        problem = insecure_server_url(args.server_url)
+        if problem is not None and not args.allow_insecure_http:
+            print(problem, file=sys.stderr)
+            return 2
 
     if args.command == "login":
         return login(args.server_url, args.org_slug, socket.gethostname())
