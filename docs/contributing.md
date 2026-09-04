@@ -66,10 +66,10 @@ resource:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DJANGO_PROBE_SECRET_KEY` | yes | Django's `SECRET_KEY`. Falls back to an insecure default otherwise. |
-| `DJANGO_PROBE_DEBUG` | no | Defaults to `0`. Leave unset in production; Django's debug pages leak internals. |
-| `DJANGO_PROBE_ENVIRONMENT` | yes | Set to `production`. Gates whitenoise's manifest static storage and tags Sentry events; defaults to `dev` so a stray local/test run can't be mistaken for production. |
-| `DJANGO_PROBE_ALLOWED_HOSTS` | yes | Comma-separated hostnames, e.g. `probe.example.com`. Defaults to `*`. |
+| `DJANGO_PROBE_SECRET_KEY` | yes | Django's `SECRET_KEY`. Startup fails when `DJANGO_PROBE_ENVIRONMENT=production` and this is unset; outside production it falls back to a shared development value. |
+| `DJANGO_PROBE_DEBUG` | no | Defaults to `0`. Setting it to `1` in production is a startup error: Django's debug pages expose the settings module, including `SECRET_KEY` and `DATABASE_URL`. |
+| `DJANGO_PROBE_ENVIRONMENT` | yes | Set to `production`. Gates the TLS/cookie settings and whitenoise's manifest static storage, and tags Sentry events; defaults to `dev` so a stray local/test run can't be mistaken for production. |
+| `DJANGO_PROBE_ALLOWED_HOSTS` | yes | Comma-separated hostnames, e.g. `probe.example.com`. Startup fails when unset in production; defaults to `*` outside it. |
 | `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` | yes | Comma-separated origins with scheme, e.g. `https://probe.example.com`. Needed because Coolify's proxy terminates TLS in front of the container. |
 | `DATABASE_URL` | yes | e.g. `postgres://user:pass@host:5432/dbname`, pointing at your PostgreSQL database. |
 | `DJANGO_PROBE_GITHUB_CLIENT_ID` / `DJANGO_PROBE_GITHUB_SECRET` | optional | Enables GitHub sign-in. |
@@ -81,3 +81,40 @@ resource:
 
 Sentry never initializes without `SENTRY_DSN`. When enabled, the integration does not
 send default personally identifiable information and does not capture request bodies.
+
+### What the edge has to provide
+
+Things the application depends on and cannot enforce for itself. All of them are
+Cloudflare and host configuration, so they need re-checking after any infrastructure
+change rather than being assumed from the code.
+
+**Cloudflare's SSL mode must be Full or Full (strict), not Flexible.** In Flexible
+mode Cloudflare speaks plain HTTP to the origin, the proxy in front of Django reports
+`X-Forwarded-Proto: http`, and `SECURE_SSL_REDIRECT` answers every request with a
+redirect to HTTPS that comes straight back as HTTP — an infinite loop that takes the
+site down. The same arrangement is why `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` must list
+origins with their scheme.
+
+
+**Rate limiting must cover every unauthenticated endpoint.** Note that this is wider
+than the endpoints that create rows:
+
+| Endpoint | Why |
+|---|---|
+| `POST /api/submissions/` | Unauthenticated by design; the only bound on volume. |
+| `POST /api/cli/auth/` | Unauthenticated row creation, once per request. |
+| `GET /api/cli/auth/<code>/poll/` | Issues the CLI credential. It is a **GET**, so a rule scoped to POSTs or to "create" endpoints will miss it. |
+| `/accounts/login/`, `/accounts/signup/` | allauth; otherwise unbounded credential stuffing. |
+
+### Scheduled maintenance
+
+Expired and denied CLI login requests accumulate as rows that can never become
+credentials. Run this daily, alongside the pre-deployment steps:
+
+```console
+$ python src/webapp/manage.py purge_cli_auth_requests
+```
+
+It deletes unapproved requests older than seven days (`--days` to change,
+`--dry-run` to preview). Approved rows are live credentials and are never touched;
+those get revoked, not purged.

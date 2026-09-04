@@ -41,6 +41,17 @@ Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
 You can also create an organization and project directly at
 [djangoprobe.org](https://djangoprobe.org) and copy the token from the project page.
 
+### What the token is, and what it isn't
+
+A project token is an **association identifier, not an authorization credential**.
+It answers "which project do these counts belong to?" and nothing else.
+
+It does not grant access to anything.
+
+The credential `login` stores is a different thing, and is a real secret. It
+authenticates *you* and can create projects in your organization. Don't put it in CI.
+CI needs a project token, which is what `init` prints.
+
 ## Add Django Probe to CI
 
 ### GitHub Actions
@@ -111,6 +122,12 @@ is unset, `submit` sends an anonymous submission.
 | `django-probe submit [path] [--server-url] [--dry-run]` | Scan, then send the payload to a server. |
 | `django-probe login [--org] [--server-url]` | Authenticate this machine via your browser. |
 | `django-probe init [path] [--org] [--name] [--server-url]` | Create a project using your stored login and print its token. |
+
+Every command that reaches a server takes `--server-url`, and refuses a plain-HTTP
+one — each request carries a credential in a header, and HTTP puts it in front of
+anyone on the network path. Loopback addresses are exempt, since a local development
+server is not a network hop. To point the CLI at a self-hosted server that has no
+TLS, pass `--allow-insecure-http`.
 
 | Env var | Purpose |
 |---|---|
