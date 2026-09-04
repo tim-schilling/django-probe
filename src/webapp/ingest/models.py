@@ -17,6 +17,10 @@ def _cli_auth_request_expiry() -> datetime:
     return timezone.now() + CLI_AUTH_REQUEST_TTL
 
 
+def _generate_cli_credential_code() -> str:
+    return secrets.token_urlsafe(32)
+
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
 
@@ -36,11 +40,6 @@ class OrganizationManager(models.Manager):
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     name = models.CharField(max_length=200)
-    # A stable, typeable identifier for the CLI (e.g. `django-probe init --org`),
-    # since the UUID pk isn't something anyone would type by hand.
-    # unique=True already creates an index; db_index=False avoids SlugField's
-    # default second one, which collides with it during the AddField/AlterField
-    # migration steps needed to backfill existing rows.
     slug = models.SlugField(max_length=220, unique=True, editable=False, db_index=False)
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(
@@ -143,14 +142,26 @@ class CliCredential(models.Model):
     set), approved (`token` set).
     """
 
-    # The ephemeral device-flow value embedded in the verify URL and used for
-    # polling. It's a separate secret from `token`, so a URL that ends up in
-    # browser history or access logs can't double as the long-lived credential.
-    code = models.CharField(max_length=64, unique=True, editable=False)
-    token = models.CharField(
-        max_length=64, unique=True, null=True, blank=True, editable=False
+    code = models.CharField(
+        max_length=64,
+        unique=True,
+        editable=False,
+        default=_generate_cli_credential_code,
+        help_text="Ephemeral device-flow secret embedded in the verify URL and used for polling.",
     )
-    label = models.CharField(max_length=200, blank=True)
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="The long-lived CLI credential, issued once the request is approved.",
+    )
+    label = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional human-readable name for the device, e.g. a hostname.",
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -168,20 +179,12 @@ class CliCredential(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=_cli_auth_request_expiry)
     denied_at = models.DateTimeField(null=True, blank=True)
-    # Set the first time an approved credential's token is handed back over
-    # `poll`; a second poll attempt is treated as not-found, giving single-use
-    # retrieval without needing to delete the row (it lives on as the credential).
     retrieved_at = models.DateTimeField(null=True, blank=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
-
-    def save(self, *args, **kwargs):
-        if not self.code:
-            self.code = secrets.token_urlsafe(32)
-        return super().save(*args, **kwargs)
 
     @property
     def is_pending(self) -> bool:

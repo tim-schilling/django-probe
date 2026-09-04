@@ -17,9 +17,9 @@ class Migration(migrations.Migration):
             name='CliCredential',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(editable=False, max_length=64, unique=True)),
-                ('token', models.CharField(blank=True, editable=False, max_length=64, null=True, unique=True)),
-                ('label', models.CharField(blank=True, max_length=200)),
+                ('code', models.CharField(default=ingest.models._generate_cli_credential_code, editable=False, help_text='Ephemeral device-flow secret embedded in the verify URL and used for polling.', max_length=64, unique=True)),
+                ('token', models.CharField(blank=True, editable=False, help_text='The long-lived CLI credential, issued once the request is approved.', max_length=64, null=True, unique=True)),
+                ('label', models.CharField(blank=True, help_text='Optional human-readable name for the device, e.g. a hostname.', max_length=200)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('expires_at', models.DateTimeField(default=ingest.models._cli_auth_request_expiry)),
                 ('denied_at', models.DateTimeField(blank=True, null=True)),
