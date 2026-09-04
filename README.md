@@ -2,7 +2,7 @@
 
 It's hard to remove features in open-source software. [Deprecation warnings exist, but people tend to ignore them](https://sethmlarson.dev/deprecations-via-warnings-dont-work-for-python-libraries). What maintainers want to know is how many people are using a feature. That's where Django Probe comes in.
 
-Django Probe is a CI tool for sharing how your project uses Django. It counts how often specific code patterns appear in your Django project and submits the aggregated information to the community on a schedule.
+Django Probe allows you to share how your project uses Django. This package counts how often specific code patterns appear in your Django project and shares the aggregated information with the community.
 
 By sharing what your project uses, you help support the Django community. This allows maintainers to know what features and APIs are actually being used, removing guess work.
 
@@ -16,16 +16,17 @@ $ uv run django-probe login
 $ uv run django-probe init
 ```
 
-Copy the token printed by `init`, then inspect and submit the first scan:
+`login` stores an organization credential in your user configuration directory.
+`init` prints a separate project token; copy it, then inspect and submit the first scan:
 
 ```console
 $ export DJANGO_PROBE_TOKEN=&lt;the token printed by init&gt;
 $ uv run django-probe scan .      # inspect the payload; sends nothing
-$ uv run django-probe submit .    # submit the first report
+$ uv run django-probe submit .    # share the first scan
 ```
 
 Next, [add Django Probe to CI](https://docs.djangoprobe.org/getting-started/#add-django-probe-to-ci)
-so the project reports on a schedule. See
+so the project shares data on a schedule. See
 [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload contains.
 
 ## What we're looking to learn

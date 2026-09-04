@@ -40,8 +40,6 @@ CSRF_TRUSTED_ORIGINS = [
     if origin
 ]
 
-# Transport hardening, production only. Each of these assumes TLS actually
-# terminates in front of the app, which holds for the Coolify/Cloudflare deployment
 if IS_PRODUCTION:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True

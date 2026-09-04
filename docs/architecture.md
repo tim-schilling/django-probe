@@ -4,7 +4,7 @@ This repository builds two separate things from one source tree.
 
 ## `django_probe`
 
-This is the Python package that is installed into Django projects and reports aggregate information. Each probe walks the standard library `ast` module's parse tree.
+This is the Python package that is installed into Django projects and shares aggregate information. Each probe walks the standard library `ast` module's parse tree.
 
 | File | Role |
 |---|---|

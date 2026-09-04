@@ -2,7 +2,8 @@
 
 ## Install
 
-Add Django Probe to the development dependencies of the project you want to report:
+Add Django Probe to the development dependencies of the project whose usage you want
+to share:
 
 ```console
 $ uv add --dev django-probe
@@ -26,8 +27,9 @@ repositories:
 $ uv run django-probe login --org my-team
 ```
 
-`init` names the project after the current directory by default and prints its token.
-Copy it now, since it is not saved anywhere:
+`login` saves its organization credential in your user configuration directory.
+`init` uses that credential, names the project after the current directory by default,
+and prints a separate project token. Copy that token now, since it is not saved:
 
 ```console
 $ uv run django-probe init
@@ -99,7 +101,7 @@ $ uv run django-probe submit .    # sends the payload
 ```
 
 Set `DJANGO_PROBE_TOKEN` first to attribute a manual submission to your project. If it
-is unset, `submit` sends an anonymous report.
+is unset, `submit` sends an anonymous submission.
 
 ## CLI reference
 

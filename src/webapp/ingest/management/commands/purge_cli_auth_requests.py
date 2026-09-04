@@ -29,7 +29,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--dry-run",
             action="store_true",
-            help="Report what would be deleted without deleting it.",
+            help="Show what would be deleted without deleting it.",
         )
 
     def handle(self, *args: Any, **options: Any) -> None:

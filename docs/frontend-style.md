@@ -63,7 +63,7 @@ link, minimum 44px control height, and reduced-motion preferences. Emoji used as
 brand motif is decorative and must be hidden from assistive technology.
 
 Before introducing a new visual pattern, check whether plain prose, a link, a panel,
-or an item list already expresses the content. Reports, charts, and dashboard layouts
+or an item list already expresses the content. Data summaries, charts, and dashboard layouts
 are outside this interface unless the product itself gains that requirement.
 
 ## Contributor checklist

@@ -206,7 +206,7 @@ class CliCredential(models.Model):
 
 
 class Submission(models.Model):
-    """One report from one client run.
+    """One submission from one client run.
 
     The data is stored without a fixed schema. ``patterns`` is a flat
     ``{"namespace:name": count}`` dict, so a new pattern adds new keys and never
@@ -215,7 +215,7 @@ class Submission(models.Model):
     """
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    # Null for anonymous submissions, which remain supported for manual reports.
+    # Null for anonymous submissions, which remain supported for manual sharing.
     project = models.ForeignKey(
         Project,
         null=True,

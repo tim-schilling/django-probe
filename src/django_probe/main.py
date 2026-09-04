@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="django-probe",
         description=(
-            "Report aggregate Django API usage from CI, or inspect the payload "
+            "Share aggregate Django API usage from CI, or inspect the payload "
             "locally. Source code, file paths and repository names are never sent."
         ),
     )
