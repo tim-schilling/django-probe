@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 
 from ingest.models import (
+    SLUG_COLLISION_RETRIES,
     Organization,
     OrganizationMembership,
     Project,
@@ -403,3 +406,47 @@ class OrganizationManagementViewTests(TestCase):
         self.assertFalse(
             OrganizationMembership.objects.filter(pk=membership.pk).exists()
         )
+
+
+class OrganizationSlugCollisionTests(TestCase):
+    """Choosing a free slug and inserting it are separate steps, so a concurrent
+    create can take the chosen slug in between. The insert is what decides."""
+
+    def test_retries_when_the_chosen_slug_is_taken_first(self):
+        OrganizationFactory(name="Django")
+        organization = Organization(name="Django")
+
+        with mock.patch.object(
+            Organization,
+            "_generate_unique_slug",
+            side_effect=["django", "django-2"],
+        ) as generate:
+            organization.save()
+
+        self.assertEqual(organization.slug, "django-2")
+        self.assertEqual(generate.call_count, 2)
+
+    def test_gives_up_rather_than_retrying_forever(self):
+        OrganizationFactory(name="Django")
+        organization = Organization(name="Django")
+
+        with (
+            mock.patch.object(
+                Organization, "_generate_unique_slug", return_value="django"
+            ) as generate,
+            self.assertRaises(IntegrityError),
+        ):
+            organization.save()
+
+        self.assertEqual(generate.call_count, SLUG_COLLISION_RETRIES)
+
+    def test_an_uncontended_save_still_takes_the_plain_slug(self):
+        organization = OrganizationFactory(name="Django")
+
+        self.assertEqual(organization.slug, "django")
+
+    def test_an_explicit_slug_is_left_alone(self):
+        organization = Organization(name="Django", slug="chosen-by-hand")
+        organization.save()
+
+        self.assertEqual(organization.slug, "chosen-by-hand")

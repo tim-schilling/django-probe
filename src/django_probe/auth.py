@@ -15,6 +15,9 @@ import stat
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+OWNER_ONLY_FILE = stat.S_IRUSR | stat.S_IWUSR
+OWNER_ONLY_DIR = stat.S_IRWXU
+
 
 @dataclass(frozen=True)
 class Credential:
@@ -30,9 +33,17 @@ def credentials_path() -> Path:
 
 def save_credential(credential: Credential) -> None:
     path = credentials_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(asdict(credential)), encoding="utf-8")
-    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=OWNER_ONLY_DIR)
+    # Created owner-only rather than written and then chmod'ed: on a shared machine
+    # the gap between the two leaves the token readable to everyone for as long as
+    # the write takes. O_TRUNC keeps the rewrite path (logging in again) from
+    # leaving a longer credential's tail behind.
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, OWNER_ONLY_FILE)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        json.dump(asdict(credential), handle)
+    # An existing file keeps its old mode through O_CREAT, so a credential written
+    # by an earlier version still gets tightened.
+    os.chmod(path, OWNER_ONLY_FILE)
 
 
 def _read_stored_credential() -> Credential | None:

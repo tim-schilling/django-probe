@@ -40,12 +40,13 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(CliCredential)
 class CliCredentialAdmin(admin.ModelAdmin):
+    # The token is a bearer credential and is deliberately absent: it authenticates
+    # as its owner, and nothing an admin does here needs to read one back.
     list_display = (
         "label",
         "user",
         "requested_org_slug",
         "organization",
-        "token",
         "created_at",
         "last_used_at",
         "revoked_at",
