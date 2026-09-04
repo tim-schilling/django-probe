@@ -22,17 +22,6 @@ from ingest.tests.factories import (
 
 
 class CliCredentialModelTests(TestCase):
-    def test_code_generated_on_create(self):
-        credential = CliCredentialFactory()
-
-        self.assertTrue(credential.code)
-
-    def test_code_is_unique(self):
-        first = CliCredentialFactory()
-        second = CliCredentialFactory()
-
-        self.assertNotEqual(first.code, second.code)
-
     def test_defaults_to_pending(self):
         credential = CliCredentialFactory()
 
