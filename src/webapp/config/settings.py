@@ -42,23 +42,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Transport hardening, production only. Each of these assumes TLS actually
 # terminates in front of the app, which holds for the Coolify/Cloudflare deployment
-# and not for a local runserver: enabling them in development would redirect plain
-# HTTP to a port nothing is listening on and set cookies the browser then refuses
-# to send back.
 if IS_PRODUCTION:
-    # Coolify (and most PaaS-style hosts) terminate TLS at a proxy in front of the
-    # container, so Django only ever sees plain HTTP. Without this it would treat
-    # every request as insecure and reject admin/allauth POSTs with a CSRF failure
-    # once ALLOWED_HOSTS is locked down to a real domain. It trusts a header the
-    # proxy sets, which is only sound while the origin cannot be reached except
-    # through that proxy - see the deployment guide.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    # Deliberately short to start with. Raise it towards a year once you are
-    # satisfied nothing needs plain HTTP; browsers cache the directive, so an
-    # over-long value is painful to walk back.
+    # TODO: Raise it towards a year once satisfied nothing needs plain HTTP
     SECURE_HSTS_SECONDS = 3600
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     # security.W021 asks for SECURE_HSTS_PRELOAD. Preloading is a separate, largely

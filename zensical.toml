@@ -1,6 +1,6 @@
 [project]
 site_name = "Django Probe"
-site_description = "Report aggregate Django code-pattern usage from CI."
+site_description = "Share aggregate Django code-pattern usage with the community."
 site_url = "https://docs.djangoprobe.org/"
 repo_url = "https://github.com/django-probe/django-probe"
 docs_dir = "docs"

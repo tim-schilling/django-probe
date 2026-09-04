@@ -147,10 +147,7 @@ def cli_auth_poll(request, code: str) -> JsonResponse:
 
     if credential.token is not None:
         # Single-use: the next poll of an already-retrieved code 404s, limiting how
-        # long a leaked code could be replayed to fetch the credential. Claiming it
-        # with a conditional UPDATE rather than a read-then-save is what makes that
-        # exactly one poll: the row lock serializes concurrent pollers, so the loser
-        # matches zero rows and 404s instead of being handed the same token.
+        # long a leaked code could be replayed to fetch the credential.
         claimed = CliCredential.objects.filter(
             pk=credential.pk, retrieved_at__isnull=True
         ).update(retrieved_at=timezone.now())
