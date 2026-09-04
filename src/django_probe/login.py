@@ -14,16 +14,11 @@ import urllib.request
 import webbrowser
 from typing import Any
 
-from django_probe import __version__
+from django_probe import USER_AGENT
 from django_probe.auth import Credential, save_credential
 
 START_ENDPOINT = "/api/cli/auth/"
 POLL_INTERVAL_SECONDS = 2.0
-
-# Identifies the request as coming from this library rather than a browser, so the
-# server can allowlist it separately from browser traffic (e.g. Cloudflare's Browser
-# Integrity Check, which otherwise 403s Python's default urllib User-Agent).
-USER_AGENT = f"django-probe/{__version__}"
 
 
 class LoginError(Exception):

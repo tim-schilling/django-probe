@@ -6,14 +6,9 @@ import sys
 import urllib.error
 import urllib.request
 
-from django_probe import __version__, auth
+from django_probe import USER_AGENT, auth
 
 ENDPOINT = "/api/cli/credentials/revoke/"
-
-# Identifies the request as coming from this library rather than a browser, so the
-# server can allowlist it separately from browser traffic (e.g. Cloudflare's Browser
-# Integrity Check, which otherwise 403s Python's default urllib User-Agent).
-USER_AGENT = f"django-probe/{__version__}"
 
 
 def logout() -> int:
