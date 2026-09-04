@@ -41,6 +41,31 @@ Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
 You can also create an organization and project directly at
 [djangoprobe.org](https://djangoprobe.org) and copy the token from the project page.
 
+### What the token is, and what it isn't
+
+A project token is an **association identifier, not an authorization credential**.
+It answers "which project do these counts belong to?" and nothing else.
+
+It grants no access. No endpoint reads data with it: it cannot fetch your
+submissions, your organization, your projects or your account. All it does is
+attribute a submission that would otherwise be anonymous, and anonymous submission
+is still fully supported — so the token adds attribution, not permission.
+
+The worst a leaked token allows is someone attributing submissions to your project
+and skewing its numbers. It exposes nothing. Regenerate the token from the project
+page if that happens; the old one stops working immediately, and you can update CI
+afterwards.
+
+That is why the token belongs in a CI secret rather than a committed
+`pyproject.toml` — not because the value is sensitive, but because you would rather
+strangers not write to your project's numbers.
+
+The credential `login` stores is a different thing, and is a real secret. It
+authenticates *you* and can create projects in your organization. It lives in your
+user configuration directory with owner-only permissions, and `django-probe logout`
+revokes it server-side and deletes it. Don't put it in CI — CI needs a project
+token, which is what `init` prints.
+
 ## Add Django Probe to CI
 
 ### GitHub Actions
@@ -111,6 +136,12 @@ is unset, `submit` sends an anonymous submission.
 | `django-probe submit [path] [--server-url] [--dry-run]` | Scan, then send the payload to a server. |
 | `django-probe login [--org] [--server-url]` | Authenticate this machine via your browser. |
 | `django-probe init [path] [--org] [--name] [--server-url]` | Create a project using your stored login and print its token. |
+
+Every command that reaches a server takes `--server-url`, and refuses a plain-HTTP
+one — each request carries a credential in a header, and HTTP puts it in front of
+anyone on the network path. Loopback addresses are exempt, since a local development
+server is not a network hop. To point the CLI at a self-hosted server that has no
+TLS, pass `--allow-insecure-http`.
 
 | Env var | Purpose |
 |---|---|

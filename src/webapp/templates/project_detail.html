@@ -29,6 +29,12 @@
   Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. Set
   <code>DJANGO_PROBE_TOKEN</code> in your CI secret store instead.
 </p>
+<p>
+  The token identifies this project; it doesn't grant access to anything. Nobody can
+  read your submissions, organization or account with it. The worst a leaked token
+  allows is someone else attributing submissions here, skewing this project's numbers
+  &mdash; regenerate it and the old one stops working immediately.
+</p>
 </div>
 
 <h2>Add it to CI</h2>
