@@ -82,10 +82,6 @@ resource:
 Sentry never initializes without `SENTRY_DSN`. When enabled, the integration does not
 send default personally identifiable information and does not capture request bodies.
 
-`DJANGO_PROBE_ENVIRONMENT=production` also turns on HTTPS redirection, secure session
-and CSRF cookies, and HSTS. `manage.py check --deploy` reports no issues against a
-correctly configured production environment; run it whenever these settings change.
-
 ### What the edge has to provide
 
 Things the application depends on and cannot enforce for itself. All of them are
@@ -99,16 +95,6 @@ redirect to HTTPS that comes straight back as HTTP — an infinite loop that tak
 site down. The same arrangement is why `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` must list
 origins with their scheme.
 
-HSTS is sent with `includeSubDomains`, so every subdomain of the deployed hostname must
-serve HTTPS — including the docs site.
-
-**The origin must be unreachable except through Cloudflare.** In production Django
-trusts `X-Forwarded-Proto` (`SECURE_PROXY_SSL_HEADER`) to decide a request arrived
-over HTTPS, because Coolify's proxy terminates TLS. A client that can reach the
-container directly can simply send that header and be treated as secure. Rate limiting
-is only as good as the same property — an origin answering on its public IP means every
-edge rule is advisory. Use a Cloudflare Tunnel, or restrict the host firewall to
-Cloudflare's published IP ranges.
 
 **Rate limiting must cover every unauthenticated endpoint.** Note that this is wider
 than the endpoints that create rows:
@@ -119,11 +105,6 @@ than the endpoints that create rows:
 | `POST /api/cli/auth/` | Unauthenticated row creation, once per request. |
 | `GET /api/cli/auth/<code>/poll/` | Issues the CLI credential. It is a **GET**, so a rule scoped to POSTs or to "create" endpoints will miss it. |
 | `/accounts/login/`, `/accounts/signup/` | allauth; otherwise unbounded credential stuffing. |
-
-If a WAF rule allowlists the `django-probe/<version>` User-Agent past Cloudflare's
-Browser Integrity Check (see `src/django_probe/__init__.py`), confirm it skips *only*
-that check and not rate limiting. The header is client-supplied, so anyone who reads
-the source can set it.
 
 ### Scheduled maintenance
 
