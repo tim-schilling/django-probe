@@ -288,11 +288,31 @@ def style_guide(request) -> HttpResponse:
 @login_required
 def account(request) -> HttpResponse:
     memberships = request.user.organization_memberships.select_related("organization")
+    # Revoked and expired ones are listed too: someone checking whether a lost
+    # laptop still has access needs to see that it doesn't.
+    credentials = request.user.cli_credentials.filter(
+        token_digest__isnull=False
+    ).select_related("organization")
     return render(
         request,
         "account.html",
-        {"memberships": memberships},
+        {"memberships": memberships, "credentials": credentials},
     )
+
+
+@login_required
+@require_POST
+def cli_credential_revoke(request, credential_id: int) -> HttpResponse:
+    # Scoped to the signed-in user, so the id in the URL can only ever name one of
+    # their own credentials.
+    credential = get_object_or_404(
+        CliCredential, pk=credential_id, user=request.user, token_digest__isnull=False
+    )
+    if credential.revoked_at is None:
+        credential.revoked_at = timezone.now()
+        credential.save(update_fields=["revoked_at"])
+        messages.success(request, f"Revoked {credential}.")
+    return redirect("account")
 
 
 @login_required

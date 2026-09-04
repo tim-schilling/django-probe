@@ -6,10 +6,12 @@ from django.urls import reverse
 from ingest.models import User
 from ingest.tests.factories import (
     PASSWORD,
+    CliCredentialFactory,
     OrganizationFactory,
     ProjectFactory,
     SubmissionFactory,
     UserFactory,
+    issue_cli_credential,
 )
 
 
@@ -191,3 +193,115 @@ class AccountNavigationTests(TestCase):
         response = self.client.get(reverse("account"))
 
         self.assertContains(response, reverse("style-guide"))
+
+
+class CliCredentialManagementTests(TestCase):
+    """Self-service revocation. Without it a lost laptop can only be dealt with by
+    someone with database or Django admin access."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.other = UserFactory(username="other")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+
+    def revoke_url(self, credential) -> str:
+        return reverse("cli-credential-revoke", kwargs={"credential_id": credential.pk})
+
+    def test_account_lists_the_signed_in_users_credentials(self):
+        credential, _ = issue_cli_credential(
+            organization=self.organization, user=self.owner, label="work-laptop"
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, "work-laptop")
+        self.assertContains(response, self.revoke_url(credential))
+
+    def test_account_does_not_list_other_peoples_credentials(self):
+        issue_cli_credential(
+            organization=self.organization, user=self.owner, label="work-laptop"
+        )
+        self.client.force_login(self.other)
+
+        response = self.client.get(reverse("account"))
+
+        self.assertNotContains(response, "work-laptop")
+
+    def test_pending_requests_are_not_listed(self):
+        """A request nobody collected is not a credential and cannot be revoked."""
+        CliCredentialFactory(user=self.owner, label="never-collected")
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse("account"))
+
+        self.assertNotContains(response, "never-collected")
+
+    def test_revoking_stops_the_credential_working(self):
+        credential, token = issue_cli_credential(
+            organization=self.organization, user=self.owner
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.post(self.revoke_url(credential))
+
+        credential.refresh_from_db()
+        self.assertRedirects(response, reverse("account"))
+        self.assertIsNotNone(credential.revoked_at)
+        api = self.client.post(
+            reverse("cli-projects-create"),
+            data='{"name": "Website"}',
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"CliToken {token}",
+        )
+        self.assertEqual(api.status_code, 401)
+
+    def test_cannot_revoke_someone_elses_credential(self):
+        credential, _ = issue_cli_credential(
+            organization=self.organization, user=self.owner
+        )
+        self.client.force_login(self.other)
+
+        response = self.client.post(self.revoke_url(credential))
+
+        credential.refresh_from_db()
+        self.assertEqual(response.status_code, 404)
+        self.assertIsNone(credential.revoked_at)
+
+    def test_revoking_requires_a_post(self):
+        credential, _ = issue_cli_credential(
+            organization=self.organization, user=self.owner
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(self.revoke_url(credential))
+
+        credential.refresh_from_db()
+        self.assertEqual(response.status_code, 405)
+        self.assertIsNone(credential.revoked_at)
+
+    def test_revoking_is_idempotent(self):
+        credential, _ = issue_cli_credential(
+            organization=self.organization, user=self.owner
+        )
+        self.client.force_login(self.owner)
+        self.client.post(self.revoke_url(credential))
+        credential.refresh_from_db()
+        first_revoked_at = credential.revoked_at
+
+        self.client.post(self.revoke_url(credential))
+
+        credential.refresh_from_db()
+        self.assertEqual(credential.revoked_at, first_revoked_at)
+
+    def test_anonymous_users_are_redirected(self):
+        credential, _ = issue_cli_credential(
+            organization=self.organization, user=self.owner
+        )
+
+        response = self.client.post(self.revoke_url(credential))
+
+        credential.refresh_from_db()
+        self.assertEqual(response.status_code, 302)
+        self.assertIsNone(credential.revoked_at)

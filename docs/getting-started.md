@@ -52,6 +52,12 @@ The credential `login` stores is a different thing, and is a real secret. It
 authenticates *you* and can create projects in your organization. Don't put it in CI.
 CI needs a project token, which is what `init` prints.
 
+It expires 90 days after it is issued, and you can revoke it sooner from **Your
+account** on the website, which lists every machine you have approved. Revoke one you
+no longer recognise, or that was on a device you have lost; that machine just runs
+`django-probe login` again. The server stores only a hash of the credential, so it
+cannot be read back out after the CLI has collected it.
+
 ## Add Django Probe to CI
 
 ### GitHub Actions

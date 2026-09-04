@@ -29,4 +29,32 @@
     <p>Create an organization to register projects, or ask an existing owner to add your username.</p>
   </div>
 {% endif %}
+
+<h2>CLI credentials</h2>
+<p class="lede">Machines you have approved with <code>django-probe login</code>. Revoke one you no longer recognise, or that was on a device you have lost.</p>
+{% if credentials %}
+  <ul class="item-list">
+    {% for credential in credentials %}
+      <li>
+        <span class="item-list__title">{{ credential.label|default:"Unnamed device" }}</span>
+        <span class="item-list__meta">
+          {{ credential.organization.name }} &middot; {{ credential.status }}
+          {% if credential.status == "active" %}until {{ credential.token_expires_at|date:"j M Y" }}{% endif %}
+          &middot; {% if credential.last_used_at %}last used {{ credential.last_used_at|date:"j M Y" }}{% else %}never used{% endif %}
+        </span>
+        {% if credential.status == "active" %}
+          <form method="post" action="{% url 'cli-credential-revoke' credential_id=credential.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="button--secondary">Revoke</button>
+          </form>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="panel">
+    <p><strong>No CLI credentials.</strong></p>
+    <p>Running <code>django-probe login</code> and approving it will add one here.</p>
+  </div>
+{% endif %}
 {% endblock %}

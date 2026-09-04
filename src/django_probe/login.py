@@ -83,6 +83,14 @@ def login(server_url: str, org_slug: str | None, label: str) -> int:
                 )
             )
             print(f"Logged in to {organization['name']}.")
+            # Older servers don't send this; the credential still works, we just
+            # can't say for how long.
+            expires_at = result.get("expires_at")
+            if isinstance(expires_at, str) and expires_at:
+                print(
+                    f"This credential expires on {expires_at[:10]}. "
+                    "You can revoke it sooner from your account page."
+                )
             return 0
         if status == "denied":
             print("Access denied.", file=sys.stderr)

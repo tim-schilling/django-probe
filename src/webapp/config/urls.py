@@ -31,6 +31,11 @@ urlpatterns = [
         views.account_submissions,
         name="account-submissions",
     ),
+    path(
+        "account/cli-credentials/<int:credential_id>/revoke/",
+        views.cli_credential_revoke,
+        name="cli-credential-revoke",
+    ),
     path("organizations/new/", views.organization_create, name="organization-create"),
     path(
         "organizations/<uuid:organization_id>/",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import urllib.error
+from contextlib import redirect_stdout
 from unittest import TestCase, mock
 
 from django_probe.auth import Credential
@@ -26,6 +27,47 @@ class LoginTests(TestCase):
         mock.patch("time.sleep").start()
         self.save_credential = mock.patch("django_probe.login.save_credential").start()
         self.addCleanup(mock.patch.stopall)
+
+    def test_approved_reports_when_the_credential_expires(self):
+        approved = {
+            "status": "approved",
+            "token": "tok",
+            "expires_at": "2027-01-15T09:30:00+00:00",
+            "organization": {"slug": "django-team", "name": "Django team"},
+        }
+        buffer = io.StringIO()
+        with (
+            mock.patch(
+                "urllib.request.urlopen",
+                side_effect=[_response(STARTED), _response(approved)],
+            ),
+            redirect_stdout(buffer),
+        ):
+            code = login("https://x", None, "laptop")
+
+        self.assertEqual(code, 0)
+        self.assertIn("expires on 2027-01-15", buffer.getvalue())
+
+    def test_approved_without_an_expiry_still_succeeds(self):
+        """An older server doesn't send one; the credential is still usable."""
+        approved = {
+            "status": "approved",
+            "token": "tok",
+            "organization": {"slug": "django-team", "name": "Django team"},
+        }
+        buffer = io.StringIO()
+        with (
+            mock.patch(
+                "urllib.request.urlopen",
+                side_effect=[_response(STARTED), _response(approved)],
+            ),
+            redirect_stdout(buffer),
+        ):
+            code = login("https://x", None, "laptop")
+
+        self.assertEqual(code, 0)
+        self.assertIn("Logged in to Django team.", buffer.getvalue())
+        self.assertNotIn("expires on", buffer.getvalue())
 
     def test_approved_saves_credential(self):
         approved = {
