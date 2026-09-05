@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 VALID: dict[str, Any] = {
-    "schema_version": 2,
+    "schema_version": 3,
     "client_version": "0.2.0",
     "python_version": "3.12.3",
     "django_version": "5.1.2",
@@ -16,6 +16,8 @@ VALID: dict[str, Any] = {
     "probe_sources": {"django-probe": "0.2.0"},
     "patterns": {"probe:queryset_filter": 3},
     "dependencies": {"django": "5.1.2"},
+    "django_settings": {},
+    "django_settings_scanned": False,
 }
 
 

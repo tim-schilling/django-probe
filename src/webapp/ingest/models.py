@@ -330,6 +330,8 @@ class Submission(models.Model):
     probe_sources = models.JSONField(default=dict)
     patterns = models.JSONField(default=dict)
     dependencies = models.JSONField(default=dict)
+    django_settings = models.JSONField(default=dict)
+    django_settings_scanned = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

@@ -12,10 +12,11 @@ enforced; the count and length caps bound the damage instead.
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
+MAX_DJANGO_SETTINGS = 300
 MAX_PATTERNS = 500
 MAX_PROBE_SOURCES = 100
 MAX_STRING = 128
@@ -67,6 +68,20 @@ def _patterns(value: object) -> dict[str, int]:
     return value
 
 
+def _int_map(value: object, field: str, max_entries: int) -> dict[str, int]:
+    if not isinstance(value, dict):
+        raise ValidationError(f"{field} must be an object")
+    if len(value) > max_entries:
+        raise ValidationError(f"{field} exceeds {max_entries} entries")
+    for key, count in value.items():
+        _string(key, f"{field} key")
+        if not isinstance(count, int) or isinstance(count, bool):
+            raise ValidationError(f"{field}[{key}] must be an integer")
+        if not 0 <= count <= MAX_COUNT:
+            raise ValidationError(f"{field}[{key}] out of range")
+    return value
+
+
 def validate_payload(payload: object) -> dict:
     if not isinstance(payload, dict):
         raise ValidationError("payload must be an object")
@@ -79,6 +94,10 @@ def validate_payload(payload: object) -> dict:
         raise ValidationError("files_scanned must be an integer")
     if not 0 <= files_scanned <= MAX_FILES:
         raise ValidationError("files_scanned out of range")
+
+    django_settings_scanned = payload.get("django_settings_scanned", False)
+    if not isinstance(django_settings_scanned, bool):
+        raise ValidationError("django_settings_scanned must be a boolean")
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -93,4 +112,10 @@ def validate_payload(payload: object) -> dict:
         "dependencies": _str_map(
             payload.get("dependencies", {}), "dependencies", MAX_DEPENDENCIES
         ),
+        "django_settings": _int_map(
+            payload.get("django_settings", {}),
+            "django_settings",
+            MAX_DJANGO_SETTINGS,
+        ),
+        "django_settings_scanned": django_settings_scanned,
     }

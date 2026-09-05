@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase, mock
 
-from django_probe.config import read_token, resolve_token
+from django_probe.config import django_settings_enabled, read_token, resolve_token
 
 
 class ReadTokenTests(TestCase):
@@ -48,3 +48,20 @@ class ResolveTokenTests(TestCase):
     def test_env_var_works_without_pyproject(self):
         with mock.patch.dict(os.environ, {"DJANGO_PROBE_TOKEN": "from-env"}):
             self.assertEqual(resolve_token(self.root), "from-env")
+
+
+class DjangoSettingsEnabledTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_requires_explicit_opt_in(self):
+        self.assertFalse(django_settings_enabled(self.root))
+
+    def test_reads_usage_opt_in(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe.usage]\ndjango_settings = true\n",
+            encoding="utf-8",
+        )
+        self.assertTrue(django_settings_enabled(self.root))
