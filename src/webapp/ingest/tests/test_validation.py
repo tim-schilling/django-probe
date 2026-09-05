@@ -42,6 +42,10 @@ class ValidationTests(IngestTestCase):
             payload(dependencies={f"pkg{i}": "1.0" for i in range(2001)})
         )
 
+    def test_invalid_django_settings(self):
+        self.assertRejected(payload(django_settings={"DEBUG": "yes"}))
+        self.assertRejected(payload(django_settings_scanned="yes"))
+
     def test_oversized_body(self):
         response = self.post(payload(client_version="x" * 300_000))
         self.assertEqual(response.status_code, 413)

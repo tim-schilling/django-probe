@@ -18,6 +18,7 @@ class AnonymousSubmissionTests(IngestTestCase):
         self.assertEqual(response.status_code, 201)
         submission = Submission.objects.get()
         self.assertEqual(submission.patterns, {"probe:queryset_filter": 3})
+        self.assertEqual(submission.django_settings, {})
         self.assertEqual(submission.files_scanned, 12)
 
     def test_body_token_field_is_ignored(self):

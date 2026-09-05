@@ -27,7 +27,9 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 2)
+        self.assertEqual(payload["schema_version"], 3)
+        self.assertEqual(payload["django_settings"], {})
+        self.assertFalse(payload["django_settings_scanned"])
         self.assertEqual(payload["files_scanned"], 1)
         self.assertEqual(payload["patterns"]["probe:transaction_atomic"], 1)
         self.assertEqual(payload["patterns"]["probe:queryset_filter"], 1)
@@ -45,6 +47,27 @@ class PayloadTests(TestCase):
         self.assertNotIn("Book", serialized)
         self.assertNotIn(str(self.root), serialized)
         self.assertNotIn(self.root.name, serialized)
+
+    def test_settings_inventory_excludes_custom_names_and_values(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe.usage]\ndjango_settings = true\n",
+            encoding="utf-8",
+        )
+        (self.root / "config").mkdir()
+        (self.root / "config" / "settings.py").write_text(
+            "DEBUG = False\n"
+            'THIRD_PARTY_API_TOKEN = "private-value"\n'
+            'AUTH_USER_MODEL = "internal_accounts.PrivateUser"\n',
+            encoding="utf-8",
+        )
+
+        serialized = json.dumps(build_payload(self.root))
+
+        self.assertIn('"DEBUG": 1', serialized)
+        self.assertNotIn("THIRD_PARTY_API_TOKEN", serialized)
+        self.assertNotIn("private-value", serialized)
+        self.assertNotIn("internal_accounts", serialized)
+        self.assertNotIn("PrivateUser", serialized)
 
     def test_pattern_keys_namespaced(self):
         (self.root / "m.py").write_text(SOURCE, encoding="utf-8")
