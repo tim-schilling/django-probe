@@ -22,16 +22,6 @@
   <button type="submit">Regenerate token</button>
 </form>
 
-<div class="panel panel--caution">
-<p>
-  Keep it out of <code>pyproject.toml</code> &mdash; that file gets committed. Set
-  <code>DJANGO_PROBE_TOKEN</code> in your CI secret store instead.
-</p>
-<p>
-  The token identifies this project; it doesn't grant access to anything.
-</p>
-</div>
-
 <h2>Add it to CI</h2>
 
 <h3>GitHub Actions</h3>
