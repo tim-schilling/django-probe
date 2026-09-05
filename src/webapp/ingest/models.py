@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import IntegrityError, models, transaction
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -151,6 +152,9 @@ class Project(models.Model):
         Organization,
         on_delete=models.CASCADE,
         related_name="projects",
+        # The unique_project_name_per_organization constraint leads with this
+        # column, so it already covers lookups by organization alone.
+        db_index=False,
     )
     name = models.CharField(max_length=200)
     token = models.CharField(max_length=64, unique=True, editable=False)
@@ -158,6 +162,13 @@ class Project(models.Model):
 
     class Meta:
         ordering = ["name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                "organization",
+                Lower("name"),
+                name="unique_project_name_per_organization",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.token:
