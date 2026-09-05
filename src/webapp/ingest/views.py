@@ -9,6 +9,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -232,9 +233,28 @@ def cli_projects_create(request) -> JsonResponse:
     if org_slug and org_slug != credential.organization.slug:
         return _error("token is scoped to a different organization", 400)
 
-    project = Project.objects.create(
-        organization=credential.organization, name=name.strip()
-    )
+    name = name.strip()
+    if Project.objects.filter(
+        organization=credential.organization, name__iexact=name
+    ).exists():
+        return _error(
+            "a project with this name already exists in this organization", 409
+        )
+
+    try:
+        with transaction.atomic():
+            project = Project.objects.create(
+                organization=credential.organization, name=name
+            )
+    except IntegrityError:
+        if Project.objects.filter(
+            organization=credential.organization, name__iexact=name
+        ).exists():
+            return _error(
+                "a project with this name already exists in this organization", 409
+            )
+        raise
+
     credential.last_used_at = timezone.now()
     credential.save(update_fields=["last_used_at"])
 
@@ -358,17 +378,30 @@ def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def project_create(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _membership_or_404(request, organization_id)
-    form = ProjectForm(request.POST or None)
+    form = ProjectForm(request.POST or None, organization=membership.organization)
     if request.method == "POST" and form.is_valid():
         project = form.save(commit=False)
         project.organization = membership.organization
-        project.save()
-        messages.success(request, f"Created project {project.name}.")
-        return redirect(
-            "project-detail",
-            organization_id=membership.organization_id,
-            project_id=project.pk,
-        )
+        try:
+            with transaction.atomic():
+                project.save()
+        except IntegrityError:
+            if Project.objects.filter(
+                organization=membership.organization, name__iexact=project.name
+            ).exists():
+                form.add_error(
+                    "name",
+                    "A project with this name already exists in this organization.",
+                )
+            else:
+                raise
+        else:
+            messages.success(request, f"Created project {project.name}.")
+            return redirect(
+                "project-detail",
+                organization_id=membership.organization_id,
+                project_id=project.pk,
+            )
     return render(
         request,
         "project_form.html",
