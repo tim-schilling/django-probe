@@ -88,7 +88,11 @@ def submissions(request) -> JsonResponse:
     except ValidationError as exc:
         return _error(str(exc), 400)
 
-    Submission.objects.create(project=project, **cleaned)
+    Submission.objects.create(
+        project=project,
+        organization=project.organization if project else None,
+        **cleaned,
+    )
     return JsonResponse({"status": "ok"}, status=201)
 
 
@@ -308,17 +312,25 @@ def cli_credential_revoke(request, credential_id: int) -> HttpResponse:
 
 @login_required
 def account_submissions(request) -> HttpResponse:
-    organization_ids = request.user.organization_memberships.values_list(
-        "organization_id", flat=True
-    )
     submissions = Submission.objects.filter(
-        project__organization_id__in=organization_ids
-    ).select_related("project", "project__organization")
+        organization__memberships__user=request.user
+    ).select_related("project", "organization", "project__organization")
     return render(
         request,
         "account_submissions.html",
         {"submissions": submissions},
     )
+
+
+@login_required
+def submission_detail(request, submission_id: uuid.UUID) -> HttpResponse:
+    submission = get_object_or_404(
+        Submission.objects.select_related("project", "organization").filter(
+            organization__memberships__user=request.user
+        ),
+        pk=submission_id,
+    )
+    return render(request, "submission_detail.html", {"submission": submission})
 
 
 @login_required

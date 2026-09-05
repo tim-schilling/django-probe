@@ -1,7 +1,7 @@
 <ul class="item-list">
   {% for submission in submissions %}
     <li>
-      <span class="item-list__title">{{ submission.created_at|date:"SHORT_DATETIME_FORMAT" }}</span>
+      <span class="item-list__title"><a href="{% url 'submission-detail' submission_id=submission.pk %}">{{ submission.created_at|date:"SHORT_DATETIME_FORMAT" }}</a></span>
       <span class="item-list__meta">
         {% if submission.project %}
           <a href="{% url 'project-detail' organization_id=submission.project.organization_id project_id=submission.project_id %}">{{ submission.project.name }}</a> ·

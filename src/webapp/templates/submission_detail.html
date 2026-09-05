@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Submission | Django Probe{% endblock %}
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Submission</p>
+  <h1>{{ submission.created_at|date:"SHORT_DATETIME_FORMAT" }}</h1>
+  <p class="lede">{{ submission.id }}</p>
+</header>
+
+<div class="panel">
+  <h2>Metadata</h2>
+  <dl>
+    <dt>Client</dt><dd>{{ submission.client_version }}</dd>
+    <dt>Python</dt><dd>{{ submission.python_version }}</dd>
+    <dt>Django</dt><dd>{{ submission.django_version|default:"not detected" }}</dd>
+    <dt>Files scanned</dt><dd>{{ submission.files_scanned }}</dd>
+    <dt>Schema version</dt><dd>{{ submission.schema_version }}</dd>
+  </dl>
+</div>
+
+{% if submission.project or submission.organization %}
+<div class="panel">
+  <h2>Source</h2>
+  {% if submission.organization %}<p>Organization: {{ submission.organization.name }}</p>{% endif %}
+  {% if submission.project %}<p>Project: {{ submission.project.name }}</p>{% endif %}
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Probe sources</h2>
+  {% if submission.probe_sources %}<pre tabindex="0"><code>{{ submission.probe_sources }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+</div>
+<div class="panel">
+  <h2>Patterns</h2>
+  {% if submission.patterns %}<pre tabindex="0"><code>{{ submission.patterns }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+</div>
+<div class="panel">
+  <h2>Dependencies</h2>
+  {% if submission.dependencies %}<pre tabindex="0"><code>{{ submission.dependencies }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+</div>
+{% if submission.django_settings_scanned or submission.django_settings %}
+<div class="panel">
+  <h2>Django settings</h2>
+  {% if submission.django_settings %}<pre tabindex="0"><code>{{ submission.django_settings }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+</div>
+{% endif %}
+<p class="back-link"><a href="{% url 'account-submissions' %}">&larr; Back to submissions</a></p>
+{% endblock %}
