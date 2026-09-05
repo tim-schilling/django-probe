@@ -57,4 +57,10 @@
     <p>Running <code>django-probe login</code> and approving it will add one here.</p>
   </div>
 {% endif %}
+
+<h2>Delete account</h2>
+<div class="panel panel--caution">
+  <p>Deleting your account removes organizations where you are the only member and their projects. Shared organizations remain available to their other members.</p>
+  <p><a class="button button--secondary" href="{% url 'account-delete' %}">Review account deletion</a></p>
+</div>
 {% endblock %}

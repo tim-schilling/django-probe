@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.test import TestCase
 from django.urls import reverse
 
-from ingest.models import User
+from ingest.models import Organization, Submission, User
 from ingest.tests.factories import (
     PASSWORD,
     CliCredentialFactory,
@@ -84,6 +84,47 @@ class AccountTests(TestCase):
         response = self.client.get(reverse("account-submissions"))
 
         self.assertEqual(list(response.context["submissions"]), [own_submission])
+
+    def test_account_delete_retains_submissions_by_default(self):
+        organization = OrganizationFactory(owner=self.user)
+        project = ProjectFactory(organization=organization)
+        submission = SubmissionFactory(project=project)
+
+        response = self.client.post(
+            reverse("account-delete"), {"username": self.user.username}
+        )
+
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertFalse(Organization.objects.filter(pk=organization.pk).exists())
+        submission.refresh_from_db()
+        self.assertIsNone(submission.project_id)
+
+    def test_account_delete_can_delete_sole_member_submissions(self):
+        organization = OrganizationFactory(owner=self.user)
+        project = ProjectFactory(organization=organization)
+        submission = SubmissionFactory(project=project)
+
+        self.client.post(
+            reverse("account-delete"),
+            {"username": self.user.username, "delete_submissions": "on"},
+        )
+
+        self.assertFalse(Submission.objects.filter(pk=submission.pk).exists())
+
+    def test_account_delete_requires_username(self):
+        organization = OrganizationFactory(owner=self.user)
+        project = ProjectFactory(organization=organization)
+        submission = SubmissionFactory(project=project)
+
+        response = self.client.post(
+            reverse("account-delete"),
+            {"username": "wrong", "delete_submissions": "on"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+        self.assertTrue(Submission.objects.filter(pk=submission.pk).exists())
 
 
 class OwnedAccountTemplateTests(TestCase):
