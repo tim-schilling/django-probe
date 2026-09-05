@@ -115,9 +115,9 @@ def test_account_journey(
     page.get_by_label("Password:").fill(MEMBER_PASSWORD)
     page.get_by_role("button", name="Sign in").click()
     page.wait_for_url("**/account/")
-    expect(page.get_by_role("link", name=ORGANIZATION_NAME)).to_be_visible()
+    expect(page.get_by_role("link", name=ORGANIZATION_NAME).first).to_be_visible()
 
-    page.get_by_role("link", name=ORGANIZATION_NAME).click()
+    page.get_by_role("link", name=ORGANIZATION_NAME).first.click()
     expect(page.get_by_text("Member", exact=True)).to_be_visible()
     # `role` is a label, not a permission: a member gets the same actions as the
     # person who created the organization.

@@ -7,12 +7,29 @@
   <p class="lede">Signed in as <strong>{{ user.get_username }}</strong>. Organization projects and submissions are visible only to current members.</p>
 </header>
 
-<div class="actions">
-  <a class="button" href="{% url 'organization-create' %}">Create organization</a>
-  <a href="{% url 'account-submissions' %}">View accessible submissions</a>
-</div>
+<h2>Your projects</h2>
+{% if projects %}
+  {% for project in projects %}
+    <section class="panel">
+      <h3><a href="{% url 'project-detail' organization_id=project.organization_id project_id=project.pk %}">{{ project.name }}</a></h3>
+      <p class="item-list__meta">Organization: <a href="{% url 'organization-detail' organization_id=project.organization_id %}">{{ project.organization.name }}</a></p>
+      <h4>Submissions</h4>
+      {% if project.account_submissions %}
+        {% include "includes/submission_list.html" with submissions=project.account_submissions %}
+      {% else %}
+        <p>No submissions for this project yet.</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% else %}
+  <div class="panel">
+    <p><strong>No projects yet.</strong></p>
+    <p>Join an organization or create one below to register a project.</p>
+  </div>
+{% endif %}
 
 <h2>Your organizations</h2>
+<p><a class="button" href="{% url 'organization-create' %}">Create organization</a></p>
 {% if memberships %}
   <ul class="item-list">
     {% for membership in memberships %}

@@ -22,15 +22,6 @@ class AccountAccessTests(TestCase):
 
         self.assertRedirects(response, f"{reverse('account_login')}?next=/account/")
 
-    def test_submissions(self):
-        """Anonymous users are redirected from submission history to login."""
-        response = self.client.get(reverse("account-submissions"))
-
-        self.assertRedirects(
-            response,
-            f"{reverse('account_login')}?next=/account/submissions/",
-        )
-
 
 class AccountTests(TestCase):
     @classmethod
@@ -50,9 +41,6 @@ class AccountTests(TestCase):
 
         self.assertContains(response, "No organizations yet")
         self.assertContains(response, reverse("organization-create"))
-
-        history_response = self.client.get(reverse("account-submissions"))
-        self.assertContains(history_response, "No accessible submissions yet")
 
     def test_organization_scope(self):
         """The account lists only organizations where the user is a member."""
@@ -81,9 +69,24 @@ class AccountTests(TestCase):
         SubmissionFactory(project=other_project)
         SubmissionFactory()
 
-        response = self.client.get(reverse("account-submissions"))
+        response = self.client.get(reverse("account"))
 
-        self.assertEqual(list(response.context["submissions"]), [own_submission])
+        projects = list(response.context["projects"])
+        self.assertEqual(projects, [own_project])
+        self.assertEqual(projects[0].account_submissions, [own_submission])
+        self.assertContains(response, own_project.name)
+        self.assertContains(response, own_organization.name)
+        self.assertNotContains(response, other_project.name)
+
+    def test_projects_show_empty_submission_state(self):
+        """Projects without submissions explain that their history is empty."""
+        organization = OrganizationFactory(name="Own organization", owner=self.user)
+        project = ProjectFactory(organization=organization, name="Empty project")
+
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, project.name)
+        self.assertContains(response, "No submissions for this project yet.")
 
 
 class OwnedAccountTemplateTests(TestCase):

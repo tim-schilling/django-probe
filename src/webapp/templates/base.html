@@ -19,7 +19,7 @@
         <ul>
           <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
           {% if user.is_authenticated %}
-            <li><a href="{% url 'account' %}"{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'account-submissions' %} aria-current="page"{% endif %}>Account</a></li>
+            <li><a href="{% url 'account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Account</a></li>
             {% if user.is_staff %}<li><a href="{% url 'style-guide' %}"{% if request.resolver_match.url_name == 'style-guide' %} aria-current="page"{% endif %}>Style guide</a></li>{% endif %}
             <li><a href="{% url 'account_logout' %}"{% if request.resolver_match.url_name == 'account_logout' %} aria-current="page"{% endif %}>Sign out</a></li>
           {% else %}
