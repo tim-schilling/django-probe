@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import translation
 
 from ingest.models import User
 from ingest.tests.factories import (
@@ -84,6 +87,22 @@ class AccountTests(TestCase):
         response = self.client.get(reverse("account-submissions"))
 
         self.assertEqual(list(response.context["submissions"]), [own_submission])
+
+    def test_credential_dates_use_the_active_locale(self):
+        organization = OrganizationFactory(owner=self.user)
+        credential, _ = issue_cli_credential(
+            user=self.user,
+            organization=organization,
+        )
+        credential.token_expires_at = datetime(2027, 1, 15, 18, tzinfo=timezone.utc)
+        credential.last_used_at = datetime(2027, 2, 3, 18, tzinfo=timezone.utc)
+        credential.save(update_fields=["token_expires_at", "last_used_at"])
+
+        with translation.override("de"):
+            response = self.client.get(reverse("account"))
+
+        self.assertContains(response, "15.01.2027")
+        self.assertContains(response, "03.02.2027")
 
 
 class OwnedAccountTemplateTests(TestCase):
