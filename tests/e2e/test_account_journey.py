@@ -37,6 +37,7 @@ def test_account_journey(
     page.wait_for_url("**/account/")
     expect(page.get_by_role("heading", name="Your account")).to_be_visible()
     expect(page.get_by_text("No organizations yet.")).to_be_visible()
+    expect(page.get_by_text("No projects yet.")).to_be_visible()
     expect(page.get_by_role("link", name="Style guide")).to_have_count(0)
     assert_no_accessibility_violations(page)
 
@@ -100,6 +101,12 @@ def test_account_journey(
     page.get_by_role("link", name=PROJECT_NAME).first.click()
     expect(page.get_by_role("heading", name=PROJECT_NAME)).to_be_visible()
     expect(page.get_by_text("Django 5.1.2")).to_be_visible()
+    assert_no_accessibility_violations(page)
+
+    page.get_by_role("link", name="Account").click()
+    expect(page.get_by_role("heading", name="Your projects")).to_be_visible()
+    expect(page.get_by_role("link", name=PROJECT_NAME).first).to_be_visible()
+    expect(page.get_by_role("link", name=ORGANIZATION_NAME).first).to_be_visible()
     assert_no_accessibility_violations(page)
 
     page.get_by_role("link", name="Sign out").click()

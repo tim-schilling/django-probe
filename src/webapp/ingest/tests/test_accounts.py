@@ -22,15 +22,6 @@ class AccountAccessTests(TestCase):
 
         self.assertRedirects(response, f"{reverse('account_login')}?next=/account/")
 
-    def test_submissions(self):
-        """Anonymous users are redirected from submission history to login."""
-        response = self.client.get(reverse("account-submissions"))
-
-        self.assertRedirects(
-            response,
-            f"{reverse('account_login')}?next=/account/submissions/",
-        )
-
 
 class AccountTests(TestCase):
     @classmethod
@@ -49,10 +40,8 @@ class AccountTests(TestCase):
         response = self.client.get(reverse("account"))
 
         self.assertContains(response, "No organizations yet")
+        self.assertContains(response, "No projects yet")
         self.assertContains(response, reverse("organization-create"))
-
-        history_response = self.client.get(reverse("account-submissions"))
-        self.assertContains(history_response, "No accessible submissions yet")
 
     def test_organization_scope(self):
         """The account lists only organizations where the user is a member."""
@@ -68,7 +57,7 @@ class AccountTests(TestCase):
         self.assertNotContains(response, other_organization.name)
 
     def test_submission_scope(self):
-        """History includes only submissions belonging to accessible organizations."""
+        """The account groups only project submissions in accessible organizations."""
         own_organization = OrganizationFactory(name="Own organization", owner=self.user)
         other_organization = OrganizationFactory(
             name="Other organization", owner=self.other_user
@@ -81,9 +70,31 @@ class AccountTests(TestCase):
         SubmissionFactory(project=other_project)
         SubmissionFactory()
 
-        response = self.client.get(reverse("account-submissions"))
+        response = self.client.get(reverse("account"))
 
-        self.assertEqual(list(response.context["submissions"]), [own_submission])
+        self.assertContains(response, own_project.name)
+        self.assertContains(response, own_submission.created_at.strftime("%Y"))
+        self.assertNotContains(response, other_project.name)
+        self.assertNotContains(response, "No submissions for this project yet.")
+
+    def test_project_and_organization_links_and_empty_project_state(self):
+        organization = OrganizationFactory(name="Own organization", owner=self.user)
+        project = ProjectFactory(organization=organization, name="Own project")
+
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(
+            response,
+            reverse(
+                "project-detail",
+                kwargs={"organization_id": organization.pk, "project_id": project.pk},
+            ),
+        )
+        self.assertContains(
+            response,
+            reverse("organization-detail", kwargs={"organization_id": organization.pk}),
+        )
+        self.assertContains(response, "No submissions for this project yet.")
 
 
 class OwnedAccountTemplateTests(TestCase):
