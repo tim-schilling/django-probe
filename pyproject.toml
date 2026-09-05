@@ -176,3 +176,6 @@ overrides = [
   { module = "config.*", ignore_errors = true },
   { module = "ingest.*", ignore_errors = true },
 ]
+
+[tool.django_probe.usage]
+django_settings = true

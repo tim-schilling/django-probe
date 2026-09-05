@@ -1,7 +1,9 @@
 # Privacy
 
-No source code, file paths, or repository names leave your machine. A payload contains
-only integers, package names, and version strings.
+No source code, file paths, or repository names leave your machine. By default a
+payload contains package names, version strings and Django classes and functions.
+
+It is possible to include more information through configuration.
 
 ## Verify it yourself
 

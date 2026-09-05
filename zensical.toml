@@ -8,6 +8,7 @@ site_dir = "site"
 nav = [
   { "Overview" = "index.md" },
   { "Getting started" = "getting-started.md" },
+  { "Configuration" = "configuration.md" },
   { "Privacy" = "privacy.md" },
   { "Contributing" = [
     { "Overview" = "contributing.md" },

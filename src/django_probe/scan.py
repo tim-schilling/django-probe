@@ -11,6 +11,7 @@ from pathlib import Path
 
 import django_probe.probes  # noqa: F401  -- importing registers the probes
 from django_probe.ast_probe import count_patterns
+from django_probe.settings import configured_django_settings
 
 #: `migrations` is skipped deliberately: generated code would swamp the counts with
 #: model classes and `.filter()` calls nobody wrote by hand.
@@ -46,11 +47,18 @@ def ast_parse(contents_text: str) -> ast.Module:
 
 class ScanResult:
     def __init__(
-        self, patterns: Counter[str], files_scanned: int, files_skipped: int
+        self,
+        patterns: Counter[str],
+        files_scanned: int,
+        files_skipped: int,
+        django_settings: Counter[str],
+        django_settings_scanned: bool,
     ) -> None:
         self.patterns = patterns
         self.files_scanned = files_scanned
         self.files_skipped = files_skipped
+        self.django_settings = django_settings
+        self.django_settings_scanned = django_settings_scanned
 
 
 def iter_python_files(root: Path) -> Iterator[Path]:
@@ -65,6 +73,7 @@ def iter_python_files(root: Path) -> Iterator[Path]:
 
 def scan_path(root: Path) -> ScanResult:
     patterns: Counter[str] = Counter()
+    settings_files: list[ast.Module] = []
     scanned = skipped = 0
 
     for path in iter_python_files(root):
@@ -78,6 +87,13 @@ def scan_path(root: Path) -> ScanResult:
         # Relative path only. Filename heuristics need it, and it never leaves here.
         rel = str(path.relative_to(root)) if path.is_relative_to(root) else path.name
         patterns.update(count_patterns(tree, rel))
+        if "settings" in rel.lower():
+            settings_files.append(tree)
         scanned += 1
 
-    return ScanResult(patterns, scanned, skipped)
+    django_settings, django_settings_scanned = configured_django_settings(
+        root, settings_files
+    )
+    return ScanResult(
+        patterns, scanned, skipped, django_settings, django_settings_scanned
+    )

@@ -41,22 +41,14 @@ Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
 You can also create an organization and project directly at
 [djangoprobe.org](https://djangoprobe.org) and copy the token from the project page.
 
-### What the token is, and what it isn't
+## Configure Payload Contents
 
-A project token is an **association identifier, not an authorization credential**.
-It answers "which project do these counts belong to?" and nothing else.
+```toml
+[tool.django_probe.usage]
+django_settings = true  # Share the names of the defined Django settings
+```
 
-It does not grant access to anything.
-
-The credential `login` stores is a different thing, and is a real secret. It
-authenticates *you* and can create projects in your organization. Don't put it in CI.
-CI needs a project token, which is what `init` prints.
-
-It expires 90 days after it is issued, and you can revoke it sooner from **Your
-account** on the website, which lists every machine you have approved. Revoke one you
-no longer recognise, or that was on a device you have lost; that machine just runs
-`django-probe login` again. The server stores only a hash of the credential, so it
-cannot be read back out after the CLI has collected it.
+See [Configuration](configuration.md) for the full set of options.
 
 ## Add Django Probe to CI
 
