@@ -44,7 +44,8 @@ You can also create an organization and project directly at
 ## Configure Payload Contents
 
 ```toml
-[tool.django_probe.usage]
+[tool.django_probe]
+dependencies = "versions"  # Include dependencies and the versions
 django_settings = true  # Share the names of the defined Django settings
 ```
 

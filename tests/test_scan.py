@@ -33,7 +33,7 @@ class ScanPathTests(TestCase):
 
     def test_django_settings_only_include_known_module_level_names(self):
         (self.root / "pyproject.toml").write_text(
-            "[tool.django_probe.usage]\ndjango_settings = true\n",
+            "[tool.django_probe]\ndjango_settings = true\n",
             encoding="utf-8",
         )
         self.write(

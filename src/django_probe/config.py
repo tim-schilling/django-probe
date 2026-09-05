@@ -53,18 +53,5 @@ def resolve_token(root: Path) -> str | None:
 
 
 def django_settings_enabled(root: Path) -> bool:
-    """Return whether the opt-in Django settings inventory is enabled."""
-    path = pyproject_path(root)
-    if not path.is_file():
-        return False
-    try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError):
-        return False
-    return (
-        data.get("tool", {})
-        .get("django_probe", {})
-        .get("usage", {})
-        .get("django_settings")
-        is True
-    )
+    """Return whether the Django settings inventory is enabled (on by default)."""
+    return read_config(root).get("django_settings") is not False

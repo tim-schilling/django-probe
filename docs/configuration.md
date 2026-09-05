@@ -7,16 +7,14 @@ Django Probe reads project configuration from the `[tool.django_probe]` table in
 
 ## Django settings
 
-Django has a lot of settings. You can share which settings are used in your project
-by adding the following to your `pyproject.toml` file:
+The probe shares the names of the Django settings used in the project by default.
+It only shares that the setting was defined; the value is not shared. Set
+`django_settings` to `false` to disable it:
 
 ```toml
-[tool.django_probe.usage]
-django_settings = true
+[tool.django_probe]
+django_settings = false
 ```
-
-The probe will only collect Django settings. It only shares that the setting was
-defined. The value is not shared.
 
 ## Dependencies
 
@@ -25,8 +23,14 @@ to "names" to omit versions, or to "none" to disable dependency capture:
 
 ```toml
 [tool.django_probe]
-dependencies = "none"
+dependencies = "versions"
 ```
+
+| Value        | Package names | Package versions |
+| ------------ | :-----------: | :---------------: |
+| `"versions"` (default) | Yes | Yes |
+| `"names"`    | Yes           | No                |
+| `"none"`     | No            | No                |
 
 The names-only mode still includes normalized package names. Python, Django, and
 client versions and the packages that supplied probes remain in the payload.

@@ -29,7 +29,7 @@ class PayloadTests(TestCase):
 
         self.assertEqual(payload["schema_version"], 3)
         self.assertEqual(payload["django_settings"], {})
-        self.assertFalse(payload["django_settings_scanned"])
+        self.assertTrue(payload["django_settings_scanned"])
         self.assertEqual(payload["files_scanned"], 1)
         self.assertEqual(payload["patterns"]["probe:transaction_atomic"], 1)
         self.assertEqual(payload["patterns"]["probe:queryset_filter"], 1)
@@ -67,7 +67,7 @@ class PayloadTests(TestCase):
 
     def test_settings_inventory_excludes_custom_names_and_values(self):
         (self.root / "pyproject.toml").write_text(
-            "[tool.django_probe.usage]\ndjango_settings = true\n",
+            "[tool.django_probe]\ndjango_settings = true\n",
             encoding="utf-8",
         )
         (self.root / "config").mkdir()
@@ -85,6 +85,21 @@ class PayloadTests(TestCase):
         self.assertNotIn("private-value", serialized)
         self.assertNotIn("internal_accounts", serialized)
         self.assertNotIn("PrivateUser", serialized)
+
+    def test_django_settings_can_be_disabled(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe]\ndjango_settings = false\n",
+            encoding="utf-8",
+        )
+        (self.root / "config").mkdir()
+        (self.root / "config" / "settings.py").write_text(
+            "DEBUG = False\n", encoding="utf-8"
+        )
+
+        payload = build_payload(self.root)
+
+        self.assertEqual(payload["django_settings"], {})
+        self.assertFalse(payload["django_settings_scanned"])
 
     def test_pattern_keys_namespaced(self):
         (self.root / "m.py").write_text(SOURCE, encoding="utf-8")

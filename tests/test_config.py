@@ -61,15 +61,22 @@ class DjangoSettingsEnabledTests(TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
 
-    def test_requires_explicit_opt_in(self):
-        self.assertFalse(django_settings_enabled(self.root))
+    def test_defaults_to_enabled(self):
+        self.assertTrue(django_settings_enabled(self.root))
 
-    def test_reads_usage_opt_in(self):
+    def test_reads_explicit_opt_in(self):
         (self.root / "pyproject.toml").write_text(
-            "[tool.django_probe.usage]\ndjango_settings = true\n",
+            "[tool.django_probe]\ndjango_settings = true\n",
             encoding="utf-8",
         )
         self.assertTrue(django_settings_enabled(self.root))
+
+    def test_reads_explicit_opt_out(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe]\ndjango_settings = false\n",
+            encoding="utf-8",
+        )
+        self.assertFalse(django_settings_enabled(self.root))
 
 
 class DependencyModeTests(TestCase):
