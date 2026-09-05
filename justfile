@@ -33,11 +33,11 @@ fmt:
     uv run ruff format .
     uv run ruff check --fix .
 
-migrate:
-    uv run python src/webapp/manage.py migrate
+migrate *ARGS:
+    uv run python src/webapp/manage.py migrate {{ARGS}}
 
-makemigrations:
-    uv run python src/webapp/manage.py makemigrations
+makemigrations *ARGS:
+    uv run python src/webapp/manage.py makemigrations {{ARGS}}
 
 serve:
     uv run python src/webapp/manage.py runserver
