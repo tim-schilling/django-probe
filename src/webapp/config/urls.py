@@ -36,6 +36,7 @@ urlpatterns = [
         views.cli_credential_revoke,
         name="cli-credential-revoke",
     ),
+    path("account/delete/", views.account_delete, name="account-delete"),
     path("organizations/new/", views.organization_create, name="organization-create"),
     path(
         "organizations/<uuid:organization_id>/",
@@ -81,6 +82,11 @@ urlpatterns = [
         "organizations/<uuid:organization_id>/projects/<int:project_id>/regenerate-token/",
         views.project_token_regenerate,
         name="project-token-regenerate",
+    ),
+    path(
+        "organizations/<uuid:organization_id>/projects/<int:project_id>/delete/",
+        views.project_delete,
+        name="project-delete",
     ),
     path(
         "cli-auth/<str:code>/",

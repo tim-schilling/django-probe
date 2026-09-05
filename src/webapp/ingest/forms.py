@@ -65,6 +65,27 @@ class MembershipDeleteForm(forms.Form):
         self.membership.delete()
 
 
+class ProjectDeleteForm(forms.Form):
+    delete_submissions = forms.BooleanField(required=False)
+
+
+class AccountDeleteForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    delete_submissions = forms.BooleanField(required=False)
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_username(self) -> str:
+        username = self.cleaned_data["username"]
+        if username != self.user.get_username():
+            raise forms.ValidationError(
+                "Enter your username to confirm account deletion."
+            )
+        return username
+
+
 def _is_last_owner(membership: OrganizationMembership) -> bool:
     return (
         membership.role == OrganizationMembership.Role.OWNER

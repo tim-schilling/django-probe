@@ -12,6 +12,7 @@ from ingest.models import (
     Organization,
     OrganizationMembership,
     Project,
+    Submission,
 )
 from ingest.tests.factories import (
     OrganizationFactory,
@@ -463,3 +464,46 @@ class OrganizationSlugCollisionTests(TestCase):
         organization.save()
 
         self.assertEqual(organization.slug, "chosen-by-hand")
+
+
+class ProjectDeletionTests(TestCase):
+    def setUp(self):
+        self.owner = UserFactory(username="owner")
+        self.organization = OrganizationFactory(owner=self.owner)
+        self.project = ProjectFactory(organization=self.organization)
+        self.submission = SubmissionFactory(project=self.project)
+        self.client.force_login(self.owner)
+
+    def test_default_deletion_retains_submission(self):
+        response = self.client.post(
+            reverse("project-delete", args=[self.organization.pk, self.project.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("organization-detail", args=[self.organization.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(Project.objects.filter(pk=self.project.pk).exists())
+        self.submission.refresh_from_db()
+        self.assertIsNone(self.submission.project_id)
+
+    def test_opt_in_deletion_deletes_submission(self):
+        self.client.post(
+            reverse("project-delete", args=[self.organization.pk, self.project.pk]),
+            {"delete_submissions": "on"},
+        )
+
+        self.assertFalse(Submission.objects.filter(pk=self.submission.pk).exists())
+
+    def test_shared_organization_cannot_delete_project(self):
+        OrganizationMembershipFactory(
+            organization=self.organization,
+            user=UserFactory(username="member"),
+        )
+
+        response = self.client.get(
+            reverse("project-delete", args=[self.organization.pk, self.project.pk])
+        )
+
+        self.assertEqual(response.status_code, 403)
