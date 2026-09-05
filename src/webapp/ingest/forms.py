@@ -13,6 +13,20 @@ class OrganizationForm(forms.ModelForm):
 
 
 class ProjectForm(forms.ModelForm):
+    def __init__(self, *args, organization: Organization, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organization = organization
+
+    def clean_name(self) -> str:
+        name = self.cleaned_data["name"]
+        if Project.objects.filter(
+            organization=self.organization, name__iexact=name
+        ).exists():
+            raise forms.ValidationError(
+                "A project with this name already exists in this organization."
+            )
+        return name
+
     class Meta:
         model = Project
         fields = ["name"]

@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import IntegrityError, models, transaction
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -158,6 +159,13 @@ class Project(models.Model):
 
     class Meta:
         ordering = ["name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("name"),
+                "organization",
+                name="unique_project_name_per_organization",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.token:

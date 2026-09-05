@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest import mock
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
@@ -95,6 +95,15 @@ class OrganizationModelTests(TestCase):
         )
         with self.assertRaises(IntegrityError):
             Project.objects.create(organization=None, name="Unowned")
+
+    def test_project_name_is_unique_per_organization(self):
+        ProjectFactory(organization=self.organization, name="Website")
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ProjectFactory(organization=self.organization, name="website")
+
+        other_organization = OrganizationFactory(name="Other team", owner=self.owner)
+        ProjectFactory(organization=other_organization, name="Website")
 
 
 class OrganizationAccessTests(TestCase):
@@ -245,6 +254,23 @@ class OrganizationManagementViewTests(TestCase):
             response,
             reverse("project-detail", args=[self.organization.pk, project.pk]),
             fetch_redirect_response=False,
+        )
+
+    def test_duplicate_project_name_is_rejected(self):
+        ProjectFactory(organization=self.organization, name="Website")
+
+        response = self.client.post(
+            reverse("project-create", args=[self.organization.pk]),
+            {"name": "Website"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "A project with this name already exists in this organization.",
+        )
+        self.assertEqual(
+            Project.objects.filter(organization=self.organization).count(), 1
         )
 
     def test_regenerate_token(self):

@@ -411,6 +411,22 @@ class CliProjectsApiTests(TestCase):
         project = Project.objects.get(organization=self.organization)
         self.assertEqual(project.token, body["token"])
 
+    def test_duplicate_project_name_is_rejected(self):
+        Project.objects.create(organization=self.organization, name="Website")
+
+        response = self.post(
+            {"name": "website"}, HTTP_AUTHORIZATION=f"CliToken {self.token}"
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(
+            response.json()["detail"],
+            "a project with this name already exists in this organization",
+        )
+        self.assertEqual(
+            Project.objects.filter(organization=self.organization).count(), 1
+        )
+
     def test_updates_last_used_at(self):
         self.assertIsNone(self.credential.last_used_at)
 
@@ -418,6 +434,14 @@ class CliProjectsApiTests(TestCase):
 
         self.credential.refresh_from_db()
         self.assertIsNotNone(self.credential.last_used_at)
+
+    def test_duplicate_does_not_update_last_used_at(self):
+        Project.objects.create(organization=self.organization, name="Website")
+
+        self.post({"name": "website"}, HTTP_AUTHORIZATION=f"CliToken {self.token}")
+
+        self.credential.refresh_from_db()
+        self.assertIsNone(self.credential.last_used_at)
 
     def test_missing_authorization_header_rejected(self):
         response = self.post({"name": "Website"})
