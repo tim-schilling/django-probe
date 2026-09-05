@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.test import override_settings
+from django.urls import reverse
 
 from ingest.models import Submission
 from ingest.tests.factories import (
@@ -49,6 +50,9 @@ class ProjectTokenTests(IngestTestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Submission.objects.get().project, self.project)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.pk.version, 7)
+        self.assertEqual(submission.organization, self.organization)
 
     def test_unknown_token_rejected(self):
         """A wrong token is an error, not a silent downgrade to anonymous."""
@@ -60,6 +64,49 @@ class ProjectTokenTests(IngestTestCase):
     def test_malformed_header_rejected(self):
         response = self.post(payload(), HTTP_AUTHORIZATION="Bearer something")
         self.assertEqual(response.status_code, 401)
+
+
+class SubmissionDetailTests(IngestTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.member = UserFactory(username="member")
+        cls.outsider = UserFactory(username="outsider")
+        cls.organization = OrganizationFactory(owner=cls.member)
+        cls.project = ProjectFactory(organization=cls.organization)
+        cls.submission = Submission.objects.create(
+            project=cls.project,
+            organization=cls.organization,
+            **payload(),
+        )
+
+    def test_member_can_view_detail(self):
+        self.client.force_login(self.member)
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "probe:queryset_filter")
+
+    def test_outsider_gets_404(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_redirects(self):
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_project_deletion_retains_detail_access(self):
+        submission_id = self.submission.pk
+        self.project.delete()
+        self.client.force_login(self.member)
+        response = self.client.get(reverse("submission-detail", args=[submission_id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, str(submission_id))
 
 
 class ForwardCompatibilityTests(IngestTestCase):

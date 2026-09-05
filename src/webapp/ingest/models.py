@@ -309,10 +309,18 @@ class Submission(models.Model):
     their own probes. See the README's forward-compatibility notes.
     """
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     # Null for anonymous submissions, which remain supported for manual sharing.
     project = models.ForeignKey(
         Project,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="submissions",
+    )
+    organization = models.ForeignKey(
+        Organization,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
