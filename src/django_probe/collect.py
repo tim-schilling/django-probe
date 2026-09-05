@@ -17,12 +17,12 @@ def normalize(name: str) -> str:
     return _NORMALIZE_RE.sub("-", name).lower()
 
 
-def dependencies() -> dict[str, str]:
+def dependencies(*, include_versions: bool = True) -> dict[str, str]:
     found: dict[str, str] = {}
     for dist in metadata.distributions():
         name = dist.metadata["Name"]
         if name:
-            found[normalize(name)] = dist.version or ""
+            found[normalize(name)] = (dist.version or "") if include_versions else ""
     return dict(sorted(found.items()))
 
 

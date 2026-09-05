@@ -5,7 +5,12 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase, mock
 
-from django_probe.config import django_settings_enabled, read_token, resolve_token
+from django_probe.config import (
+    dependency_mode,
+    django_settings_enabled,
+    read_token,
+    resolve_token,
+)
 
 
 class ReadTokenTests(TestCase):
@@ -65,3 +70,29 @@ class DjangoSettingsEnabledTests(TestCase):
             encoding="utf-8",
         )
         self.assertTrue(django_settings_enabled(self.root))
+
+
+class DependencyModeTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_defaults_to_versions(self):
+        self.assertEqual(dependency_mode(self.root), "versions")
+
+    def test_reads_mode(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies = "names"\n',
+            encoding="utf-8",
+        )
+
+        self.assertEqual(dependency_mode(self.root), "names")
+
+    def test_ignores_invalid_value(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies = "invalid"\n',
+            encoding="utf-8",
+        )
+
+        self.assertEqual(dependency_mode(self.root), "versions")

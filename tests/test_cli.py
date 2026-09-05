@@ -43,6 +43,30 @@ class CliTests(TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(set(json.loads(output)), PAYLOAD_KEYS)
 
+    def test_pyproject_disables_dependencies(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies = "none"\n',
+            encoding="utf-8",
+        )
+
+        code, output = self.run_cli(["scan", str(self.root)])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["dependencies"], {})
+
+    def test_pyproject_omits_versions(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies = "names"\n',
+            encoding="utf-8",
+        )
+
+        code, output = self.run_cli(["scan", str(self.root)])
+        dependencies = json.loads(output)["dependencies"]
+
+        self.assertEqual(code, 0)
+        self.assertTrue(dependencies)
+        self.assertEqual(set(dependencies.values()), {""})
+
     def test_missing_directory_errors(self):
         code, _ = self.run_cli(["scan", str(self.root / "nope")])
         self.assertEqual(code, 2)

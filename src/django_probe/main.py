@@ -11,7 +11,7 @@ import urllib.parse
 from collections.abc import Sequence
 from pathlib import Path
 
-from django_probe.config import resolve_token
+from django_probe.config import dependency_mode, resolve_token
 from django_probe.init import init
 from django_probe.login import login
 from django_probe.logout import logout
@@ -54,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    def add_common(p: argparse.ArgumentParser) -> None:
+    def add_path(p: argparse.ArgumentParser) -> None:
         p.add_argument("path", nargs="?", default=".", help="Project root to scan.")
 
     def add_server(p: argparse.ArgumentParser) -> None:
@@ -71,10 +71,10 @@ def build_parser() -> argparse.ArgumentParser:
     scan = sub.add_parser(
         "scan", help="Print the payload as JSON without sending anything."
     )
-    add_common(scan)
+    add_path(scan)
 
     send = sub.add_parser("submit", help="Scan, then send the payload to a server.")
-    add_common(send)
+    add_path(send)
     add_server(send)
     send.add_argument(
         "--dry-run",
@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
         "init",
         help="Create a project using your stored login and print its token.",
     )
-    add_common(init_parser)
+    add_path(init_parser)
     add_server(init_parser)
     init_parser.add_argument(
         "--org",
@@ -143,7 +143,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "init":
         return init(root, args.server_url, args.org_slug, args.name)
 
-    payload = build_payload(root)
+    payload = build_payload(root, dependency_mode=dependency_mode(root))
 
     if args.command == "scan" or args.dry_run:
         print(json.dumps(payload, indent=2, sort_keys=True))

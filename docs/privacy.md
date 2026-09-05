@@ -3,7 +3,8 @@
 No source code, file paths, or repository names leave your machine. By default a
 payload contains package names, version strings and Django classes and functions.
 
-It is possible to include more information through configuration.
+You can control dependency detail and opt in to the inventory of defined Django
+settings through [Django Probe's configuration](configuration.md).
 
 ## Verify it yourself
 

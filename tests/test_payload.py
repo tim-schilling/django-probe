@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from django_probe.payload import build_payload
 
@@ -34,6 +34,23 @@ class PayloadTests(TestCase):
         self.assertEqual(payload["patterns"]["probe:transaction_atomic"], 1)
         self.assertEqual(payload["patterns"]["probe:queryset_filter"], 1)
         self.assertIn("django-probe", payload["probe_sources"])
+
+    def test_dependencies_disabled(self):
+        with mock.patch("django_probe.payload.collect.dependencies") as dependencies:
+            payload = build_payload(self.root, dependency_mode="none")
+
+        self.assertEqual(payload["dependencies"], {})
+        dependencies.assert_not_called()
+
+    def test_dependency_names(self):
+        with mock.patch(
+            "django_probe.payload.collect.dependencies",
+            return_value={"django": ""},
+        ) as dependencies:
+            payload = build_payload(self.root, dependency_mode="names")
+
+        self.assertEqual(payload["dependencies"], {"django": ""})
+        dependencies.assert_called_once_with(include_versions=False)
 
     def test_leaks_nothing_identifying(self):
         """The privacy claim, asserted rather than assumed."""

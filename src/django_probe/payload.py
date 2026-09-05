@@ -11,13 +11,21 @@ from pathlib import Path
 from typing import Any
 
 from django_probe import collect
+from django_probe.config import DependencyMode
 from django_probe.scan import scan_path
 
 SCHEMA_VERSION = 3
 
 
-def build_payload(root: Path) -> dict[str, Any]:
+def build_payload(
+    root: Path, *, dependency_mode: DependencyMode = "versions"
+) -> dict[str, Any]:
     result = scan_path(root)
+    dependencies = (
+        {}
+        if dependency_mode == "none"
+        else collect.dependencies(include_versions=dependency_mode == "versions")
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),
@@ -26,7 +34,7 @@ def build_payload(root: Path) -> dict[str, Any]:
         "files_scanned": result.files_scanned,
         "probe_sources": collect.probe_sources(),
         "patterns": dict(sorted(result.patterns.items())),
-        "dependencies": collect.dependencies(),
         "django_settings": dict(sorted(result.django_settings.items())),
         "django_settings_scanned": result.django_settings_scanned,
+        "dependencies": dependencies,
     }

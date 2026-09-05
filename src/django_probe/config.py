@@ -1,15 +1,11 @@
-"""Read the optional project token from pyproject.toml.
-
-The token isn't derived from anything about the project (like a hash of the git
-remote) — it's an opaque value copied from a project's page on the Django Probe web
-app, so it carries no information an attacker could work backward from.
-"""
+"""Read Django Probe configuration from pyproject.toml."""
 
 from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
+from typing import Literal
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -17,22 +13,33 @@ else:
     import tomli as tomllib
 
 TOKEN_ENV = "DJANGO_PROBE_TOKEN"
+DependencyMode = Literal["versions", "names", "none"]
 
 
 def pyproject_path(root: Path) -> Path:
     return root / "pyproject.toml"
 
 
-def read_token(root: Path) -> str | None:
+def read_config(root: Path) -> dict[str, object]:
     path = pyproject_path(root)
     if not path.is_file():
-        return None
+        return {}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
-        return None
-    token = data.get("tool", {}).get("django_probe", {}).get("token")
+        return {}
+    config = data.get("tool", {}).get("django_probe", {})
+    return config if isinstance(config, dict) else {}
+
+
+def read_token(root: Path) -> str | None:
+    token = read_config(root).get("token")
     return token if isinstance(token, str) and token else None
+
+
+def dependency_mode(root: Path) -> DependencyMode:
+    value = read_config(root).get("dependencies", "versions")
+    return value if value in {"versions", "names", "none"} else "versions"
 
 
 def resolve_token(root: Path) -> str | None:
