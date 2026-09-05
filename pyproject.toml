@@ -50,6 +50,7 @@ webapp = [
   "dj-database-url>=2.3",
   "gunicorn>=23",
   "psycopg[binary]>=3.2",
+  "python-dotenv>=1",
   "sentry-sdk[django]>=2.0,<3",
   "whitenoise>=6.8",
 ]
