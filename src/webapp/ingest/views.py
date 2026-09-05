@@ -9,6 +9,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -279,6 +280,17 @@ def style_guide(request) -> HttpResponse:
 @login_required
 def account(request) -> HttpResponse:
     memberships = request.user.organization_memberships.select_related("organization")
+    projects = (
+        Project.objects.filter(organization__members=request.user)
+        .select_related("organization")
+        .prefetch_related(
+            Prefetch(
+                "submissions",
+                queryset=Submission.objects.order_by("-created_at"),
+                to_attr="account_submissions",
+            )
+        )
+    )
     # Revoked and expired ones are listed too: someone checking whether a lost
     # laptop still has access needs to see that it doesn't.
     credentials = request.user.cli_credentials.filter(
@@ -287,7 +299,11 @@ def account(request) -> HttpResponse:
     return render(
         request,
         "account.html",
-        {"memberships": memberships, "credentials": credentials},
+        {
+            "memberships": memberships,
+            "projects": projects,
+            "credentials": credentials,
+        },
     )
 
 
@@ -304,21 +320,6 @@ def cli_credential_revoke(request, credential_id: int) -> HttpResponse:
         credential.save(update_fields=["revoked_at"])
         messages.success(request, f"Revoked {credential}.")
     return redirect("account")
-
-
-@login_required
-def account_submissions(request) -> HttpResponse:
-    organization_ids = request.user.organization_memberships.values_list(
-        "organization_id", flat=True
-    )
-    submissions = Submission.objects.filter(
-        project__organization_id__in=organization_ids
-    ).select_related("project", "project__organization")
-    return render(
-        request,
-        "account_submissions.html",
-        {"submissions": submissions},
-    )
 
 
 @login_required
