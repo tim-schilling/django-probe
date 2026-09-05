@@ -11,6 +11,9 @@ from config.sentry import initialize_sentry
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Before anything below reads os.environ, and before Sentry reads its own DSN.
+environment.load_dotenv_file()
+
 initialize_sentry()
 
 ENVIRONMENT = environment.name()
