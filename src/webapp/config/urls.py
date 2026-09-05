@@ -25,6 +25,11 @@ urlpatterns = [
         name="cli-credentials-revoke",
     ),
     path("account/", views.account, name="account"),
+    path(
+        "submissions/<uuid:submission_id>/",
+        views.submission_detail,
+        name="submission-detail",
+    ),
     path("style-guide/", views.style_guide, name="style-guide"),
     path(
         "account/submissions/",
