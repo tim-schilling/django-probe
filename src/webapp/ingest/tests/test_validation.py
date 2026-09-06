@@ -4,6 +4,7 @@ from typing import Any
 
 from ingest.models import Submission
 from ingest.tests.helpers import IngestTestCase, payload
+from ingest.validation import MAX_USAGE, MAX_USAGE_PACKAGES
 
 
 class ValidationTests(IngestTestCase):
@@ -45,6 +46,54 @@ class ValidationTests(IngestTestCase):
     def test_invalid_django_settings(self):
         self.assertRejected(payload(django_settings={"DEBUG": "yes"}))
         self.assertRejected(payload(django_settings_scanned="yes"))
+
+    def test_invalid_usage_packages(self):
+        self.assertRejected(payload(usage_packages="django"))
+        self.assertRejected(payload(usage_packages=[{"django": 1}]))
+        self.assertRejected(payload(usage_packages=["django.contrib"]))
+        self.assertRejected(payload(usage_packages=["django", "django"]))
+        self.assertRejected(
+            payload(
+                usage_packages=[
+                    f"package_{index}" for index in range(MAX_USAGE_PACKAGES + 1)
+                ]
+            )
+        )
+
+    def test_invalid_usage(self):
+        self.assertRejected(
+            payload(
+                usage_packages=["django"],
+                usage={"django.shortcuts.render": "many"},
+            )
+        )
+        self.assertRejected(
+            payload(
+                usage_packages=["django"],
+                usage={"application.internal_name": 1},
+            )
+        )
+
+    def test_valid_usage(self):
+        response = self.post(
+            payload(
+                usage_packages=["django"],
+                usage={"django.shortcuts.render": 2},
+            )
+        )
+
+        self.assertEqual(response.status_code, 201)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.usage_packages, ["django"])
+        self.assertEqual(submission.usage, {"django.shortcuts.render": 2})
+
+    def test_too_many_usage_entries(self):
+        self.assertRejected(
+            payload(
+                usage_packages=["django"],
+                usage={f"django.api_{index}": 1 for index in range(MAX_USAGE + 1)},
+            )
+        )
 
     def test_oversized_body(self):
         response = self.post(payload(client_version="x" * 300_000))

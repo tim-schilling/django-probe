@@ -17,6 +17,8 @@ PAYLOAD_KEYS = {
     "files_scanned",
     "probe_sources",
     "patterns",
+    "usage_packages",
+    "usage",
     "dependencies",
     "django_settings",
     "django_settings_scanned",

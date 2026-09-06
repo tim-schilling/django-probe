@@ -17,12 +17,18 @@ The central Django application that receives submissions, hosted at [djangoprobe
 
 ## How a submission flows
 
-1. `django-probe scan` walks the project and runs every registered probe, producing a
-   `{key: count}` payload via `payload.py`.
+1. `django-probe scan` walks the project once, running registered probes and the
+   configured package-usage collector before producing the payload via `payload.py`.
 2. `django-probe submit` sends that payload, plus `probe_sources`, to the ingest
    server's `views.py`.
 3. `validation.py` checks shape, and the raw submission is stored as-is. See
    [Third-party probe packages](third-party-probes.md) for why nothing gets normalized or described at this point.
+
+Curated `patterns` and broad `usage` are separate payload fields. Patterns have
+stable semantic keys supplied by probe packages. Usage keys are statically resolved
+dotted Python names rooted in the import namespaces configured by the scanned
+project; `usage_packages` records which namespaces were enabled even when none were
+found.
 
 ## How `login` and `init` work
 

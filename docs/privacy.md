@@ -1,8 +1,9 @@
 # Privacy
 
 No source code, file paths, or repository names leave your machine. By default a
-payload contains package names, version strings, Django classes and functions, and
-the names of the Django settings your project defines.
+payload contains dependency names, version strings, curated pattern counts, and the
+names of the Django settings your project defines. It also contains statically
+resolved Django API usage because `packages` defaults to `["django"]`.
 
 You can control dependency detail and opt out of the inventory of defined Django
 settings through [Django Probe's configuration](configuration.md).
@@ -14,9 +15,16 @@ sharing some information with the community.
 
 ```toml
 [tool.django_probe]
+packages = []  # Don't include detailed package API usage
 dependencies = "none"  # Don't include dependencies
 django_settings = false  # Don't include names of the defined Django settings
 ```
+
+Package usage contains only statically resolved dotted names and integer occurrence
+counts. The scanner does not report attributes called on values returned by package
+functions, because those attributes may be defined by the application. For
+`django.conf.settings`, project-defined names are collapsed to
+`django.conf.settings` rather than reported.
 
 ## Verify it yourself
 

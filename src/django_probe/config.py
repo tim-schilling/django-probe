@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import keyword
 import os
 import sys
+import warnings
 from pathlib import Path
 from typing import Literal
 
@@ -55,3 +57,20 @@ def resolve_token(root: Path) -> str | None:
 def django_settings_enabled(root: Path) -> bool:
     """Return whether the Django settings inventory is enabled (on by default)."""
     return read_config(root).get("django_settings") is not False
+
+
+def packages(root: Path) -> tuple[str, ...]:
+    """Return the configured top-level Python import namespaces."""
+    value = read_config(root).get("packages", ["django"])
+    if not isinstance(value, list) or any(
+        not isinstance(name, str) or not name.isidentifier() or keyword.iskeyword(name)
+        for name in value
+    ):
+        warnings.warn(
+            "packages must be a list of top-level Python import names; "
+            "package usage omitted.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return ()
+    return tuple(dict.fromkeys(value))

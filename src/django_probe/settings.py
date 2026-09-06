@@ -64,13 +64,15 @@ def django_settings_vocabulary() -> DjangoSettingsVocabulary:
 
 
 def configured_django_settings(
-    root: Path, settings_files: list[ast.Module]
+    root: Path,
+    settings_files: list[ast.Module],
+    vocabulary: DjangoSettingsVocabulary | None = None,
 ) -> tuple[Counter[str], bool]:
     """Count recognized module-level assignments in settings-like files."""
     if not django_settings_enabled(root):
         return Counter(), False
 
-    vocabulary = django_settings_vocabulary()
+    vocabulary = vocabulary or django_settings_vocabulary()
     if vocabulary.source is None:
         return Counter(), False
 

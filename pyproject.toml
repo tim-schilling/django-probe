@@ -180,3 +180,4 @@ overrides = [
 
 [tool.django_probe]
 django_settings = true
+packages = [ "django" ]

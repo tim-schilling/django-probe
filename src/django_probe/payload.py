@@ -14,7 +14,7 @@ from django_probe import collect
 from django_probe.config import DependencyMode
 from django_probe.scan import scan_path
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 1
 
 
 def build_payload(
@@ -34,6 +34,8 @@ def build_payload(
         "files_scanned": result.files_scanned,
         "probe_sources": collect.probe_sources(),
         "patterns": dict(sorted(result.patterns.items())),
+        "usage_packages": list(result.usage_packages),
+        "usage": dict(sorted(result.usage.items())),
         "django_settings": dict(sorted(result.django_settings.items())),
         "django_settings_scanned": result.django_settings_scanned,
         "dependencies": dependencies,

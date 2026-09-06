@@ -57,3 +57,43 @@ class ScanPathTests(TestCase):
         self.assertNotIn("INTERNAL_BILLING_REGION", result.django_settings)
         self.assertNotIn("THIRD_PARTY_API_TOKEN", result.django_settings)
         self.assertNotIn("INSTALLED_APPS", result.django_settings)
+
+    def test_collects_configured_package_usage(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\npackages = ["django"]\n',
+            encoding="utf-8",
+        )
+        self.write(
+            "app/views.py",
+            """
+            from django.shortcuts import render
+
+            def home(request):
+                return render(request, "home.html")
+            """,
+        )
+
+        result = scan_path(self.root)
+
+        self.assertEqual(result.usage_packages, ("django",))
+        self.assertEqual(result.usage["django.shortcuts.render"], 2)
+
+    def test_package_usage_defaults_to_django(self):
+        self.write("app/views.py", "from django.shortcuts import render\n")
+
+        result = scan_path(self.root)
+
+        self.assertEqual(result.usage_packages, ("django",))
+        self.assertEqual(result.usage, {"django.shortcuts.render": 1})
+
+    def test_package_usage_can_be_disabled(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe]\npackages = []\n",
+            encoding="utf-8",
+        )
+        self.write("app/views.py", "from django.shortcuts import render\n")
+
+        result = scan_path(self.root)
+
+        self.assertEqual(result.usage_packages, ())
+        self.assertEqual(result.usage, {})

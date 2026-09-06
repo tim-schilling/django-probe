@@ -314,10 +314,9 @@ class CliCredential(models.Model):
 class Submission(models.Model):
     """One submission from one client run.
 
-    The data is stored without a fixed schema. ``patterns`` is a flat
-    ``{"namespace:name": count}`` dict, so a new pattern adds new keys and never
-    requires a migration. This includes patterns from third-party packages that ship
-    their own probes. See the README's forward-compatibility notes.
+    ``patterns`` stores curated probe keys while ``usage`` stores dotted names from
+    configured import namespaces. Both are flat count dictionaries, so new entries
+    require neither a migration nor a coordinated server release.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
@@ -341,6 +340,8 @@ class Submission(models.Model):
     # zero count is ambiguous: absent pattern, or nothing looking for it?
     probe_sources = models.JSONField(default=dict)
     patterns = models.JSONField(default=dict)
+    usage_packages = models.JSONField(default=list)
+    usage = models.JSONField(default=dict)
     dependencies = models.JSONField(default=dict)
     django_settings = models.JSONField(default=dict)
     django_settings_scanned = models.BooleanField(default=False)
@@ -354,4 +355,4 @@ class Submission(models.Model):
 
     @property
     def total_occurrences(self) -> int:
-        return sum(self.patterns.values())
+        return sum(self.patterns.values()) + sum(self.usage.values())
