@@ -73,6 +73,8 @@ jobs:
 
 {% if can_delete %}
   <p><a class="button button--secondary" href="{% url 'project-delete' organization_id=organization.pk project_id=project.pk %}">Delete project</a></p>
+{% else %}
+  <p class="muted">Deleting a project is only available for organizations with a single member, so other members aren't affected. {{ organization.name }} has {{ member_count }} members.</p>
 {% endif %}
 
 <p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>

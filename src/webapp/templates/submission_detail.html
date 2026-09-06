@@ -18,11 +18,11 @@
   </dl>
 </div>
 
-{% if submission.project or submission.organization %}
+{% if submission.project %}
 <div class="panel">
   <h2>Source</h2>
-  {% if submission.organization %}<p>Organization: {{ submission.organization.name }}</p>{% endif %}
-  {% if submission.project %}<p>Project: {{ submission.project.name }}</p>{% endif %}
+  <p>Organization: {{ submission.project.organization.name }}</p>
+  <p>Project: {{ submission.project.name }}</p>
 </div>
 {% endif %}
 

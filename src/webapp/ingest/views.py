@@ -9,8 +9,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
-from django.db.models import Count, Prefetch
+from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,6 +22,7 @@ from ingest.forms import (
     MembershipAddForm,
     MembershipDeleteForm,
     MembershipRoleForm,
+    OrganizationDeleteForm,
     OrganizationForm,
     ProjectDeleteForm,
     ProjectForm,
@@ -94,7 +94,6 @@ def submissions(request) -> JsonResponse:
 
     Submission.objects.create(
         project=project,
-        organization=project.organization if project else None,
         **cleaned,
     )
     return JsonResponse({"status": "ok"}, status=201)
@@ -314,78 +313,33 @@ def account(request) -> HttpResponse:
     )
 
 
-def _account_deletion_impact(user):
-    organizations = (
-        Organization.objects.filter(members=user)
-        .annotate(member_count=Count("memberships"))
-        .prefetch_related("projects")
-    )
-    sole_member_organizations = [
-        organization for organization in organizations if organization.member_count == 1
-    ]
-    shared_organizations = [
-        organization for organization in organizations if organization.member_count > 1
-    ]
-    projects = [
-        project
-        for organization in sole_member_organizations
-        for project in organization.projects.all()
-    ]
-    return {
-        "sole_member_organizations": sole_member_organizations,
-        "shared_organizations": shared_organizations,
-        "projects": projects,
-        "submission_count": Submission.objects.filter(project__in=projects).count(),
-    }
-
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def account_delete(request) -> HttpResponse:
-    impact = _account_deletion_impact(request.user)
     form = AccountDeleteForm(
         request.POST if request.method == "POST" else None,
         user=request.user,
     )
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
-            organization_ids = list(
-                Organization.objects.filter(members=user)
-                .annotate(member_count=Count("memberships"))
-                .filter(member_count=1)
-                .values_list("pk", flat=True)
-            )
-            organizations = list(
-                Organization.objects.select_for_update().filter(pk__in=organization_ids)
-            )
-            organizations = [
-                organization
-                for organization in organizations
-                if organization.memberships.count() == 1
-            ]
-            projects = list(
-                Project.objects.filter(
-                    organization__in=organizations
-                ).select_for_update()
-            )
-            submission_count = Submission.objects.filter(project__in=projects).count()
-            if form.cleaned_data["delete_submissions"]:
-                Submission.objects.filter(project__in=projects).delete()
-            Organization.objects.filter(
-                pk__in=[organization.pk for organization in organizations]
-            ).delete()
-            user.delete()
+        form.save()
         logout(request)
         if form.cleaned_data["delete_submissions"]:
-            detail = f" and permanently deleted {submission_count} submissions"
+            detail = f" and permanently deleted {form.submission_count} submissions"
         else:
-            detail = (
-                f"; {submission_count} submissions were retained without a project link"
-            )
+            detail = f"; {form.submission_count} submissions were retained without a project link"
         messages.success(request, f"Your account was deleted{detail}.")
         return redirect("home")
-    return render(request, "account_delete.html", {**impact, "form": form})
+    return render(
+        request,
+        "account_delete.html",
+        {
+            "form": form,
+            "sole_member_organizations": form.sole_member_organizations,
+            "shared_organizations": form.shared_organizations,
+            "projects": form.projects,
+            "submission_count": form.submission_count,
+        },
+    )
 
 
 @login_required
@@ -406,8 +360,8 @@ def cli_credential_revoke(request, credential_id: int) -> HttpResponse:
 @login_required
 def submission_detail(request, submission_id: uuid.UUID) -> HttpResponse:
     submission = get_object_or_404(
-        Submission.objects.select_related("project", "organization").filter(
-            organization__memberships__user=request.user
+        Submission.objects.select_related("project__organization").filter(
+            project__organization__memberships__user=request.user
         ),
         pk=submission_id,
     )
@@ -443,6 +397,42 @@ def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
             "organization": membership.organization,
             "projects": projects,
             "recent_submissions": submissions,
+            "is_sole_member": membership.organization.memberships.count() == 1,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def organization_delete(request, organization_id: uuid.UUID) -> HttpResponse:
+    membership = _membership_or_404(request, organization_id)
+    form = OrganizationDeleteForm(
+        request.POST if request.method == "POST" else None,
+        organization=membership.organization,
+    )
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if form.cleaned_data["delete_submissions"]:
+            messages.success(
+                request,
+                f"Deleted {form.organization.name} and permanently deleted {form.submission_count} submissions.",
+            )
+        elif form.submission_count:
+            messages.success(
+                request,
+                f"Deleted {form.organization.name}. Its {form.submission_count} submissions were retained without a project link.",
+            )
+        else:
+            messages.success(request, f"Deleted {form.organization.name}.")
+        return redirect("account")
+    return render(
+        request,
+        "organization_delete.html",
+        {
+            "form": form,
+            "organization": form.organization,
+            "projects": form.projects,
+            "submission_count": form.submission_count,
         },
     )
 
@@ -488,6 +478,7 @@ def project_detail(
             "project": project,
             "submissions": project.submissions.all(),
             "can_delete": membership.organization.memberships.count() == 1,
+            "member_count": membership.organization.memberships.count(),
         },
     )
 
@@ -503,38 +494,20 @@ def project_delete(
         pk=project_id,
         organization=membership.organization,
     )
-    if membership.organization.memberships.count() != 1:
-        raise PermissionDenied(
-            "Projects can only be deleted from single-member organizations."
-        )
-    submission_count = project.submissions.count()
-    form = ProjectDeleteForm(request.POST if request.method == "POST" else None)
+    form = ProjectDeleteForm(
+        request.POST if request.method == "POST" else None, project=project
+    )
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            organization = Organization.objects.select_for_update().get(
-                pk=organization_id
-            )
-            if organization.memberships.count() != 1:
-                raise PermissionDenied(
-                    "Projects can only be deleted from single-member organizations."
-                )
-            locked_project = get_object_or_404(
-                Project.objects.select_for_update(),
-                pk=project_id,
-                organization=organization,
-            )
-            if form.cleaned_data["delete_submissions"]:
-                locked_project.submissions.all().delete()
-            locked_project.delete()
+        form.save()
         if form.cleaned_data["delete_submissions"]:
             messages.success(
                 request,
-                f"Deleted {project.name} and permanently deleted {submission_count} submissions.",
+                f"Deleted {project.name} and permanently deleted {form.submission_count} submissions.",
             )
-        elif submission_count:
+        elif form.submission_count:
             messages.success(
                 request,
-                f"Deleted {project.name}. Its {submission_count} submissions were retained without a project link.",
+                f"Deleted {project.name}. Its {form.submission_count} submissions were retained without a project link.",
             )
         else:
             messages.success(request, f"Deleted {project.name}.")
@@ -546,7 +519,7 @@ def project_delete(
             "form": form,
             "organization": membership.organization,
             "project": project,
-            "submission_count": submission_count,
+            "submission_count": form.submission_count,
         },
     )
 

@@ -53,7 +53,6 @@ class ProjectTokenTests(IngestTestCase):
         self.assertEqual(Submission.objects.get().project, self.project)
         submission = Submission.objects.get()
         self.assertEqual(submission.pk.version, 7)
-        self.assertEqual(submission.organization, self.organization)
 
     def test_unknown_token_rejected(self):
         """A wrong token is an error, not a silent downgrade to anonymous."""
@@ -76,7 +75,6 @@ class SubmissionDetailTests(IngestTestCase):
         cls.project = ProjectFactory(organization=cls.organization)
         cls.submission = Submission.objects.create(
             project=cls.project,
-            organization=cls.organization,
             **payload(),
         )
 
@@ -101,13 +99,13 @@ class SubmissionDetailTests(IngestTestCase):
         )
         self.assertEqual(response.status_code, 302)
 
-    def test_project_deletion_retains_detail_access(self):
+    def test_project_deletion_revokes_detail_access(self):
+        """A retained submission's organization link is not recoverable."""
         submission_id = self.submission.pk
         self.project.delete()
         self.client.force_login(self.member)
         response = self.client.get(reverse("submission-detail", args=[submission_id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, str(submission_id))
+        self.assertEqual(response.status_code, 404)
 
 
 class ForwardCompatibilityTests(IngestTestCase):

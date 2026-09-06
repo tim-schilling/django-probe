@@ -319,13 +319,6 @@ class Submission(models.Model):
         on_delete=models.SET_NULL,
         related_name="submissions",
     )
-    organization = models.ForeignKey(
-        Organization,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="submissions",
-    )
 
     schema_version = models.PositiveSmallIntegerField()
     client_version = models.CharField(max_length=128)

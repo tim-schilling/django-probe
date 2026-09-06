@@ -49,6 +49,11 @@ urlpatterns = [
         name="organization-leave",
     ),
     path(
+        "organizations/<uuid:organization_id>/delete/",
+        views.organization_delete,
+        name="organization-delete",
+    ),
+    path(
         "organizations/<uuid:organization_id>/members/",
         views.organization_members,
         name="organization-members",

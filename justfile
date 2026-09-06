@@ -45,6 +45,9 @@ serve:
 createsuperuser:
     uv run python src/webapp/manage.py createsuperuser
 
+seed-data:
+    uv run python src/webapp/manage.py seed_data
+
 # Print the payload that `submit` would send, without sending it
 scan path=".":
     uv run django-probe scan {{path}}

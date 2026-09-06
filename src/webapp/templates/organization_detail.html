@@ -11,10 +11,14 @@
 <div class="actions">
   <a class="button" href="{% url 'project-create' organization_id=organization.pk %}">Create project</a>
   <a class="button button--secondary" href="{% url 'organization-members' organization_id=organization.pk %}">Manage members</a>
-  <form class="inline-form" method="post" action="{% url 'organization-leave' organization_id=organization.pk %}">
-    {% csrf_token %}
-    <button class="button--secondary" type="submit">Leave organization</button>
-  </form>
+  {% if is_sole_member %}
+    <a class="button button--secondary" href="{% url 'organization-delete' organization_id=organization.pk %}">Delete organization</a>
+  {% else %}
+    <form class="inline-form" method="post" action="{% url 'organization-leave' organization_id=organization.pk %}">
+      {% csrf_token %}
+      <button class="button--secondary" type="submit">Leave organization</button>
+    </form>
+  {% endif %}
 </div>
 
 <h2>Projects</h2>

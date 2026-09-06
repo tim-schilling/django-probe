@@ -11,13 +11,13 @@
 <div class="panel panel--caution">
   {% if submission_count %}
     <p>This project has {{ submission_count }} associated submission{{ submission_count|pluralize }}.</p>
-    <p>If you leave the option unchecked, they will be retained without a link to this project.</p>
+    <p>Leave unchecked to keep helping the community learn from them; only the project link is removed.</p>
   {% else %}
     <p>This project has no associated submissions.</p>
   {% endif %}
   <form method="post">
     {% csrf_token %}
-    <p>{{ form.delete_submissions }} <label for="id_delete_submissions">Also permanently delete this project's {{ submission_count }} submission{{ submission_count|pluralize }}</label></p>
+    <p class="check-field">{{ form.delete_submissions }} <label for="id_delete_submissions">Also permanently delete this project's {{ submission_count }} submission{{ submission_count|pluralize }}</label></p>
     <button type="submit">Delete project</button>
     <a class="button button--secondary" href="{% url 'project-detail' organization_id=organization.pk project_id=project.pk %}">Cancel</a>
   </form>

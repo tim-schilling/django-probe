@@ -467,11 +467,14 @@ class OrganizationSlugCollisionTests(TestCase):
 
 
 class ProjectDeletionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(owner=cls.owner)
+        cls.project = ProjectFactory(organization=cls.organization)
+        cls.submission = SubmissionFactory(project=cls.project)
+
     def setUp(self):
-        self.owner = UserFactory(username="owner")
-        self.organization = OrganizationFactory(owner=self.owner)
-        self.project = ProjectFactory(organization=self.organization)
-        self.submission = SubmissionFactory(project=self.project)
         self.client.force_login(self.owner)
 
     def test_default_deletion_retains_submission(self):
@@ -507,3 +510,84 @@ class ProjectDeletionTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_shared_organization_explains_why_deletion_is_unavailable(self):
+        """The project page should explain the restriction, not just hide the link."""
+        OrganizationMembershipFactory(
+            organization=self.organization,
+            user=UserFactory(username="member"),
+        )
+
+        response = self.client.get(
+            reverse("project-detail", args=[self.organization.pk, self.project.pk])
+        )
+
+        self.assertNotContains(response, "Delete project")
+        self.assertContains(response, "single member")
+
+
+class OrganizationDeletionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(owner=cls.owner)
+        cls.project = ProjectFactory(organization=cls.organization)
+        cls.submission = SubmissionFactory(project=cls.project)
+
+    def setUp(self):
+        self.client.force_login(self.owner)
+
+    def test_default_deletion_retains_submission(self):
+        response = self.client.post(
+            reverse("organization-delete", args=[self.organization.pk])
+        )
+
+        self.assertRedirects(
+            response, reverse("account"), fetch_redirect_response=False
+        )
+        self.assertFalse(Organization.objects.filter(pk=self.organization.pk).exists())
+        self.assertFalse(Project.objects.filter(pk=self.project.pk).exists())
+        self.submission.refresh_from_db()
+        self.assertIsNone(self.submission.project_id)
+
+    def test_opt_in_deletion_deletes_submission(self):
+        self.client.post(
+            reverse("organization-delete", args=[self.organization.pk]),
+            {"delete_submissions": "on"},
+        )
+
+        self.assertFalse(Submission.objects.filter(pk=self.submission.pk).exists())
+
+    def test_shared_organization_cannot_delete_organization(self):
+        OrganizationMembershipFactory(
+            organization=self.organization,
+            user=UserFactory(username="member"),
+        )
+
+        response = self.client.get(
+            reverse("organization-delete", args=[self.organization.pk])
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Organization.objects.filter(pk=self.organization.pk).exists())
+
+    def test_sole_member_sees_delete_instead_of_leave(self):
+        response = self.client.get(
+            reverse("organization-detail", args=[self.organization.pk])
+        )
+
+        self.assertContains(response, "Delete organization")
+        self.assertNotContains(response, "Leave organization")
+
+    def test_shared_member_sees_leave_instead_of_delete(self):
+        OrganizationMembershipFactory(
+            organization=self.organization,
+            user=UserFactory(username="member"),
+        )
+
+        response = self.client.get(
+            reverse("organization-detail", args=[self.organization.pk])
+        )
+
+        self.assertContains(response, "Leave organization")
+        self.assertNotContains(response, "Delete organization")

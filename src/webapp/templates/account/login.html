@@ -11,7 +11,16 @@
 <div class="panel panel--subtle auth-panel">
 <form method="post" action="{% url 'account_login' %}">
   {% csrf_token %}
-  {{ form.as_p }}
+  {% if form.non_field_errors %}<p role="alert">{{ form.non_field_errors }}</p>{% endif %}
+  {% for field in form %}
+    {% if field.field.widget.input_type == "checkbox" %}
+      <p class="check-field">{{ field }} {{ field.label_tag }}</p>
+    {% else %}
+      <p>{{ field.label_tag }}{{ field }}</p>
+      {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+    {% endif %}
+    {% if field.errors %}<p role="alert">{{ field.errors }}</p>{% endif %}
+  {% endfor %}
   {{ redirect_field }}
   <button type="submit">Sign in</button>
 </form>

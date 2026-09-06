@@ -28,8 +28,8 @@
     {% csrf_token %}
     <p>{{ form.username.label_tag }} {{ form.username }}</p>
     {% if form.username.errors %}<p role="alert">{{ form.username.errors }}</p>{% endif %}
-    <p>{{ form.delete_submissions }} <label for="id_delete_submissions">Also permanently delete the {{ submission_count }} associated submission{{ submission_count|pluralize }}</label></p>
-    <p>Leave this unchecked to retain them without a project link.</p>
+    <p class="check-field">{{ form.delete_submissions }} <label for="id_delete_submissions">Also permanently delete the {{ submission_count }} associated submission{{ submission_count|pluralize }}</label></p>
+    <p>Leave unchecked to keep helping the community learn from this data; only the project link is removed.</p>
     <button type="submit">Permanently delete account</button>
     <a class="button button--secondary" href="{% url 'account' %}">Cancel</a>
   </form>
