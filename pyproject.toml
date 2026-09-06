@@ -59,6 +59,7 @@ test = [
   "pytest>=8",
   "pytest-django>=4.9",
   "pytest-randomly",
+  "pytest-xdist>=3",
 ]
 dev = [
   "mypy>=1.13",
@@ -150,7 +151,7 @@ lint.isort.known-first-party = [ "config", "django_probe", "ingest", "tests" ]
 lint.isort.required-imports = [ "from __future__ import annotations" ]
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --ignore=tests/e2e"
+addopts = "--strict-markers --ignore=tests/e2e -n auto --dist=loadscope"
 DJANGO_SETTINGS_MODULE = "config.settings"
 pythonpath = [ ".", "src", "src/webapp" ]
 testpaths = [ "tests", "src/webapp" ]
