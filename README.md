@@ -20,7 +20,7 @@ $ uv run django-probe init
 `init` prints a separate project token; copy it, then inspect and submit the first scan:
 
 ```console
-$ export DJANGO_PROBE_TOKEN=&lt;the token printed by init&gt;
+$ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
 $ uv run django-probe scan .      # inspect the payload; sends nothing
 $ uv run django-probe submit .    # share the first scan
 ```
