@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Count
 
+from ingest.fake_names import generate_fake_name
 from ingest.models import Organization, OrganizationMembership, Project, Submission
 
 
@@ -14,11 +15,18 @@ class OrganizationForm(forms.ModelForm):
         model = Organization
         fields = ["name"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound and self.instance._state.adding:
+            self.initial["name"] = generate_fake_name()
+
 
 class ProjectForm(forms.ModelForm):
     def __init__(self, *args, organization: Organization, **kwargs):
         super().__init__(*args, **kwargs)
         self.organization = organization
+        if not self.is_bound and self.instance._state.adding:
+            self.initial["name"] = generate_fake_name()
 
     def clean_name(self) -> str:
         name = self.cleaned_data["name"]
