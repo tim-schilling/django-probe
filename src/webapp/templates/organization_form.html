@@ -11,6 +11,11 @@
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+    <p class="muted">
+      We've suggested a codename above. Using it instead of your real company name
+      keeps your organization harder to identify; feel free to edit it, or
+      <a href="{% url 'organization-create' %}">get a different suggestion</a>.
+    </p>
     <button type="submit">Create organization</button>
   </form>
 </div>

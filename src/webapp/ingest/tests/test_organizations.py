@@ -224,6 +224,21 @@ class OrganizationManagementViewTests(TestCase):
     def setUp(self):
         self.client.force_login(self.owner)
 
+    def test_create_organization_form_suggests_a_fake_name(self):
+        """A fresh create form is pre-filled with a suggested name, not blank."""
+        response = self.client.get(reverse("organization-create"))
+
+        suggested_name = response.context["form"]["name"].value()
+        self.assertEqual(len(suggested_name.split(" ")), 3)
+
+    def test_create_project_form_suggests_a_fake_name(self):
+        response = self.client.get(
+            reverse("project-create", args=[self.organization.pk])
+        )
+
+        suggested_name = response.context["form"]["name"].value()
+        self.assertEqual(len(suggested_name.split(" ")), 3)
+
     def test_create_organization(self):
         """The user creating an organization becomes its first owner."""
         response = self.client.post(

@@ -11,6 +11,11 @@
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+    <p class="muted">
+      We've suggested a codename above. Using it instead of your real project name
+      keeps your project harder to identify; feel free to edit it, or
+      <a href="{% url 'project-create' organization_id=organization.pk %}">get a different suggestion</a>.
+    </p>
     <button type="submit">Create project</button>
   </form>
 </div>
