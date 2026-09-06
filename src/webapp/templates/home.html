@@ -15,10 +15,24 @@
   <p class="muted">submission{{ submission_count|pluralize }} received</p>
 </div>
 
+<h2>Get started locally</h2>
+
+<p>Install Django Probe and preview the exact payload without sending it:</p>
+
+<pre tabindex="0"><code>uv add --dev django-probe
+uv run django-probe scan .</code></pre>
+
+<p>
+  Then
+  {% if user.is_authenticated %}<a href="{% url 'account' %}">create a project</a>{% else %}<a href="{% url 'account_signup' %}">create an account</a> and project{% endif %},
+  save its token as the <code>DJANGO_PROBE_TOKEN</code> repository secret, and commit
+  the workflow.
+</p>
+
 <h2>Add it to GitHub Actions</h2>
 
 {% verbatim %}
-<pre><code>name: Django Probe
+<pre tabindex="0"><code>name: Django Probe
 on:
   schedule:
     # Choose a different minute and hour to help spread load on our servers.
@@ -35,11 +49,4 @@ jobs:
           DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
 
-<p>
-  First, run <code>uv add --dev django-probe</code>. Then
-  {% if user.is_authenticated %}<a href="{% url 'account' %}">create a project</a>{% else %}<a href="{% url 'account_signup' %}">create an account</a> and project{% endif %},
-  save its token as the <code>DJANGO_PROBE_TOKEN</code> repository secret, and commit
-  the workflow. Run <code>uv run django-probe scan .</code> locally to inspect the
-  payload without sending it.
-</p>
 {% endblock %}
