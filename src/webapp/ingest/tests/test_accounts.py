@@ -228,6 +228,19 @@ class AuthenticationJourneyTests(TestCase):
 
 
 class AccountNavigationTests(TestCase):
+    def test_home_setup_precedes_workflow(self):
+        """Landing-page setup commands appear before the workflow example."""
+        response = self.client.get(reverse("home"))
+        content = response.content.decode()
+
+        self.assertContains(response, "uv add --dev django-probe")
+        self.assertContains(response, "uv run django-probe scan .")
+        self.assertContains(response, "${{ secrets.DJANGO_PROBE_TOKEN }}")
+        self.assertLess(
+            content.index("uv add --dev django-probe"),
+            content.index("Add it to GitHub Actions"),
+        )
+
     def test_anonymous(self):
         """Anonymous navigation offers authentication but no private links."""
         response = self.client.get(reverse("home"))
