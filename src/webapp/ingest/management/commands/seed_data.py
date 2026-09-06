@@ -113,7 +113,6 @@ class Command(BaseCommand):
                 for _ in range(SUBMISSIONS_PER_PROJECT):
                     SubmissionFactory(
                         project=project,
-                        organization=organization,
                         python_version=random.choice(PYTHON_VERSIONS),
                         django_version=random.choice(DJANGO_VERSIONS),
                         files_scanned=random.randint(5, 500),
