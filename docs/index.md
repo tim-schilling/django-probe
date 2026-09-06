@@ -2,9 +2,9 @@
 
 It's hard to remove features in open-source software. [Deprecation warnings exist, but people tend to ignore them](https://sethmlarson.dev/deprecations-via-warnings-dont-work-for-python-libraries). What maintainers want to know is how many people are using a feature. That's where Django Probe comes in.
 
-Django Probe allows you to share how your project uses Django. This package counts how often specific code patterns appear in your Django project and shares the aggregated information with the community.
+Django Probe allows you to share which parts of Django your project uses. This package counts how often specific code patterns appear in your Django project and shares the aggregated information with the community.
 
-By sharing what your project uses, you help support the Django community. This allows maintainers to know what features and APIs are actually being used, removing guess work.
+By sharing what your project uses, you help support the Django community. No source code is shared, just the counts of which parts of Django are used, providing maintainers helpful information to direct the future of Django.
 
 ## Quickstart
 
