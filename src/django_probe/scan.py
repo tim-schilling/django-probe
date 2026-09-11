@@ -15,8 +15,6 @@ from django_probe.config import django_settings_enabled, packages
 from django_probe.settings import configured_django_settings, django_settings_vocabulary
 from django_probe.usage import count_package_usage
 
-#: `migrations` is skipped deliberately: generated code would swamp the counts with
-#: model classes and `.filter()` calls nobody wrote by hand.
 SKIP_DIRS = frozenset(
     {
         ".git",
@@ -32,7 +30,6 @@ SKIP_DIRS = frozenset(
         "__pycache__",
         "node_modules",
         "site-packages",
-        "migrations",
         "build",
         "dist",
     }

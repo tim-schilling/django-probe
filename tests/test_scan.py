@@ -19,7 +19,7 @@ class ScanPathTests(TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(textwrap.dedent(source).lstrip("\n"), encoding="utf-8")
 
-    def test_skips_migrations_and_survives_syntax_errors(self):
+    def test_scans_migrations_and_survives_syntax_errors(self):
         source = "x = Book.objects.filter(a=1)\n"
         self.write("app/views.py", source)
         self.write("app/migrations/0001_initial.py", source)
@@ -27,9 +27,66 @@ class ScanPathTests(TestCase):
 
         result = scan_path(self.root)
 
-        self.assertEqual(result.files_scanned, 1)
+        self.assertEqual(result.files_scanned, 2)
         self.assertEqual(result.files_skipped, 1)
-        self.assertEqual(result.patterns["probe:queryset_filter"], 1)
+        self.assertEqual(result.patterns, {"probe:queryset_filter": 2})
+        self.assertEqual(result.usage, {})
+        self.assertEqual(result.usage_packages, ("django",))
+        self.assertEqual(result.django_settings, {})
+        self.assertTrue(result.django_settings_scanned)
+
+    def test_migration_operations_do_not_inflate_counts(self):
+        # `CreateModel`/`AddField` describe generated schema state, not something
+        # anyone wrote by hand, so they must not be mistaken for real usage. A
+        # `RunPython` data migration, by contrast, is hand-written and should count
+        # like any other file.
+        self.write(
+            "app/migrations/0001_initial.py",
+            """
+            from django.db import migrations, models
+
+
+            def backfill(apps, schema_editor):
+                Book = apps.get_model("app", "Book")
+                for book in Book.objects.filter(slug__isnull=True):
+                    book.save()
+
+
+            class Migration(migrations.Migration):
+                operations = [
+                    migrations.CreateModel(
+                        name="Book",
+                        fields=[
+                            ("id", models.AutoField(primary_key=True)),
+                            ("slug", models.SlugField(null=True)),
+                        ],
+                    ),
+                    migrations.RunPython(backfill, migrations.RunPython.noop),
+                ]
+            """,
+        )
+
+        result = scan_path(self.root)
+
+        self.assertEqual(result.files_scanned, 1)
+        self.assertEqual(result.files_skipped, 0)
+        self.assertEqual(result.patterns, {"probe:queryset_filter": 1})
+        self.assertEqual(
+            result.usage,
+            {
+                "django.db.migrations": 1,
+                "django.db.models": 1,
+                "django.db.migrations.Migration": 1,
+                "django.db.migrations.CreateModel": 1,
+                "django.db.models.AutoField": 1,
+                "django.db.models.SlugField": 1,
+                "django.db.migrations.RunPython": 1,
+                "django.db.migrations.RunPython.noop": 1,
+            },
+        )
+        self.assertEqual(result.usage_packages, ("django",))
+        self.assertEqual(result.django_settings, {})
+        self.assertTrue(result.django_settings_scanned)
 
     def test_django_settings_only_include_known_module_level_names(self):
         (self.root / "pyproject.toml").write_text(
@@ -51,12 +108,11 @@ class ScanPathTests(TestCase):
 
         result = scan_path(self.root)
 
+        self.assertEqual(result.files_scanned, 1)
+        self.assertEqual(result.files_skipped, 0)
+        self.assertEqual(result.patterns, {"probe:auth_user_model_setting": 1})
         self.assertTrue(result.django_settings_scanned)
-        self.assertEqual(result.django_settings["DEBUG"], 1)
-        self.assertEqual(result.django_settings["AUTH_USER_MODEL"], 1)
-        self.assertNotIn("INTERNAL_BILLING_REGION", result.django_settings)
-        self.assertNotIn("THIRD_PARTY_API_TOKEN", result.django_settings)
-        self.assertNotIn("INSTALLED_APPS", result.django_settings)
+        self.assertEqual(result.django_settings, {"DEBUG": 1, "AUTH_USER_MODEL": 1})
 
     def test_collects_configured_package_usage(self):
         (self.root / "pyproject.toml").write_text(
