@@ -7,6 +7,7 @@ strings, and nothing else.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TypedDict
 
@@ -38,14 +39,21 @@ class SubmissionPayload(TypedDict):
 
 
 def build_payload(
-    root: Path, *, dependency_mode: DependencyMode = "versions"
+    root: Path,
+    *,
+    dependency_mode: DependencyMode = "versions",
+    dependency_exclude_patterns: Sequence[str] = (),
 ) -> SubmissionPayload:
     result = scan_path(root)
-    dependencies = (
-        {}
-        if dependency_mode == "none"
-        else collect.dependencies(include_versions=dependency_mode == "versions")
-    )
+    if dependency_mode == "none":
+        dependencies = {}
+    else:
+        dependencies = collect.dependencies(
+            include_versions=dependency_mode == "versions"
+        )
+        dependencies = collect.exclude_by_pattern(
+            dependencies, dependency_exclude_patterns
+        )
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),

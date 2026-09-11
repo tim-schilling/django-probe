@@ -65,6 +65,15 @@ class PayloadTests(TestCase):
         self.assertEqual(payload["dependencies"], {"django": ""})
         dependencies.assert_called_once_with(include_versions=False)
 
+    def test_dependency_exclude_patterns_are_applied(self):
+        with mock.patch(
+            "django_probe.payload.collect.dependencies",
+            return_value={"django": "5.0", "acme-internal": "1.0"},
+        ):
+            payload = build_payload(self.root, dependency_exclude_patterns=["acme-*"])
+
+        self.assertEqual(payload["dependencies"], {"django": "5.0"})
+
     def test_leaks_nothing_identifying(self):
         """The privacy claim, asserted rather than assumed."""
         (self.root / "app").mkdir()

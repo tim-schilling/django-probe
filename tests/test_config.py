@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import TestCase, mock
 
 from django_probe.config import (
+    dependency_exclude_patterns,
     dependency_mode,
     django_settings_enabled,
     packages,
@@ -105,6 +106,52 @@ class DependencyModeTests(TestCase):
         )
 
         self.assertEqual(dependency_mode(self.root), "versions")
+
+
+class DependencyExcludePatternsTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_defaults_to_empty(self):
+        self.assertEqual(dependency_exclude_patterns(self.root), ())
+
+    def test_reads_patterns(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies_exclude = ["acme-*", "internal-*"]\n',
+            encoding="utf-8",
+        )
+
+        self.assertEqual(
+            dependency_exclude_patterns(self.root), ("acme-*", "internal-*")
+        )
+
+    def test_warns_and_ignores_non_list(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies_exclude = "acme-*"\n',
+            encoding="utf-8",
+        )
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = dependency_exclude_patterns(self.root)
+
+        self.assertEqual(result, ())
+        self.assertTrue(any(issubclass(w.category, RuntimeWarning) for w in caught))
+
+    def test_warns_and_ignores_non_string_entries(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe]\ndependencies_exclude = [1, 2]\n",
+            encoding="utf-8",
+        )
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = dependency_exclude_patterns(self.root)
+
+        self.assertEqual(result, ())
+        self.assertTrue(any(issubclass(w.category, RuntimeWarning) for w in caught))
 
 
 class PackagesTests(TestCase):

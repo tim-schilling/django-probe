@@ -11,7 +11,11 @@ import urllib.parse
 from collections.abc import Sequence
 from pathlib import Path
 
-from django_probe.config import dependency_mode, resolve_token
+from django_probe.config import (
+    dependency_exclude_patterns,
+    dependency_mode,
+    resolve_token,
+)
 from django_probe.init import init
 from django_probe.login import login
 from django_probe.logout import logout
@@ -143,7 +147,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "init":
         return init(root, args.server_url, args.org_slug, args.name)
 
-    payload = build_payload(root, dependency_mode=dependency_mode(root))
+    payload = build_payload(
+        root,
+        dependency_mode=dependency_mode(root),
+        dependency_exclude_patterns=dependency_exclude_patterns(root),
+    )
 
     if args.command == "scan" or args.dry_run:
         print(json.dumps(payload, indent=2, sort_keys=True))
