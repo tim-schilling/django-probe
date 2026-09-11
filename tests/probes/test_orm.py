@@ -15,11 +15,16 @@ class QuerySetMethodTests(TestCase):
                 return qs.alias(m=F("n")).extra(where=["1=1"])
             """
         )
-        self.assertEqual(result["probe:queryset_filter"], 2)
-        self.assertEqual(result["probe:queryset_exclude"], 1)
-        self.assertEqual(result["probe:queryset_annotate"], 1)
-        self.assertEqual(result["probe:queryset_alias"], 1)
-        self.assertEqual(result["probe:queryset_extra"], 1)
+        self.assertEqual(
+            result,
+            {
+                "probe:queryset_filter": 2,
+                "probe:queryset_exclude": 1,
+                "probe:queryset_annotate": 1,
+                "probe:queryset_alias": 1,
+                "probe:queryset_extra": 1,
+            },
+        )
 
     def test_no_cross_crediting(self):
         """A single shared visitor would credit one match to all five probes."""

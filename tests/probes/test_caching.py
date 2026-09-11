@@ -16,7 +16,7 @@ class CachePageTests(TestCase):
                 pass
             """
         )
-        self.assertEqual(result["probe:cache_page"], 1)
+        self.assertEqual(result, {"probe:cache_page": 1})
 
     def test_method_decorator_form(self):
         result = counts(
@@ -27,7 +27,7 @@ class CachePageTests(TestCase):
             urlpatterns = [path("", method_decorator(cache_page(60))(View))]
             """
         )
-        self.assertEqual(result["probe:cache_page"], 1)
+        self.assertEqual(result, {"probe:cache_page": 1})
 
     def test_requires_django_import(self):
         result = counts(

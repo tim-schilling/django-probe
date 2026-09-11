@@ -21,7 +21,7 @@ class DjangoTaskTests(TestCase):
             """,
             filename="tasks.py",
         )
-        self.assertEqual(result["probe:django_task"], 2)
+        self.assertEqual(result, {"probe:django_task": 2})
 
     def test_module_import_form(self):
         result = counts(
@@ -34,7 +34,7 @@ class DjangoTaskTests(TestCase):
             """,
             filename="tasks.py",
         )
-        self.assertEqual(result["probe:django_task"], 1)
+        self.assertEqual(result, {"probe:django_task": 1})
 
     def test_fully_dotted_form(self):
         result = counts(
@@ -47,7 +47,7 @@ class DjangoTaskTests(TestCase):
             """,
             filename="tasks.py",
         )
-        self.assertEqual(result["probe:django_task"], 1)
+        self.assertEqual(result, {"probe:django_task": 1})
 
     def test_async_task(self):
         result = counts(
@@ -60,7 +60,7 @@ class DjangoTaskTests(TestCase):
             """,
             filename="tasks.py",
         )
-        self.assertEqual(result["probe:django_task"], 1)
+        self.assertEqual(result, {"probe:django_task": 1})
 
     def test_celery_excluded(self):
         """Scoped to django.tasks; Celery is a different question."""

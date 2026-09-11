@@ -17,7 +17,7 @@ class SignalReceiverTests(TestCase):
                 pass
             """
         )
-        self.assertEqual(result["probe:signal_receiver"], 1)
+        self.assertEqual(result, {"probe:signal_receiver": 1})
 
     def test_requires_django_import(self):
         """A local function named `receiver` is not a Django signal handler."""
