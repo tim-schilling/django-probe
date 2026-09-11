@@ -44,6 +44,24 @@ def dependency_mode(root: Path) -> DependencyMode:
     return value if value in {"versions", "names", "none"} else "versions"
 
 
+def dependency_exclude_patterns(root: Path) -> tuple[str, ...]:
+    """Fnmatch-style name patterns (e.g. "acme-*") for internal packages to omit.
+
+    A private package index resolves like a normal one, so it leaves no local trace
+    to filter on (see `collect._installed_from_index`); an org can list its own
+    naming here to exclude those packages without relying on PyPI verification.
+    """
+    value = read_config(root).get("dependencies_exclude", [])
+    if not isinstance(value, list) or any(not isinstance(p, str) for p in value):
+        warnings.warn(
+            "dependencies_exclude must be a list of name patterns; ignoring it.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return ()
+    return tuple(value)
+
+
 def resolve_token(root: Path) -> str | None:
     """Resolve the token, preferring `DJANGO_PROBE_TOKEN` over pyproject.toml.
 

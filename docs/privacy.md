@@ -8,6 +8,11 @@ resolved Django API usage because `packages` defaults to `["django"]`.
 You can control dependency detail and opt out of the inventory of defined Django
 settings through [Django Probe's configuration](configuration.md).
 
+Dependency capture excludes local-path, editable, and VCS installs automatically.
+If your project has private dependencies from another source, such as a private
+package index, list their name patterns in `dependencies_exclude` to omit them. See
+[Configuration](configuration.md#dependencies) for details.
+
 ## Highest privacy settings
 
 The following is the configuration for maximizing your project's privacy while still
@@ -17,6 +22,7 @@ sharing some information with the community.
 [tool.django_probe]
 packages = []  # Don't include detailed package API usage
 dependencies = "none"  # Don't include dependencies
+dependencies_exclude = []  # e.g. ["mycompany-*"]
 django_settings = false  # Don't include names of the defined Django settings
 ```
 

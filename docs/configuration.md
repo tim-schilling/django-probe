@@ -53,3 +53,25 @@ dependencies = "versions"
 
 The names-only mode still includes normalized package names. Python, Django, and
 client versions and the packages that supplied probes remain in the payload.
+
+### What gets excluded
+
+Local-path, editable, and VCS installs (for example `pip install -e .` or a
+`git+ssh://` requirement) are excluded automatically.
+
+!!! warning "Private package indexes"
+    A package from a private package index (an internal Artifactory or devpi
+    instance, for example) isn't excluded automatically. Use
+    [`dependencies_exclude`](#dependencies-exclude) to omit those by name.
+
+## Dependencies exclude
+
+Omit dependencies by name, regardless of where they were installed from:
+
+```toml
+[tool.django_probe]
+dependencies_exclude = ["acme-*"]
+```
+
+Patterns are [`fnmatch`](https://docs.python.org/3/library/fnmatch.html) wildcards,
+matched against the normalized name.
