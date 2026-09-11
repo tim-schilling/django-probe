@@ -29,13 +29,23 @@ class PayloadTests(TestCase):
 
         self.assertEqual(payload["schema_version"], 1)
         self.assertEqual(payload["usage_packages"], ["django"])
-        self.assertEqual(payload["usage"]["django.db.transaction"], 1)
-        self.assertEqual(payload["usage"]["django.db.transaction.atomic"], 1)
+        self.assertEqual(
+            payload["usage"],
+            {
+                "django.db.transaction": 1,
+                "django.db.transaction.atomic": 1,
+            },
+        )
         self.assertEqual(payload["django_settings"], {})
         self.assertTrue(payload["django_settings_scanned"])
         self.assertEqual(payload["files_scanned"], 1)
-        self.assertEqual(payload["patterns"]["probe:transaction_atomic"], 1)
-        self.assertEqual(payload["patterns"]["probe:queryset_filter"], 1)
+        self.assertEqual(
+            payload["patterns"],
+            {
+                "probe:transaction_atomic": 1,
+                "probe:queryset_filter": 1,
+            },
+        )
         self.assertIn("django-probe", payload["probe_sources"])
 
     def test_dependencies_disabled(self):

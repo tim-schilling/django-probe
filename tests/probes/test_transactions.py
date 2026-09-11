@@ -17,7 +17,7 @@ class TransactionAtomicTests(TestCase):
                     pass
             """
         )
-        self.assertEqual(result["probe:transaction_atomic"], 2)
+        self.assertEqual(result, {"probe:transaction_atomic": 2})
 
     def test_nested_in_class(self):
         """Imports must be recorded before the code below them is visited."""
@@ -31,4 +31,4 @@ class TransactionAtomicTests(TestCase):
                         pass
             """
         )
-        self.assertEqual(result["probe:transaction_atomic"], 1)
+        self.assertEqual(result, {"probe:transaction_atomic": 1})

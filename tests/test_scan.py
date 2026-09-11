@@ -132,7 +132,7 @@ class ScanPathTests(TestCase):
         result = scan_path(self.root)
 
         self.assertEqual(result.usage_packages, ("django",))
-        self.assertEqual(result.usage["django.shortcuts.render"], 2)
+        self.assertEqual(result.usage, {"django.shortcuts.render": 2})
 
     def test_package_usage_defaults_to_django(self):
         self.write("app/views.py", "from django.shortcuts import render\n")

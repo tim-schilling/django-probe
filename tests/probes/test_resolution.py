@@ -17,7 +17,7 @@ class ImportFormTests(TestCase):
         for form in forms:
             with self.subTest(form=form.splitlines()[0]):
                 result = counts(f"{form}def handler(sender, **kwargs):\n    pass\n")
-                self.assertEqual(result["probe:signal_receiver"], 1)
+                self.assertEqual(result, {"probe:signal_receiver": 1})
 
     def test_aliased_import_not_resolved(self):
         """Rebindings would need real scope analysis, so they're not resolved."""

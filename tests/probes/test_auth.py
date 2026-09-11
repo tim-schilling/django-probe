@@ -16,7 +16,7 @@ class CustomUserModelTests(TestCase):
             """,
             filename="models.py",
         )
-        self.assertEqual(result["probe:custom_user_model"], 1)
+        self.assertEqual(result, {"probe:custom_user_model": 1})
 
     def test_abstract_base_user_subclass(self):
         result = counts(
@@ -28,7 +28,7 @@ class CustomUserModelTests(TestCase):
             """,
             filename="models.py",
         )
-        self.assertEqual(result["probe:custom_user_model"], 1)
+        self.assertEqual(result, {"probe:custom_user_model": 1})
 
 
 class AuthUserModelSettingTests(TestCase):
@@ -36,7 +36,7 @@ class AuthUserModelSettingTests(TestCase):
 
     def test_counted_in_settings_file(self):
         result = counts(self.SOURCE, filename="config/settings.py")
-        self.assertEqual(result["probe:auth_user_model_setting"], 1)
+        self.assertEqual(result, {"probe:auth_user_model_setting": 1})
 
     def test_ignored_elsewhere(self):
         """Gated on the looks_like_settings_file heuristic."""
