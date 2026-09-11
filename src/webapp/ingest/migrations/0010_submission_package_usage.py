@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [("ingest", "0008_remove_submission_organization")]
+    dependencies = [("ingest", "0009_project_name_per_organization")]
 
     operations = [
         migrations.AddField(

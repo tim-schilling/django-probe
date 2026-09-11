@@ -18,8 +18,7 @@ accessibility requirements, and checks expected for frontend contributions.
 Requires [uv](https://docs.astral.sh/uv/), [pre-commit](https://pre-commit.com/) and [just](https://just.systems/).
 
 ```console
-$ uv run pre-commit install
-$ just install
+$ just bootstrap
 $ just test
 $ just test-e2e
 $ just lint
