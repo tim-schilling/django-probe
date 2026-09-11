@@ -106,5 +106,11 @@ environment** with a required reviewer. Each run prints the payload and pauses f
 that reviewer's approval before submitting it. Leave `environment` unset to submit
 without a gate.
 
+If your production dependencies live in uv dependency groups outside uv's default
+(for example, Django is only installed via a `production` group), pass
+`dependency-groups: production` so the scan sees them. Space-separate multiple
+groups: `dependency-groups: "production docs"`. Pass `python-version` to pin the
+Python version uv sets up.
+
 See [`django-probe-submit-uv.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/django-probe-submit-uv.yml)
 for the full set of inputs.

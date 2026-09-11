@@ -15,6 +15,21 @@ on:
           gate.
         type: string
         default: ''
+      dependency-groups:
+        description: >-
+          Space-separated uv dependency groups to install before scanning,
+          for projects whose production dependencies (e.g. Django) live
+          outside uv's default group. Each is passed as its own
+          `uv sync --group <value>`. Leave unset to rely on `uv run`'s own
+          default sync.
+        type: string
+        default: ''
+      python-version:
+        description: >-
+          Python version to set up, passed to astral-sh/setup-uv. Leave unset
+          to let uv resolve its own default.
+        type: string
+        default: ''
     secrets:
       DJANGO_PROBE_TOKEN:
         required: false
@@ -32,6 +47,18 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           enable-cache: false
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        if: inputs.dependency-groups != ''
+        env:
+          DEPENDENCY_GROUPS: ${{ inputs.dependency-groups }}
+        run: |
+          args=()
+          for group in $DEPENDENCY_GROUPS; do
+            args+=(--group "$group")
+          done
+          uv sync "${args[@]}"
 
       - name: Print the payload that submit would send
         env:
@@ -50,6 +77,18 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           enable-cache: false
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        if: inputs.dependency-groups != ''
+        env:
+          DEPENDENCY_GROUPS: ${{ inputs.dependency-groups }}
+        run: |
+          args=()
+          for group in $DEPENDENCY_GROUPS; do
+            args+=(--group "$group")
+          done
+          uv sync "${args[@]}"
 
       - name: Submit the payload
         env:
