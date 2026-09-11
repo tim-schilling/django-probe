@@ -8,6 +8,6 @@ could be exploited before a fix ships.
 
 This covers both halves of the repository: the `django_probe` package that runs inside
 someone else's project, and the `src/webapp` ingest server. See
-[Privacy](https://docs.djangoprobe.org/privacy/) for what a payload can and can't
+[Privacy](https://docs.djangoprobe.org/en/latest/privacy/) for what a payload can and can't
 contain. A report that a payload leaks more than integers, package names, or version
 strings is a security report, not just a bug.

@@ -39,7 +39,7 @@ $ django-probe submit .    # share the first scan
 
 Next, [add Django Probe to CI](https://docs.djangoprobe.org/getting-started/#add-django-probe-to-ci)
 so the project shares data on a schedule. See
-[Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload contains.
+[Privacy](https://docs.djangoprobe.org/en/latest/privacy/) for exactly what a payload contains.
 
 ## What we're looking to learn
 
