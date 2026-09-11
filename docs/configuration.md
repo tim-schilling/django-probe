@@ -75,3 +75,36 @@ dependencies_exclude = ["acme-*"]
 
 Patterns are [`fnmatch`](https://docs.python.org/3/library/fnmatch.html) wildcards,
 matched against the normalized name.
+
+## GitHub Actions approval gate
+
+Review each payload before it's shared by calling Django Probe's reusable `uv`
+workflow with an `environment`, instead of the [plain scheduled
+workflow](getting-started.md#add-django-probe-to-ci):
+
+```yaml
+# .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+jobs:
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+    with:
+      environment: django-probe-submit
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+```
+
+Create the `django-probe-submit` environment under **Settings → Environments → New
+environment** with a required reviewer. Each run prints the payload and pauses for
+that reviewer's approval before submitting it. Leave `environment` unset to submit
+without a gate.
+
+See [`django-probe-submit-uv.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/django-probe-submit-uv.yml)
+for the full set of inputs.

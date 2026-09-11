@@ -6,7 +6,9 @@ names of the Django settings your project defines. It also contains statically
 resolved Django API usage because `packages` defaults to `["django"]`.
 
 You can control dependency detail and opt out of the inventory of defined Django
-settings through [Django Probe's configuration](configuration.md).
+settings through [Django Probe's configuration](configuration.md). If you want to
+keep scheduled submissions but review each payload before it's shared, see the
+[GitHub Actions approval gate](configuration.md#github-actions-approval-gate).
 
 Dependency capture excludes local-path, editable, and VCS installs automatically.
 If your project has private dependencies from another source, such as a private
