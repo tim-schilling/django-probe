@@ -9,6 +9,10 @@ from collections.abc import Callable, Iterable
 from functools import cached_property
 from typing import Any
 
+#: ``Any`` node param: each registered function narrows it to a specific node type
+#: (e.g. ``ast.Call``), which Callable's contravariant parameter check would reject
+#: against ``ast.AST``. ``Any`` return: probes may yield anything, since
+#: ``count_patterns`` only tallies how many times a probe yields, never what.
 ProbeFunc = Callable[["State", Any, tuple[ast.AST, ...]], Iterable[Any]]
 
 settings_re = re.compile(r"(\b|_)settings(\b|_)")

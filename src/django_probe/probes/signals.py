@@ -18,7 +18,7 @@ def _visit(
     state: State,
     node: ast.FunctionDef | ast.AsyncFunctionDef,
     parents: tuple[ast.AST, ...],
-) -> Iterable[object]:
+) -> Iterable[None]:
     for decorator in node.decorator_list:
         if resolves_to(state, decorator, "django.dispatch", "receiver"):
             yield from hit(node)

@@ -58,7 +58,7 @@ def _is_library_call(state: State, node: ast.Call, method: str) -> bool:
     return False
 
 
-def _visitor(method: str) -> Callable[..., Iterable[object]]:
+def _visitor(method: str) -> Callable[..., Iterable[None]]:
     """Build a visitor bound to one method.
 
     A single shared visitor would credit every match to all five probes.
@@ -66,7 +66,7 @@ def _visitor(method: str) -> Callable[..., Iterable[object]]:
 
     def visit_Call(
         state: State, node: ast.Call, parents: tuple[ast.AST, ...]
-    ) -> Iterable[object]:
+    ) -> Iterable[None]:
         if not isinstance(node.func, ast.Attribute) or node.func.attr != method:
             return
         if _is_library_call(state, node, method):
@@ -78,7 +78,7 @@ def _visitor(method: str) -> Callable[..., Iterable[object]]:
 
 def _visit_Assign(
     state: State, node: ast.Assign, parents: tuple[ast.AST, ...]
-) -> Iterable[object]:
+) -> Iterable[None]:
     # Registers the name and counts nothing. Assignments are visited before the code
     # below them, so a later `register.filter` sees it.
     _note_library_assignment(state, node)

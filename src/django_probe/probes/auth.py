@@ -44,7 +44,7 @@ def _is_user_base(state: State, node: ast.expr) -> bool:
 @custom_user_model.register(ast.ClassDef)
 def visit_ClassDef(
     state: State, node: ast.ClassDef, parents: tuple[ast.AST, ...]
-) -> Iterable[object]:
+) -> Iterable[None]:
     for base in node.bases:
         if _is_user_base(state, base):
             yield from hit(node)
@@ -54,7 +54,7 @@ def visit_ClassDef(
 @auth_user_model_setting.register(ast.Assign)
 def visit_Assign(
     state: State, node: ast.Assign, parents: tuple[ast.AST, ...]
-) -> Iterable[object]:
+) -> Iterable[None]:
     for target in node.targets:
         if isinstance(target, ast.Name) and target.id == "AUTH_USER_MODEL":
             yield from hit(node)

@@ -17,7 +17,7 @@ def _is_atomic(state: State, node: ast.expr) -> bool:
 
 def _visit_with(
     state: State, node: ast.With | ast.AsyncWith, parents: tuple[ast.AST, ...]
-) -> Iterable[object]:
+) -> Iterable[None]:
     for item in node.items:
         if _is_atomic(state, item.context_expr):
             yield from hit(node)
@@ -27,7 +27,7 @@ def _visit_def(
     state: State,
     node: ast.FunctionDef | ast.AsyncFunctionDef,
     parents: tuple[ast.AST, ...],
-) -> Iterable[object]:
+) -> Iterable[None]:
     for decorator in node.decorator_list:
         if _is_atomic(state, decorator):
             yield from hit(node)
