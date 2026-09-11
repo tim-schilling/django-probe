@@ -103,7 +103,7 @@ Secrets and variables → Actions → New repository secret**, then commit this 
 
     on:
       schedule:
-        # Choose a different minute and hour to help spread load on our servers.
+        # Runs monthly. Choose a different minute and hour to help spread load on our servers.
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
@@ -128,7 +128,7 @@ Secrets and variables → Actions → New repository secret**, then commit this 
 
     on:
       schedule:
-        # Choose a different minute and hour to help spread load on our servers.
+        # Runs monthly. Choose a different minute and hour to help spread load on our servers.
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
@@ -152,6 +152,9 @@ Secrets and variables → Actions → New repository secret**, then commit this 
 The job is scheduled rather than added to every pull request because aggregate usage
 data does not need to block or slow down normal builds. `workflow_dispatch` also lets
 you test it immediately from the Actions tab.
+
+If you'd rather review each payload before it's sent, see the
+[GitHub Actions approval gate](configuration.md#github-actions-approval-gate).
 
 ### GitLab CI
 

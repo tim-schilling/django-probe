@@ -1,0 +1,58 @@
+name: Django Probe Submit (uv)
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Path to the Django project to scan, relative to the repository root.
+        type: string
+        default: '.'
+      environment:
+        description: >-
+          GitHub environment to gate the submit job behind. Configure required
+          reviewers on this environment under the calling repository's
+          Settings → Environments. Leave unset to submit without an approval
+          gate.
+        type: string
+        default: ''
+    secrets:
+      DJANGO_PROBE_TOKEN:
+        required: false
+
+permissions: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          enable-cache: false
+
+      - name: Print the payload that submit would send
+        env:
+          PROBE_PATH: ${{ inputs.path }}
+        run: uv run django-probe scan "$PROBE_PATH"
+
+  submit:
+    needs: scan
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          enable-cache: false
+
+      - name: Submit the payload
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+          PROBE_PATH: ${{ inputs.path }}
+        run: uv run django-probe submit "$PROBE_PATH"
