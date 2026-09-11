@@ -1,9 +1,28 @@
 # Configuration
 
-# Configuration
-
 Django Probe reads project configuration from the `[tool.django_probe]` table in the
 `pyproject.toml` at the project root.
+
+## Package usage
+
+Detailed Django API usage is enabled by default. The equivalent configuration is:
+
+```toml
+[tool.django_probe]
+packages = ["django"]
+```
+
+Set `packages` to an empty list to disable detailed API usage, or add other
+top-level Python import names to scan more namespaces.
+
+These are import names rather than distribution names. For example, Django REST
+framework would be configured as `rest_framework`, not `djangorestframework`.
+
+The scanner follows aliases such as `from django.shortcuts import render as show`
+but does not follow attributes through function return values. Thus it records
+`django.shortcuts.get_object_or_404`, but not an application method called on the
+returned model instance. Reads from `django.conf.settings` include a setting name
+only when the installed Django version defines it.
 
 ## Django settings
 

@@ -19,6 +19,8 @@ class AnonymousSubmissionTests(IngestTestCase):
         self.assertEqual(response.status_code, 201)
         submission = Submission.objects.get()
         self.assertEqual(submission.patterns, {"probe:queryset_filter": 3})
+        self.assertEqual(submission.usage_packages, [])
+        self.assertEqual(submission.usage, {})
         self.assertEqual(submission.django_settings, {})
         self.assertEqual(submission.files_scanned, 12)
 
@@ -85,6 +87,19 @@ class SubmissionDetailTests(IngestTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "probe:queryset_filter")
+
+    def test_package_usage_is_displayed(self):
+        self.submission.usage_packages = ["django"]
+        self.submission.usage = {"django.shortcuts.render": 2}
+        self.submission.save(update_fields=["usage_packages", "usage"])
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+
+        self.assertContains(response, "Configured packages: django")
+        self.assertContains(response, "django.shortcuts.render")
 
     def test_outsider_gets_404(self):
         self.client.force_login(self.outsider)

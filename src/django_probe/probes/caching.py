@@ -25,7 +25,7 @@ def _visit_def(
     state: State,
     node: ast.FunctionDef | ast.AsyncFunctionDef,
     parents: tuple[ast.AST, ...],
-) -> Iterable[object]:
+) -> Iterable[None]:
     for decorator in node.decorator_list:
         if _is_cache_page(state, decorator):
             yield from hit(node)
@@ -34,7 +34,7 @@ def _visit_def(
 @cache_page.register(ast.Call)
 def visit_Call(
     state: State, node: ast.Call, parents: tuple[ast.AST, ...]
-) -> Iterable[object]:
+) -> Iterable[None]:
     """`method_decorator(cache_page(60))` and `cache_page(60)(view)`.
 
     Only counts calls that wrap or are passed to another call. Decorators are handled

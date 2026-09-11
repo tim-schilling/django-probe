@@ -11,7 +11,9 @@ from pathlib import Path
 
 import django_probe.probes  # noqa: F401  -- importing registers the probes
 from django_probe.ast_probe import count_patterns
-from django_probe.settings import configured_django_settings
+from django_probe.config import django_settings_enabled, packages
+from django_probe.settings import configured_django_settings, django_settings_vocabulary
+from django_probe.usage import count_package_usage
 
 #: `migrations` is skipped deliberately: generated code would swamp the counts with
 #: model classes and `.filter()` calls nobody wrote by hand.
@@ -51,12 +53,16 @@ class ScanResult:
         patterns: Counter[str],
         files_scanned: int,
         files_skipped: int,
+        usage: Counter[str],
+        usage_packages: tuple[str, ...],
         django_settings: Counter[str],
         django_settings_scanned: bool,
     ) -> None:
         self.patterns = patterns
         self.files_scanned = files_scanned
         self.files_skipped = files_skipped
+        self.usage = usage
+        self.usage_packages = usage_packages
         self.django_settings = django_settings
         self.django_settings_scanned = django_settings_scanned
 
@@ -73,8 +79,17 @@ def iter_python_files(root: Path) -> Iterator[Path]:
 
 def scan_path(root: Path) -> ScanResult:
     patterns: Counter[str] = Counter()
+    usage: Counter[str] = Counter()
+    usage_packages = packages(root)
     settings_files: list[ast.Module] = []
     scanned = skipped = 0
+
+    needs_django_vocabulary = (
+        django_settings_enabled(root) or "django" in usage_packages
+    )
+    django_vocabulary = (
+        django_settings_vocabulary() if needs_django_vocabulary else None
+    )
 
     for path in iter_python_files(root):
         try:
@@ -87,13 +102,28 @@ def scan_path(root: Path) -> ScanResult:
         # Relative path only. Filename heuristics need it, and it never leaves here.
         rel = str(path.relative_to(root)) if path.is_relative_to(root) else path.name
         patterns.update(count_patterns(tree, rel))
+        usage.update(
+            count_package_usage(
+                tree,
+                usage_packages,
+                django_vocabulary.names
+                if django_vocabulary is not None
+                else frozenset(),
+            )
+        )
         if "settings" in rel.lower():
             settings_files.append(tree)
         scanned += 1
 
     django_settings, django_settings_scanned = configured_django_settings(
-        root, settings_files
+        root, settings_files, django_vocabulary
     )
     return ScanResult(
-        patterns, scanned, skipped, django_settings, django_settings_scanned
+        patterns,
+        scanned,
+        skipped,
+        usage,
+        usage_packages,
+        django_settings,
+        django_settings_scanned,
     )

@@ -12,13 +12,17 @@ enforced; the count and length caps bound the damage instead.
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 3
+import keyword
+
+SCHEMA_VERSION = 1
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
 MAX_DJANGO_SETTINGS = 300
 MAX_PATTERNS = 500
 MAX_PROBE_SOURCES = 100
+MAX_USAGE = 10_000
+MAX_USAGE_PACKAGES = 20
 MAX_STRING = 128
 MAX_COUNT = 1_000_000
 MAX_FILES = 200_000
@@ -82,11 +86,49 @@ def _int_map(value: object, field: str, max_entries: int) -> dict[str, int]:
     return value
 
 
+def _usage_packages(value: object) -> list[str]:
+    if not isinstance(value, list):
+        raise ValidationError("usage_packages must be an array")
+    if len(value) > MAX_USAGE_PACKAGES:
+        raise ValidationError(f"usage_packages exceeds {MAX_USAGE_PACKAGES} entries")
+    checked: list[str] = []
+    for package in value:
+        package = _string(package, "usage_packages entry")
+        if not package.isidentifier() or keyword.iskeyword(package):
+            raise ValidationError(
+                f"usage_packages entry {package!r} must be a Python import name"
+            )
+        checked.append(package)
+    if len(checked) != len(set(checked)):
+        raise ValidationError("usage_packages must not contain duplicates")
+    return checked
+
+
+def _usage(value: object, packages: list[str]) -> dict[str, int]:
+    usage = _int_map(value, "usage", MAX_USAGE)
+    for name in usage:
+        if not all(
+            part.isidentifier() and not keyword.iskeyword(part)
+            for part in name.split(".")
+        ):
+            raise ValidationError(f"usage key {name!r} must be a dotted Python name")
+        if not any(
+            name == package or name.startswith(f"{package}.") for package in packages
+        ):
+            raise ValidationError(
+                f"usage key {name!r} does not match a configured package"
+            )
+    return usage
+
+
 def validate_payload(payload: object) -> dict:
     if not isinstance(payload, dict):
         raise ValidationError("payload must be an object")
 
-    if payload.get("schema_version") != SCHEMA_VERSION:
+    schema_version = payload.get("schema_version")
+    if not isinstance(schema_version, int) or isinstance(schema_version, bool):
+        raise ValidationError("schema_version must be an integer")
+    if schema_version != SCHEMA_VERSION:
         raise ValidationError(f"unsupported schema_version, expected {SCHEMA_VERSION}")
 
     files_scanned = payload.get("files_scanned")
@@ -99,6 +141,9 @@ def validate_payload(payload: object) -> dict:
     if not isinstance(django_settings_scanned, bool):
         raise ValidationError("django_settings_scanned must be a boolean")
 
+    usage_packages = _usage_packages(payload.get("usage_packages", []))
+    usage = _usage(payload.get("usage", {}), usage_packages)
+
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": _string(payload.get("client_version", ""), "client_version"),
@@ -109,6 +154,8 @@ def validate_payload(payload: object) -> dict:
             payload.get("probe_sources", {}), "probe_sources", MAX_PROBE_SOURCES
         ),
         "patterns": _patterns(payload.get("patterns", {})),
+        "usage_packages": usage_packages,
+        "usage": usage,
         "dependencies": _str_map(
             payload.get("dependencies", {}), "dependencies", MAX_DEPENDENCIES
         ),

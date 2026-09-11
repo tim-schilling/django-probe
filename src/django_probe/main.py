@@ -155,9 +155,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    total = sum(payload["patterns"].values())
+    pattern_total = sum(payload["patterns"].values())
+    usage_total = sum(payload["usage"].values())
     print(
-        f"Submitted {total} pattern occurrences across "
+        f"Submitted {pattern_total} pattern and {usage_total} package-usage "
+        "occurrences across "
         f"{payload['files_scanned']} files. ({response.get('status', 'ok')})"
     )
     return 0

@@ -8,13 +8,15 @@ from django.test import TestCase
 from django.urls import reverse
 
 VALID: dict[str, Any] = {
-    "schema_version": 3,
+    "schema_version": 1,
     "client_version": "0.2.0",
     "python_version": "3.12.3",
     "django_version": "5.1.2",
     "files_scanned": 12,
     "probe_sources": {"django-probe": "0.2.0"},
     "patterns": {"probe:queryset_filter": 3},
+    "usage_packages": [],
+    "usage": {},
     "dependencies": {"django": "5.1.2"},
     "django_settings": {},
     "django_settings_scanned": False,

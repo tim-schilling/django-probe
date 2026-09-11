@@ -8,6 +8,7 @@ import urllib.request
 from typing import Any
 
 from django_probe import USER_AGENT
+from django_probe.payload import SubmissionPayload
 
 ENDPOINT = "/api/submissions/"
 
@@ -17,7 +18,7 @@ class SubmitError(Exception):
 
 
 def submit(
-    payload: dict[str, Any], server_url: str, token: str | None = None
+    payload: SubmissionPayload, server_url: str, token: str | None = None
 ) -> dict[str, Any]:
     url = server_url.rstrip("/") + ENDPOINT
     body = json.dumps(payload).encode("utf-8")

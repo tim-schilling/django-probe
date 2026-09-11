@@ -45,6 +45,7 @@ You can also create an organization and project directly at
 
 ```toml
 [tool.django_probe]
+packages = ["django"]  # Default: include statically resolved Django API usage
 dependencies = "versions"  # Include dependencies and the versions
 django_settings = true  # Share the names of the defined Django settings
 ```

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from unittest import TestCase, mock
 
 from django_probe.config import (
     dependency_mode,
     django_settings_enabled,
+    packages,
     read_token,
     resolve_token,
 )
@@ -103,3 +105,41 @@ class DependencyModeTests(TestCase):
         )
 
         self.assertEqual(dependency_mode(self.root), "versions")
+
+
+class PackagesTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def test_defaults_to_django(self):
+        self.assertEqual(packages(self.root), ("django",))
+
+    def test_reads_and_deduplicates_import_names(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\npackages = ["django", "ninja", "django"]\n',
+            encoding="utf-8",
+        )
+
+        self.assertEqual(packages(self.root), ("django", "ninja"))
+
+    def test_empty_list_disables_package_usage(self):
+        (self.root / "pyproject.toml").write_text(
+            "[tool.django_probe]\npackages = []\n",
+            encoding="utf-8",
+        )
+
+        self.assertEqual(packages(self.root), ())
+
+    def test_invalid_value_fails_closed(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\npackages = ["django.contrib"]\n',
+            encoding="utf-8",
+        )
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            self.assertEqual(packages(self.root), ())
+
+        self.assertEqual(len(caught), 1)

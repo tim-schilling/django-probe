@@ -34,6 +34,13 @@
   <h2>Patterns</h2>
   {% if submission.patterns %}<pre tabindex="0"><code>{{ submission.patterns }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
+{% if submission.usage_packages or submission.usage %}
+<div class="panel">
+  <h2>Package usage</h2>
+  <p>Configured packages: {{ submission.usage_packages|join:", " }}</p>
+  {% if submission.usage %}<pre tabindex="0"><code>{{ submission.usage }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+</div>
+{% endif %}
 <div class="panel">
   <h2>Dependencies</h2>
   {% if submission.dependencies %}<pre tabindex="0"><code>{{ submission.dependencies }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}

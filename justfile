@@ -3,7 +3,7 @@ default:
 
 # Prepare a local development checkout
 bootstrap:
-    uv sync --group dev
+    just install
     uv run pre-commit install
     just docker-postgres
     uv run python src/webapp/manage.py migrate

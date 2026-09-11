@@ -27,7 +27,10 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 3)
+        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["usage_packages"], ["django"])
+        self.assertEqual(payload["usage"]["django.db.transaction"], 1)
+        self.assertEqual(payload["usage"]["django.db.transaction.atomic"], 1)
         self.assertEqual(payload["django_settings"], {})
         self.assertTrue(payload["django_settings_scanned"])
         self.assertEqual(payload["files_scanned"], 1)
@@ -60,7 +63,7 @@ class PayloadTests(TestCase):
         serialized = json.dumps(build_payload(self.root))
 
         self.assertNotIn("views.py", serialized)
-        self.assertNotIn("transaction.atomic", serialized)
+        self.assertIn("django.db.transaction.atomic", serialized)
         self.assertNotIn("Book", serialized)
         self.assertNotIn(str(self.root), serialized)
         self.assertNotIn(self.root.name, serialized)
@@ -111,3 +114,34 @@ class PayloadTests(TestCase):
             namespace, separator, name = key.partition(":")
             self.assertTrue(separator, f"{key!r} is not namespaced")
             self.assertTrue(namespace and name)
+
+    def test_configured_package_usage_is_serialized(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\npackages = ["django"]\n',
+            encoding="utf-8",
+        )
+        (self.root / "m.py").write_text(
+            "from django.shortcuts import render\nrender(None, 'home.html')\n",
+            encoding="utf-8",
+        )
+
+        payload = build_payload(self.root)
+
+        self.assertEqual(payload["usage_packages"], ["django"])
+        self.assertEqual(payload["usage"], {"django.shortcuts.render": 2})
+
+    def test_package_usage_does_not_serialize_application_method_names(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\npackages = ["django"]\n',
+            encoding="utf-8",
+        )
+        (self.root / "m.py").write_text(
+            "from django.shortcuts import get_object_or_404\n"
+            "get_object_or_404(Book, pk=1).private_recalculate()\n",
+            encoding="utf-8",
+        )
+
+        serialized = json.dumps(build_payload(self.root))
+
+        self.assertIn("django.shortcuts.get_object_or_404", serialized)
+        self.assertNotIn("private_recalculate", serialized)
