@@ -23,11 +23,22 @@
 <pre tabindex="0"><code>uv add --dev django-probe
 uv run django-probe scan .</code></pre>
 
+<p>To share the project's Django usages:</p>
+
+<pre tabindex="0"><code>uv run django-probe login
+uv run django-probe init
+export DJANGO_PROBE_TOKEN=[printed token]
+uv run django-probe scan .</code></pre>
+
 <p>
-  Then
-  {% if user.is_authenticated %}<a href="{% url 'account' %}">create a project</a>{% else %}<a href="{% url 'account_signup' %}">create an account</a> and project{% endif %},
-  save its token as the <code>DJANGO_PROBE_TOKEN</code> repository secret, and commit
-  the workflow.
+  Save the token created from <code>init</code> as the <code>DJANGO_PROBE_TOKEN</code>
+  repository secret, and commit the workflow below.
+</p>
+
+<p class="muted">
+  Prefer the browser?
+  {% if user.is_authenticated %}<a href="{% url 'account' %}">Create a project from your account page</a>{% else %}<a href="{% url 'account_signup' %}">Create an account</a>{% endif %}
+  instead.
 </p>
 
 <h2>Add it to GitHub Actions</h2>
