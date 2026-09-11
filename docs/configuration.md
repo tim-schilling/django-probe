@@ -66,7 +66,7 @@ Local-path, editable, and VCS installs (for example `pip install -e .` or a
 
 ## Dependencies exclude
 
-Omit dependencies by name, regardless of where they were installed from:
+Omit dependencies by name:
 
 ```toml
 [tool.django_probe]
