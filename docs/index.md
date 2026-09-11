@@ -10,20 +10,40 @@ By sharing what your project uses, you help support the Django community. No sou
 
 Install Django Probe in your project, then create a project token:
 
-```console
-$ uv add --dev django-probe
-$ uv run django-probe login
-$ uv run django-probe init
-```
+=== "uv"
+
+    ```console
+    $ uv add --dev django-probe
+    $ uv run django-probe login
+    $ uv run django-probe init
+    ```
+
+=== "pip"
+
+    ```console
+    $ pip install django-probe
+    $ django-probe login
+    $ django-probe init
+    ```
 
 `login` stores an organization credential in your user configuration directory.
 `init` prints a separate project token; copy it, then inspect and submit the first scan:
 
-```console
-$ export DJANGO_PROBE_TOKEN=&lt;the token printed by init&gt;
-$ uv run django-probe scan .      # inspect the payload; sends nothing
-$ uv run django-probe submit .    # share the first scan
-```
+=== "uv"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+    $ uv run django-probe scan .      # inspect the payload; sends nothing
+    $ uv run django-probe submit .    # share the first scan
+    ```
+
+=== "pip"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+    $ django-probe scan .      # inspect the payload; sends nothing
+    $ django-probe submit .    # share the first scan
+    ```
 
 Next, [add Django Probe to CI](getting-started.md#add-django-probe-to-ci) so the
 project shares data on a schedule. See [Privacy](privacy.md) for exactly what a payload

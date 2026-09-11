@@ -11,9 +11,15 @@ By sharing what your project uses, you help support the Django community. No sou
 Install Django Probe in your project, then create a project token:
 
 ```console
+# with uv
 $ uv add --dev django-probe
 $ uv run django-probe login
 $ uv run django-probe init
+
+# with pip
+$ pip install django-probe
+$ django-probe login
+$ django-probe init
 ```
 
 `login` stores an organization credential in your user configuration directory.
@@ -21,8 +27,14 @@ $ uv run django-probe init
 
 ```console
 $ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+
+# with uv
 $ uv run django-probe scan .      # inspect the payload; sends nothing
 $ uv run django-probe submit .    # share the first scan
+
+# with pip
+$ django-probe scan .      # inspect the payload; sends nothing
+$ django-probe submit .    # share the first scan
 ```
 
 Next, [add Django Probe to CI](https://docs.djangoprobe.org/getting-started/#add-django-probe-to-ci)
