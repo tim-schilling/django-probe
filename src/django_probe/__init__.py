@@ -8,7 +8,7 @@ __all__ = ["USER_AGENT", "__version__"]
 
 # Suffixed with DJANGO_PROBE_VERSION_DEV so CI can build throwaway dev
 # distributions to test the release process. See .github/workflows/test_release.yml
-__version__ = "0.3.0" + os.environ.get("DJANGO_PROBE_VERSION_DEV", "")
+__version__ = "0.3.1" + os.environ.get("DJANGO_PROBE_VERSION_DEV", "")
 
 # Identifies requests as coming from this library rather than a browser, so the
 # server can allowlist it separately from browser traffic (e.g. Cloudflare's Browser

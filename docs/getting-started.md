@@ -146,7 +146,7 @@ Secrets and variables → Actions → New repository secret**, then commit this 
 
     jobs:
       django-probe:
-        uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+        uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.1
         with:
           # Path to the Django project to scan, relative to the repository root.
           path: "."
