@@ -102,8 +102,9 @@ Django Probe uses the following third parties to run the service. A signed data
 processing agreement is in place with each one, incorporating Standard
 Contractual Clauses for transfers outside the EEA where applicable.
 
-- **GitHub** — OAuth sign-in for the web dashboard (`read:user` scope only; no
-  repository access). Acts as an identity provider rather than a processor.
+- **GitHub** — OAuth sign-in for the web dashboard (`read:user` and `user:email`
+  scopes only; no repository access). Acts as an identity provider rather than a
+  processor.
 - **AWS S3** — encrypted database backups (`us-east-2`).
 - **Hetzner** — application hosting and daily server backups.
 - **Cloudflare** — CDN and reverse proxy in front of the application.

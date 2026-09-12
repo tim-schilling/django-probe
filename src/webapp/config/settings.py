@@ -170,10 +170,18 @@ if _GITHUB_CLIENT_ID and _GITHUB_SECRET:
                 "key": "",
             }
         ],
-        # Only the default public scope: we want an identity, not the user's repos.
-        "SCOPE": ["read:user"],
+        # read:user for identity, not the user's repos. user:email so GitHub hands
+        # over a verified email even when the user has made their profile email private
+        "SCOPE": ["read:user", "user:email"],
     }
 
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_EMAIL_REQUIRED = False
+# Query GitHub's /user/emails so the SignupForm's email field is pre-filled from
+# a source we trust, rather than the (usually blank) public profile email.
+SOCIALACCOUNT_QUERY_EMAIL = True
+# The signup form GitHub users land on if auto-signup can't complete (e.g. the
+# email collides with an existing account) must not let them type a different
+# email than the one GitHub reported - see SocialSignupForm.
+SOCIALACCOUNT_FORMS = {"signup": "ingest.forms.SocialSignupForm"}
 ACCOUNT_EMAIL_VERIFICATION = "none"

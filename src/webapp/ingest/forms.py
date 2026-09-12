@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from allauth.socialaccount.forms import SignupForm as AllauthSocialSignupForm
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
@@ -8,6 +9,19 @@ from django.db.models import Count
 
 from ingest.fake_names import generate_fake_name
 from ingest.models import Organization, OrganizationMembership, Project, Submission
+
+
+class SocialSignupForm(AllauthSocialSignupForm):
+    """The form shown if a GitHub sign-in can't auto-complete (e.g. an email
+    collision). `disabled` makes Django use the initial value regardless of what's
+    posted, so nobody can claim an email they don't control through this form.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "email" in self.fields:
+            self.fields["email"].disabled = True
+            self.fields["email"].help_text = "Provided by GitHub."
 
 
 class OrganizationForm(forms.ModelForm):
