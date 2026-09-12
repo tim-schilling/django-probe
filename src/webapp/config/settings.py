@@ -177,6 +177,11 @@ if _GITHUB_CLIENT_ID and _GITHUB_SECRET:
 
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_EMAIL_REQUIRED = False
+# Skip allauth's "Continue" confirmation page and redirect straight to the
+# provider. This accepts allauth's login-CSRF tradeoff (an attacker-crafted
+# link could kick off a sign-in for a visiting user); GitHub's own consent
+# screen still gates the actual account linking.
+SOCIALACCOUNT_LOGIN_ON_GET = True
 # Query GitHub's /user/emails so the SignupForm's email field is pre-filled from
 # a source we trust, rather than the (usually blank) public profile email.
 SOCIALACCOUNT_QUERY_EMAIL = True
