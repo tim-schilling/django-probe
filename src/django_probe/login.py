@@ -10,6 +10,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 from typing import Any
@@ -25,6 +26,45 @@ class LoginError(Exception):
     pass
 
 
+def _server_detail(body: str) -> str:
+    """Pull the server's own error text out of a response body, if it said any.
+
+    Only Django Probe answers in the `{"status": "error", "detail": ...}` shape.
+    A 429 from the edge is `error code: 1015`, and a proxy's 502 is a page of
+    HTML - neither tells the user anything, so both come back empty here rather
+    than being printed verbatim.
+    """
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError:
+        return ""
+    if isinstance(parsed, dict):
+        detail = parsed.get("detail")
+        if isinstance(detail, str):
+            return detail
+    return ""
+
+
+def _http_error_message(url: str, exc: urllib.error.HTTPError) -> str:
+    host = urllib.parse.urlparse(url).netloc or url
+    detail = _server_detail(exc.read().decode("utf-8", errors="replace"))
+
+    if exc.code == 429:
+        return (
+            f"{host} is rate limiting this login (HTTP 429). This is the server "
+            "turning requests away, not a problem with your account. Wait a "
+            "minute, then run `django-probe login` again."
+        )
+    if exc.code >= 500:
+        return (
+            f"{host} could not answer (HTTP {exc.code}). The server is likely "
+            "down or restarting; try again shortly."
+        )
+    if detail:
+        return f"{host} rejected the request (HTTP {exc.code}): {detail}"
+    return f"{host} rejected the request (HTTP {exc.code})."
+
+
 def _request(url: str, *, body: dict[str, Any] | None = None) -> dict[str, Any]:
     data = json.dumps(body).encode("utf-8") if body is not None else None
     request = urllib.request.Request(
@@ -38,8 +78,7 @@ def _request(url: str, *, body: dict[str, Any] | None = None) -> dict[str, Any]:
             result: dict[str, Any] = json.loads(response.read().decode("utf-8"))
             return result
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise LoginError(f"server returned {exc.code}: {detail}") from exc
+        raise LoginError(_http_error_message(url, exc)) from exc
     except urllib.error.URLError as exc:
         raise LoginError(f"could not reach {url}: {exc.reason}") from exc
 
