@@ -8,7 +8,11 @@ By sharing what your project uses, you help support the Django community. No sou
 
 ## Quickstart
 
-Install Django Probe in your project, then create a project token:
+Django Probe reports on the environment the project runs in, so it must run with
+the project's dependencies installed.
+
+Add Django Probe to the project's development dependencies, then create a project
+token:
 
 ```console
 # with uv
@@ -17,6 +21,7 @@ $ uv run django-probe login
 $ uv run django-probe init
 
 # with pip
+$ source .venv/bin/activate
 $ pip install django-probe
 $ django-probe login
 $ django-probe init
@@ -26,7 +31,7 @@ $ django-probe init
 `init` prints a separate project token; copy it, then inspect and submit the first scan:
 
 ```console
-$ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+$ export DJANGO_PROBE_TOKEN=<token_from_init>
 
 # with uv
 $ uv run django-probe scan .      # inspect the payload; sends nothing
@@ -37,9 +42,44 @@ $ django-probe scan .      # inspect the payload; sends nothing
 $ django-probe submit .    # share the first scan
 ```
 
-Next, [add Django Probe to CI](https://docs.djangoprobe.org/getting-started/#add-django-probe-to-ci)
-so the project shares data on a schedule. See
-[Privacy](https://docs.djangoprobe.org/en/latest/privacy/) for exactly what a payload contains.
+## Add it to CI
+
+Store the token as the `DJANGO_PROBE_TOKEN` repository secret, then call the
+reusable workflow so the project shares data on a schedule:
+
+```yaml
+# .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+    with:
+      # Path to the Django project to scan, relative to the repository root.
+      path: "."
+      # Environment to gate the submit job behind. Empty submits without an approval gate.
+      environment: ""
+      # Space-separated uv dependency groups to sync before scanning.
+      dependency-groups: ""
+      # Python version for uv to set up. Empty lets uv resolve its own.
+      python-version: ""
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+```
+
+Each option shows its default, so you can remove any you don't need to change. The reusable
+workflow is uv-only; for pip, GitLab CI, and gating submission behind approval, see
+[Getting started](https://docs.djangoprobe.org/getting-started/#add-django-probe-to-ci).
+
+See [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload contains.
 
 ## What we're looking to learn
 

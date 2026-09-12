@@ -238,7 +238,7 @@ class AccountNavigationTests(TestCase):
         self.assertContains(response, "${{ secrets.DJANGO_PROBE_TOKEN }}")
         self.assertLess(
             content.index("uv add --dev django-probe"),
-            content.index("Add it to GitHub Actions"),
+            content.index("Add it to CI"),
         )
 
     def test_anonymous(self):
