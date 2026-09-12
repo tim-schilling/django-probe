@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.2
+
 - Mention when the user is being rate limited.
 
 ## 0.3.1

@@ -96,7 +96,7 @@ permissions: {}
 
 jobs:
   django-probe:
-    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.1
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.2
     with:
       environment: django-probe-submit
     secrets:
@@ -117,7 +117,7 @@ pass `dependency-groups` to the reusable workflow:
 ```yaml
 jobs:
   django-probe:
-    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.1
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.2
     with:
       dependency-groups: "production docs"
     secrets:
