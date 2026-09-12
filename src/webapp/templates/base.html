@@ -38,6 +38,22 @@
     {% endif %}
     {% block content %}{% endblock %}
   </main>
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <nav class="site-footer__links" aria-label="Footer">
+        <a href="https://docs.djangoprobe.org/" target="_blank" rel="noopener">Docs</a>
+        <a href="https://github.com/tim-schilling/django-probe" target="_blank" rel="noopener">Source code</a>
+        <a href="https://docs.djangoprobe.org/en/latest/privacy/" target="_blank" rel="noopener">Privacy</a>
+      </nav>
+      <p class="site-footer__trademark muted">
+        Django Probe is not affiliated with the
+        <a href="https://www.djangoproject.com/foundation/" target="_blank" rel="noopener">Django Software Foundation</a>.
+        Django is a
+        <a href="https://www.djangoproject.com/trademarks/" target="_blank" rel="noopener">registered trademark</a>
+        of the Django Software Foundation.
+      </p>
+    </div>
+  </footer>
   {% block scripts %}{% endblock %}
 </body>
 </html>

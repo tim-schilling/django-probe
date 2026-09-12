@@ -43,7 +43,10 @@ html {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
   margin: 0;
+  min-height: 100vh;
 }
 
 a {
@@ -212,7 +215,41 @@ pre code {
 }
 
 .site-main {
+  flex: 1;
   padding-block: var(--space-7);
+}
+
+.site-footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block: var(--space-6);
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.site-footer__links a {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer__links a:hover {
+  color: var(--color-accent);
+}
+
+.site-footer__trademark {
+  font-size: 0.85rem;
+  max-width: 42rem;
 }
 
 .page-header {
@@ -668,6 +705,10 @@ dialog .actions {
 
   .site-main {
     padding-block: var(--space-6);
+  }
+
+  .site-footer__inner {
+    padding-block: var(--space-5);
   }
 
   .actions {
