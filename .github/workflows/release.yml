@@ -72,21 +72,45 @@ jobs:
       with:
         name: python-package-distributions
         path: dist/
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      with:
+        persist-credentials: false
+        sparse-checkout: docs/changelog.md
+        sparse-checkout-cone-mode: false
     - name: Sign the dists with Sigstore
       uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9  # v3.5.0
       with:
         inputs: >-
           ./dist/*.tar.gz
           ./dist/*.whl
+    - name: Extract changelog entry
+      id: changelog
+      run: |
+        notes="$(awk -v ver="## ${GITHUB_REF_NAME}" '
+          $0 == ver { found=1; next }
+          found && /^## / { exit }
+          found { print }
+        ' docs/changelog.md | sed '/^[[:space:]]*$/d')"
+        if [ -z "$notes" ]; then
+          echo "No docs/changelog.md entry found for ${GITHUB_REF_NAME}" >&2
+          exit 1
+        fi
+        {
+          echo "notes<<EOF"
+          echo "$notes"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        NOTES: ${{ steps.changelog.outputs.notes }}
       run: >-
         gh release create
         "${GITHUB_REF_NAME}"
         --repo '${{ github.repository }}'
         --draft
         --generate-notes
+        --notes "$NOTES"
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
