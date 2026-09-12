@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Finish signing up | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Finish signing up</h1>
+  <p class="lede">You're signing up with your {{ account.get_provider.name }} account.</p>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+<form method="post" action="{% url 'socialaccount_signup' %}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<p role="alert">{{ form.non_field_errors }}</p>{% endif %}
+  {% for field in form %}
+    {% if field.field.widget.input_type == "checkbox" %}
+      <p class="check-field">{{ field }} {{ field.label_tag }}</p>
+    {% else %}
+      <p>{{ field.label_tag }}{{ field }}</p>
+      {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+    {% endif %}
+    {% if field.errors %}<p role="alert">{{ field.errors }}</p>{% endif %}
+  {% endfor %}
+  {{ redirect_field }}
+  <button type="submit">Create account</button>
+</form>
+</div>
+{% endblock %}

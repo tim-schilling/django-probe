@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Sign-in cancelled | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Sign-in cancelled</h1>
+</header>
+
+<div class="panel panel--subtle auth-panel">
+<p>You cancelled signing in with a third-party account. If that was a mistake, <a href="{% url 'account_login' %}">sign in</a> again.</p>
+</div>
+{% endblock %}
