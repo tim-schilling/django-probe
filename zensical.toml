@@ -10,6 +10,7 @@ nav = [
   { "Getting started" = "getting-started.md" },
   { "Configuration" = "configuration.md" },
   { "Privacy" = "privacy.md" },
+  { "Changelog" = "changelog.md" },
   { "Contributing" = [
     { "Overview" = "contributing.md" },
     { "Writing a probe" = "writing-probes.md" },
