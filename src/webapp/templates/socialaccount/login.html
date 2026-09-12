@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if process == "connect" %}Connect {{ provider.name }}{% else %}Sign in with {{ provider.name }}{% endif %} | Django Probe
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  {% if process == "connect" %}
+    <h1>Connect {{ provider.name }}</h1>
+    <p class="lede">You're about to connect a {{ provider.name }} account to your profile.</p>
+  {% else %}
+    <h1>Sign in with {{ provider.name }}</h1>
+    <p class="lede">You're about to sign in using your {{ provider.name }} account.</p>
+  {% endif %}
+</header>
+
+<div class="panel panel--subtle auth-panel">
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Continue</button>
+</form>
+</div>
+{% endblock %}
