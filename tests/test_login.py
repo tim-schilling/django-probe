@@ -3,11 +3,11 @@ from __future__ import annotations
 import io
 import json
 import urllib.error
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from unittest import TestCase, mock
 
 from django_probe.auth import Credential
-from django_probe.login import login
+from django_probe.login import _http_error_message, login
 
 
 def _response(payload: dict) -> mock.Mock:
@@ -134,15 +134,24 @@ class LoginTests(TestCase):
             400,
             "Bad Request",
             None,
-            io.BytesIO(b"unknown org_slug"),
+            io.BytesIO(
+                json.dumps({"status": "error", "detail": "unknown org_slug"}).encode(
+                    "utf-8"
+                )
+            ),
         )
+        buffer = io.StringIO()
         try:
-            with mock.patch("urllib.request.urlopen", side_effect=error):
+            with (
+                mock.patch("urllib.request.urlopen", side_effect=error),
+                redirect_stderr(buffer),
+            ):
                 code = login("https://x", "nope", "laptop")
         finally:
             error.close()
 
         self.assertEqual(code, 1)
+        self.assertIn("unknown org_slug", buffer.getvalue())
         self.save_credential.assert_not_called()
 
     def test_gives_up_after_the_expiry_window(self):
@@ -156,3 +165,63 @@ class LoginTests(TestCase):
             code = login("https://x", None, "laptop")
 
         self.assertEqual(code, 1)
+
+    def test_rate_limited_poll_explains_itself(self):
+        """The failure that made `login` unusable: an opaque `error code: 1015`."""
+        error = urllib.error.HTTPError(
+            "https://djangoprobe.org/api/cli/auth/abc/poll/",
+            429,
+            "Too Many Requests",
+            None,
+            io.BytesIO(b"error code: 1015"),
+        )
+        buffer = io.StringIO()
+        try:
+            with (
+                mock.patch(
+                    "urllib.request.urlopen", side_effect=[_response(STARTED), error]
+                ),
+                redirect_stderr(buffer),
+            ):
+                code = login("https://djangoprobe.org", None, "laptop")
+        finally:
+            error.close()
+
+        message = buffer.getvalue()
+        self.assertEqual(code, 1)
+        self.assertIn("djangoprobe.org", message)
+        self.assertIn("rate limiting", message)
+        self.assertIn("django-probe login", message)
+        self.assertNotIn("1015", message)
+
+
+class HttpErrorMessageTests(TestCase):
+    def _message(self, status: int, body: bytes) -> str:
+        error = urllib.error.HTTPError(
+            "https://djangoprobe.org/api/cli/auth/", status, "", None, io.BytesIO(body)
+        )
+        try:
+            return _http_error_message("https://djangoprobe.org/api/cli/auth/", error)
+        finally:
+            error.close()
+
+    def test_server_detail_is_quoted_back(self):
+        body = json.dumps({"status": "error", "detail": "unknown org_slug"})
+        message = self._message(400, body.encode("utf-8"))
+
+        self.assertEqual(
+            message,
+            "djangoprobe.org rejected the request (HTTP 400): unknown org_slug",
+        )
+
+    def test_edge_html_is_dropped_rather_than_printed(self):
+        message = self._message(502, b"<html><title>502 Bad Gateway</title></html>")
+
+        self.assertNotIn("<html>", message)
+        self.assertIn("HTTP 502", message)
+        self.assertIn("down or restarting", message)
+
+    def test_body_without_a_detail_leaves_just_the_status(self):
+        message = self._message(404, json.dumps({"status": "error"}).encode("utf-8"))
+
+        self.assertEqual(message, "djangoprobe.org rejected the request (HTTP 404).")
