@@ -45,7 +45,7 @@ $ just serve      # serves on http://localhost:8000
 `django-probe-postgres` container when present instead of creating a duplicate.
 
 Images are built in CI rather than by Coolify itself:
-[`.github/workflows/webapp-image.yml`](https://github.com/django-probe/django-probe/blob/main/.github/workflows/webapp-image.yml)
+[`.github/workflows/webapp-image.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/webapp-image.yml)
 builds and pushes `ghcr.io/<owner>/<repo>:latest` (plus a short-SHA tag) on every push
 to `main` that touches `src/webapp/`. It's scoped to
 that path, and never triggers on tags, so it can't collide with tag-based PyPI

@@ -39,7 +39,7 @@ dependencies = [
   "tomli>=2; python_version<'3.11'",
 ]
 scripts.django-probe = "django_probe.main:main"
-urls.Repository = "https://github.com/django-probe/django-probe"
+urls.Repository = "https://github.com/tim-schilling/django-probe"
 
 [dependency-groups]
 # Groups rather than extras: they stay out of the published wheel's metadata, so
