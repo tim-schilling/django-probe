@@ -1,4 +1,4 @@
-# Changelog
+# `django-probe` CLI Changelog
 
 ## Unreleased
 
@@ -6,10 +6,6 @@
 
 ## 0.3.1
 
-- Added a footer with relevant links and a trademark notice.
-- Linked the `@cache_page` decorator to Django's docs.
-- Rounded out the privacy docs and fixed their links.
-- Linked the docs from the landing page.
 - Corrected the repository URL throughout the docs and package metadata.
 
 ## 0.3.0
@@ -21,8 +17,3 @@
   [Django settings](configuration.md#django-settings).
 - Allowed configuring how dependencies are shared, including excluding packages
   by name. See [Dependencies](configuration.md#dependencies).
-- Added a reusable GitHub Actions workflow for submitting scans with `uv`, with
-  an optional approval gate. See [GitHub Actions approval
-  gate](configuration.md#github-actions-approval-gate).
-- Added safe project and account deletion to the web app.
-- Prevented duplicate project names within an organization.
