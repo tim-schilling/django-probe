@@ -9,6 +9,16 @@
 </header>
 
 <div class="panel panel--subtle auth-panel">
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  <div class="auth-social">
+  {% for provider in socialaccount_providers %}
+    <a class="button" href="{% provider_login_url provider.id %}">Continue with {{ provider.name }}</a>
+  {% endfor %}
+  </div>
+  <div class="auth-divider"><span>or sign in with email</span></div>
+{% endif %}
+
 <form method="post" action="{% url 'account_login' %}">
   {% csrf_token %}
   {% if form.non_field_errors %}<p role="alert">{{ form.non_field_errors }}</p>{% endif %}
@@ -22,17 +32,8 @@
     {% if field.errors %}<p role="alert">{{ field.errors }}</p>{% endif %}
   {% endfor %}
   {{ redirect_field }}
-  <button type="submit">Sign in</button>
+  <button type="submit" class="button--secondary">Sign in</button>
 </form>
-
-{% get_providers as socialaccount_providers %}
-{% if socialaccount_providers %}
-  <div class="auth-alternate">
-  {% for provider in socialaccount_providers %}
-    <p><a href="{% provider_login_url provider.id %}">Sign in with {{ provider.name }}</a></p>
-  {% endfor %}
-  </div>
-{% endif %}
 
 <p>New here? <a href="{% url 'account_signup' %}">Create an account</a>.</p>
 </div>
