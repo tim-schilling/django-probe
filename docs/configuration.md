@@ -78,9 +78,9 @@ matched against the normalized name.
 
 ## GitHub Actions approval gate
 
-Review each payload before it's shared by calling Django Probe's reusable `uv`
-workflow with an `environment`, instead of the [plain scheduled
-workflow](getting-started.md#add-django-probe-to-ci):
+Set the `environment` input on the [reusable `uv`
+workflow](getting-started.md#github-actions) to review each payload before it's
+shared:
 
 ```yaml
 # .github/workflows/django-probe.yml
@@ -91,6 +91,8 @@ on:
     # Runs monthly. Choose a different minute and hour to help spread load on our servers.
     - cron: "17 4 1 * *"
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   django-probe:
@@ -106,11 +108,25 @@ environment** with a required reviewer. Each run prints the payload and pauses f
 that reviewer's approval before submitting it. Leave `environment` unset to submit
 without a gate.
 
-If your production dependencies live in uv dependency groups outside uv's default
-(for example, Django is only installed via a `production` group), pass
-`dependency-groups: production` so the scan sees them. Space-separate multiple
-groups: `dependency-groups: "production docs"`. Pass `python-version` to pin the
-Python version uv sets up.
+## uv dependency groups
+
+The scan only sees what uv installed. If production dependencies live outside uv's
+default groups (for example, Django is installed only via a `production` group),
+pass `dependency-groups` to the reusable workflow:
+
+```yaml
+jobs:
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+    with:
+      dependency-groups: "production docs"
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+```
+
+Each space-separated group becomes its own `uv sync --group`. Pass `python-version`
+to pin the Python version uv sets up, and `path` to scan a project that isn't at the
+repository root.
 
 See [`django-probe-submit-uv.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/django-probe-submit-uv.yml)
 for the full set of inputs.

@@ -118,6 +118,20 @@
   <pre><code>uv run django-probe scan .
 uv run django-probe submit .</code></pre>
 
+  <h3>Tabbed command block</h3>
+  <div class="tabs" data-tab-group="guide-pkg-manager">
+    <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+      <button type="button" class="tabs__tab" role="tab" id="guide-tab-uv" aria-controls="guide-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+      <button type="button" class="tabs__tab" role="tab" id="guide-tab-pip" aria-controls="guide-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="guide-panel-uv" aria-labelledby="guide-tab-uv">
+      <pre><code>uv run django-probe scan .</code></pre>
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="guide-panel-pip" aria-labelledby="guide-tab-pip" hidden>
+      <pre><code>django-probe scan .</code></pre>
+    </div>
+  </div>
+
   <h3>Empty state</h3>
   <div class="panel">
     <p><strong>No submissions yet.</strong></p>
@@ -142,4 +156,4 @@ uv run django-probe submit .</code></pre>
 </section>
 {% endblock %}
 
-{% block scripts %}<script src="{% static 'js/style-guide.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/style-guide.js' %}" defer></script><script src="{% static 'js/command-tabs.js' %}" defer></script>{% endblock %}

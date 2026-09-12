@@ -8,7 +8,11 @@ By sharing what your project uses, you help support the Django community. No sou
 
 ## Quickstart
 
-Install Django Probe in your project, then create a project token:
+Django Probe reports on the environment the project runs in, so run it with the
+project's dependencies installed.
+
+Add Django Probe to the project's development dependencies, then create a project
+token:
 
 === "uv"
 
@@ -21,6 +25,7 @@ Install Django Probe in your project, then create a project token:
 === "pip"
 
     ```console
+    $ source .venv/bin/activate
     $ pip install django-probe
     $ django-probe login
     $ django-probe init
@@ -32,7 +37,7 @@ Install Django Probe in your project, then create a project token:
 === "uv"
 
     ```console
-    $ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
     $ uv run django-probe scan .      # inspect the payload; sends nothing
     $ uv run django-probe submit .    # share the first scan
     ```
@@ -40,7 +45,7 @@ Install Django Probe in your project, then create a project token:
 === "pip"
 
     ```console
-    $ export DJANGO_PROBE_TOKEN=<printed_token_from_init>
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
     $ django-probe scan .      # inspect the payload; sends nothing
     $ django-probe submit .    # share the first scan
     ```

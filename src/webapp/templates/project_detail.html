@@ -24,24 +24,34 @@
 <h2>Add it to CI</h2>
 
 <h3>GitHub Actions</h3>
-<p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then reference it in your workflow:</p>
+<p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then call Django Probe's reusable workflow. Each option shows its default, so you can remove any you don't need to change.</p>
 
 {% verbatim %}
-<pre tabindex="0"><code>name: Django Probe
+<pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
 on:
   schedule:
-    # Choose a different minute and hour to help spread load on our servers.
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
     - cron: "17 4 1 * *"
   workflow_dispatch:
+
+permissions: {}
+
 jobs:
-  submit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v10
-      - run: uv run django-probe submit .
-        env:
-          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+    with:
+      # Path to the Django project to scan, relative to the repository root.
+      path: "."
+      # Environment to gate the submit job behind. Empty submits without an approval gate.
+      environment: ""
+      # Space-separated uv dependency groups to sync before scanning.
+      dependency-groups: ""
+      # Python version for uv to set up. Empty lets uv resolve its own.
+      python-version: ""
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
 
 <h3>GitLab CI</h3>

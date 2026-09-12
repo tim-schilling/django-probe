@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 <header class="page-header">
@@ -22,17 +23,48 @@
 
 <h2>Get started locally</h2>
 
-<p>Install Django Probe and preview the exact payload without sending it:</p>
+<p>
+  Django Probe reports on the environment your project runs in, so run it with the
+  project's dependencies installed. Add it as a development dependency and preview
+  the exact payload without sending it:
+</p>
 
-<pre tabindex="0"><code>uv add --dev django-probe
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-uv" aria-controls="install-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-pip" aria-controls="install-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-uv" aria-labelledby="install-tab-uv">
+    <pre tabindex="0"><code>uv add --dev django-probe
 uv run django-probe scan .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-pip" aria-labelledby="install-tab-pip" hidden>
+    <pre tabindex="0"><code>source .venv/bin/activate
+pip install django-probe
+django-probe scan .</code></pre>
+  </div>
+</div>
 
 <p>To share the project's Django usages:</p>
 
-<pre tabindex="0"><code>uv run django-probe login
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="share-tab-uv" aria-controls="share-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="share-tab-pip" aria-controls="share-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="share-panel-uv" aria-labelledby="share-tab-uv">
+    <pre tabindex="0"><code>uv run django-probe login
 uv run django-probe init
 export DJANGO_PROBE_TOKEN=[printed token]
-uv run django-probe scan .</code></pre>
+uv run django-probe submit .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="share-panel-pip" aria-labelledby="share-tab-pip" hidden>
+    <pre tabindex="0"><code>django-probe login
+django-probe init
+export DJANGO_PROBE_TOKEN=[printed token]
+django-probe submit .</code></pre>
+  </div>
+</div>
 
 <p>
   Save the token created from <code>init</code> as the <code>DJANGO_PROBE_TOKEN</code>
@@ -45,24 +77,130 @@ uv run django-probe scan .</code></pre>
   instead.
 </p>
 
-<h2>Add it to GitHub Actions</h2>
+<h2>Add it to CI</h2>
 
+<div class="tabs" data-tab-group="ci-provider">
+  <div class="tabs__list" role="tablist" aria-label="Choose your CI provider">
+    <button type="button" class="tabs__tab" role="tab" id="ci-tab-github" aria-controls="ci-panel-github" aria-selected="true" data-tab-value="github">GitHub Actions</button>
+    <button type="button" class="tabs__tab" role="tab" id="ci-tab-gitlab" aria-controls="ci-panel-gitlab" aria-selected="false" tabindex="-1" data-tab-value="gitlab">GitLab CI</button>
+  </div>
+
+  <div class="tabs__panel" role="tabpanel" id="ci-panel-github" aria-labelledby="ci-tab-github">
+    <p>
+      Add the token as a repository secret named <code>DJANGO_PROBE_TOKEN</code> under
+      <strong>Settings &rarr; Secrets and variables &rarr; Actions &rarr; New repository secret</strong>,
+      then commit this workflow:
+    </p>
+
+    <div class="tabs" data-tab-group="pkg-manager">
+      <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+        <button type="button" class="tabs__tab" role="tab" id="github-tab-uv" aria-controls="github-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+        <button type="button" class="tabs__tab" role="tab" id="github-tab-pip" aria-controls="github-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="github-panel-uv" aria-labelledby="github-tab-uv">
+        <p>
+          Django Probe's reusable workflow checks out the repository, sets up uv, and
+          submits from the project's own environment. Each option shows its default,
+          so you can remove any you don't need to change.
+        </p>
 {% verbatim %}
-<pre tabindex="0"><code>name: Django Probe
+        <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
 on:
   schedule:
-    # Choose a different minute and hour to help spread load on our servers.
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
     - cron: "17 4 1 * *"
   workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  django-probe:
+    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+    with:
+      # Path to the Django project to scan, relative to the repository root.
+      path: "."
+      # Environment to gate the submit job behind. Empty submits without an approval gate.
+      environment: ""
+      # Space-separated uv dependency groups to sync before scanning.
+      dependency-groups: ""
+      # Python version for uv to set up. Empty lets uv resolve its own.
+      python-version: ""
+    secrets:
+      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="github-panel-pip" aria-labelledby="github-tab-pip" hidden>
+        <p>
+          The reusable workflow is uv-only. Update the project's dependencies
+          yourself, then submit:
+        </p>
+{% verbatim %}
+        <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
 jobs:
   submit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v10
-      - run: uv run django-probe submit .
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pip install -r requirements.txt
+
+      - run: django-probe submit .
         env:
           DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs__panel" role="tabpanel" id="ci-panel-gitlab" aria-labelledby="ci-tab-gitlab" hidden>
+    <p>
+      Add a masked CI/CD variable named <code>DJANGO_PROBE_TOKEN</code> under
+      <strong>Settings &rarr; CI/CD &rarr; Variables</strong>. GitLab exposes it to the
+      job automatically:
+    </p>
+
+    <div class="tabs" data-tab-group="pkg-manager">
+      <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+        <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-uv" aria-controls="gitlab-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+        <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-pip" aria-controls="gitlab-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="gitlab-panel-uv" aria-labelledby="gitlab-tab-uv">
+        <pre tabindex="0"><code>report_probe:
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+  stage: test
+  script:
+    - uv run django-probe submit .</code></pre>
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="gitlab-panel-pip" aria-labelledby="gitlab-tab-pip" hidden>
+        <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install -r requirements.txt
+    - django-probe submit .</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
+
+{% block scripts %}<script src="{% static 'js/command-tabs.js' %}" defer></script>{% endblock %}

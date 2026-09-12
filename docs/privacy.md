@@ -36,11 +36,20 @@ functions, because those attributes may be defined by the application. For
 
 ## Verify it yourself
 
-```console
-$ django-probe scan .
-```
+=== "uv"
+
+    ```console
+    $ uv run django-probe scan .
+    ```
+
+=== "pip"
+
+    ```console
+    $ django-probe scan .
+    ```
 
 `scan` prints the exact payload that `submit` would send, without sending anything.
+Run it with the project's dependencies installed, the same way `submit` runs.
 
 If you want to see the code, please see [`payload.py`](https://github.com/tim-schilling/django-probe/blob/main/src/django_probe/payload.py).
 

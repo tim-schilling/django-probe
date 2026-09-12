@@ -560,6 +560,46 @@ input[type="radio"] {
   width: 1px;
 }
 
+.tabs {
+  margin-bottom: var(--space-5);
+}
+
+.tabs__list {
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-4);
+}
+
+.tabs__tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 650;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-1);
+}
+
+.tabs__tab:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-accent);
+}
+
+.tabs__tab[aria-selected="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.tabs__panel pre {
+  margin-bottom: 0;
+  margin-top: var(--space-4);
+}
+
 .section-nav {
   align-items: center;
   border-bottom: 1px solid var(--color-border);

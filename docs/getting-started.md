@@ -1,9 +1,12 @@
 # Getting started
 
+Django Probe reports on the environment the project runs in, so it must run with
+the project's dependencies installed.
+
 ## Install
 
-Add Django Probe to the development dependencies of the project whose usage you want
-to share:
+Add Django Probe to the development dependencies of the project whose usage you
+want to share:
 
 === "uv"
 
@@ -14,8 +17,11 @@ to share:
 === "pip"
 
     ```console
+    $ source .venv/bin/activate
     $ pip install django-probe
     ```
+
+    Be sure to add `django-probe` to the requirements file so CI installs it too.
 
 ## Create a project token
 
@@ -77,7 +83,29 @@ and prints a separate project token. Copy that token now, since it is not saved:
 You can also create an organization and project directly at
 [djangoprobe.org](https://djangoprobe.org) and copy the token from the project page.
 
-## Configure Payload Contents
+## Inspect and submit the first scan
+
+=== "uv"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
+    $ uv run django-probe scan . # Prints what submit shares
+    $ uv run django-probe submit .
+    ```
+
+=== "pip"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
+    $ django-probe scan . # Prints what submit shares
+    $ django-probe submit .
+    ```
+
+The `submit` payload will attributed to the project whose token is in
+`DJANGO_PROBE_TOKEN`. Export the token however you prefer, as long as `submit`
+sees it in its environment. Without it, `submit` sends an anonymous submission.
+
+## Configure payload contents
 
 ```toml
 [tool.django_probe]
@@ -90,13 +118,20 @@ See [Configuration](configuration.md) for the full set of options.
 
 ## Add Django Probe to CI
 
+The job is scheduled rather than added to every pull request because aggregate usage
+data does not need frequent or granular reporting.
+
 ### GitHub Actions
 
 Add the token as a repository secret named `DJANGO_PROBE_TOKEN` under **Settings →
-Secrets and variables → Actions → New repository secret**, then commit this workflow:
+Secrets and variables → Actions → New repository secret**, then commit this workflow.
+`workflow_dispatch` lets you test it immediately from the Actions tab:
 
 === "uv"
 
+    Call Django Probe's reusable workflow. It checks out the repository, sets up uv,
+    and submits from the project's own environment:
+
     ```yaml
     # .github/workflows/django-probe.yml
     name: Django Probe
@@ -107,21 +142,35 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
+    permissions: {}
+
     jobs:
-      submit:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-
-          - uses: astral-sh/setup-uv@v10
-
-          - run: uv run django-probe submit .
-            env:
-              DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+      django-probe:
+        uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.0
+        with:
+          # Path to the Django project to scan, relative to the repository root.
+          path: "."
+          # Environment to gate the submit job behind. Empty submits without an approval gate.
+          environment: ""
+          # Space-separated uv dependency groups to sync before scanning.
+          dependency-groups: ""
+          # Python version for uv to set up. Empty lets uv resolve its own.
+          python-version: ""
+        secrets:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
     ```
+
+    Each option shows its default, so you can remove any you don't need to change.
+    To gate submissions behind an approval, see
+    [Configuration](configuration.md#github-actions-approval-gate)
+
+    See [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload contains.
 
 === "pip"
 
+    The reusable workflow is uv-only. Update the project's dependencies yourself,
+    then submit:
+
     ```yaml
     # .github/workflows/django-probe.yml
     name: Django Probe
@@ -132,29 +181,26 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
+    permissions: {}
+
     jobs:
       submit:
         runs-on: ubuntu-latest
         steps:
           - uses: actions/checkout@v4
+            with:
+              persist-credentials: false
 
           - uses: actions/setup-python@v5
             with:
               python-version: "3.x"
 
-          - run: pip install django-probe
+          - run: pip install -r requirements.txt
 
           - run: django-probe submit .
             env:
               DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
     ```
-
-The job is scheduled rather than added to every pull request because aggregate usage
-data does not need to block or slow down normal builds. `workflow_dispatch` also lets
-you test it immediately from the Actions tab.
-
-If you'd rather review each payload before it's sent, see the
-[GitHub Actions approval gate](configuration.md#github-actions-approval-gate).
 
 ### GitLab CI
 
@@ -178,33 +224,12 @@ Variables**. GitLab exposes it to the job automatically:
       image: python:3.14-slim
       stage: test
       script:
-        - pip install django-probe
+        - pip install -r requirements.txt
         - django-probe submit .
     ```
 
 Schedule the pipeline under **Build → Pipeline schedules**. You can also run the job
 once manually to verify the integration.
-
-## Inspect or submit manually
-
-Run the same scan locally before enabling CI if you want to review the data:
-
-=== "uv"
-
-    ```console
-    $ uv run django-probe scan .      # prints the payload and sends nothing
-    $ uv run django-probe submit .    # sends the payload
-    ```
-
-=== "pip"
-
-    ```console
-    $ django-probe scan .      # prints the payload and sends nothing
-    $ django-probe submit .    # sends the payload
-    ```
-
-Set `DJANGO_PROBE_TOKEN` first to attribute a manual submission to your project. If it
-is unset, `submit` sends an anonymous submission.
 
 ## CLI reference
 
@@ -216,8 +241,7 @@ is unset, `submit` sends an anonymous submission.
 | `django-probe init [path] [--org] [--name] [--server-url]` | Create a project using your stored login and print its token. |
 
 Every command that reaches a server takes `--server-url`, and refuses a plain-HTTP
-one — each request carries a credential in a header, and HTTP puts it in front of
-anyone on the network path. Loopback addresses are exempt, since a local development
+one. Loopback addresses are exempt, since a local development
 server is not a network hop. To point the CLI at a self-hosted server that has no
 TLS, pass `--allow-insecure-http`.
 
