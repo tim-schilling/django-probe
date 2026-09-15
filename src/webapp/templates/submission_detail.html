@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ingest_extras %}
 {% block title %}Submission | Django Probe{% endblock %}
 {% block content %}
 <header class="page-header">
@@ -28,27 +29,27 @@
 
 <div class="panel">
   <h2>Probe sources</h2>
-  {% if submission.probe_sources %}<pre tabindex="0"><code>{{ submission.probe_sources }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+  {% if submission.probe_sources %}<pre tabindex="0"><code>{{ submission.probe_sources|pretty_json }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
 <div class="panel">
   <h2>Patterns</h2>
-  {% if submission.patterns %}<pre tabindex="0"><code>{{ submission.patterns }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+  {% if submission.patterns %}<pre tabindex="0"><code>{{ submission.patterns|pretty_json }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
 {% if submission.usage_packages or submission.usage %}
 <div class="panel">
   <h2>Package usage</h2>
   <p>Configured packages: {{ submission.usage_packages|join:", " }}</p>
-  {% if submission.usage %}<pre tabindex="0"><code>{{ submission.usage }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+  {% if submission.usage %}<pre tabindex="0"><code>{{ submission.usage|pretty_json }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
 {% endif %}
 <div class="panel">
   <h2>Dependencies</h2>
-  {% if submission.dependencies %}<pre tabindex="0"><code>{{ submission.dependencies }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+  {% if submission.dependencies %}<pre tabindex="0"><code>{{ submission.dependencies|pretty_json }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
 {% if submission.django_settings_scanned or submission.django_settings %}
 <div class="panel">
   <h2>Django settings</h2>
-  {% if submission.django_settings %}<pre tabindex="0"><code>{{ submission.django_settings }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
+  {% if submission.django_settings %}<pre tabindex="0"><code>{{ submission.django_settings|pretty_json }}</code></pre>{% else %}<p>None recorded.</p>{% endif %}
 </div>
 {% endif %}
 <p class="back-link"><a href="{% url 'account' %}">&larr; Back to submissions</a></p>

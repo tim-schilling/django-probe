@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db import models
+from django.utils.html import format_html
 
 from ingest.models import (
     CliCredential,
@@ -80,13 +84,42 @@ class SubmissionAdmin(admin.ModelAdmin):
     )
     list_filter = ("created_at", "django_version", "client_version")
     readonly_fields = tuple(
-        field.name for field in Submission._meta.fields if field.name != "id"
+        f"{field.name}_pretty" if isinstance(field, models.JSONField) else field.name
+        for field in Submission._meta.fields
+        if field.name != "id"
     )
     date_hierarchy = "created_at"
 
     @admin.display(description="occurrences")
     def total_occurrences(self, obj: Submission) -> int:
         return obj.total_occurrences
+
+    def _pretty_json(self, value) -> str:
+        return format_html("<pre>{}</pre>", json.dumps(value, indent=2, sort_keys=True))
+
+    @admin.display(description="probe sources")
+    def probe_sources_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.probe_sources)
+
+    @admin.display(description="patterns")
+    def patterns_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.patterns)
+
+    @admin.display(description="usage packages")
+    def usage_packages_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.usage_packages)
+
+    @admin.display(description="usage")
+    def usage_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.usage)
+
+    @admin.display(description="dependencies")
+    def dependencies_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.dependencies)
+
+    @admin.display(description="django settings")
+    def django_settings_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.django_settings)
 
     def has_add_permission(self, request) -> bool:
         # Submissions arrive over the API; hand-authoring them would pollute the data.
