@@ -21,6 +21,9 @@
   <button type="submit">Regenerate token</button>
 </form>
 
+<details class="setup-instructions"{% if show_setup_instructions %} open{% endif %}>
+<summary class="setup-instructions__summary">Setup instructions</summary>
+
 <h2>Add it to CI</h2>
 
 <h3>GitHub Actions</h3>
@@ -70,6 +73,7 @@ jobs:
 
 <p>To test a manual submission, export the token as
 <code>DJANGO_PROBE_TOKEN</code> and run <code>uv run django-probe submit .</code>.</p>
+</details>
 
 <h2>Submissions</h2>
 {% include "includes/paginated_submissions.html" %}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import secrets
 import uuid
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -40,6 +41,8 @@ from ingest.models import (
     hash_cli_token,
 )
 from ingest.validation import MAX_BODY_BYTES, ValidationError, validate_payload
+
+RECENT_SUBMISSION_WINDOW = timedelta(days=35)
 
 
 def _error(message: str, status: int) -> JsonResponse:
@@ -569,6 +572,9 @@ def project_detail(
         pk=project_id,
         organization=membership.organization,
     )
+    has_recent_submission = project.submissions.filter(
+        created_at__gte=timezone.now() - RECENT_SUBMISSION_WINDOW
+    ).exists()
     return render(
         request,
         "project_detail.html",
@@ -579,6 +585,7 @@ def project_detail(
             "page_obj": _paginate_submissions(request, project),
             "can_delete": membership.organization.memberships.count() == 1,
             "member_count": membership.organization.memberships.count(),
+            "show_setup_instructions": not has_recent_submission,
         },
     )
 

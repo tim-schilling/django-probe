@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest import mock
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from ingest.models import (
     SLUG_COLLISION_RETRIES,
@@ -272,6 +274,42 @@ class ProjectSubmissionsViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+
+class ProjectDetailSetupInstructionsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.owner)
+        cls.project = ProjectFactory(organization=cls.organization, name="Website")
+
+    def setUp(self):
+        self.client.force_login(self.owner)
+
+    def url(self) -> str:
+        return reverse("project-detail", args=[self.organization.pk, self.project.pk])
+
+    def test_shown_by_default_with_no_submissions(self):
+        response = self.client.get(self.url())
+
+        self.assertTrue(response.context["show_setup_instructions"])
+
+    def test_hidden_by_default_with_a_recent_submission(self):
+        SubmissionFactory(project=self.project)
+
+        response = self.client.get(self.url())
+
+        self.assertFalse(response.context["show_setup_instructions"])
+
+    def test_shown_by_default_when_the_latest_submission_is_old(self):
+        submission = SubmissionFactory(project=self.project)
+        Submission.objects.filter(pk=submission.pk).update(
+            created_at=timezone.now() - timedelta(days=36)
+        )
+
+        response = self.client.get(self.url())
+
+        self.assertTrue(response.context["show_setup_instructions"])
 
 
 class OrganizationManagementViewTests(TestCase):
