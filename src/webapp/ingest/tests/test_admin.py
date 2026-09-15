@@ -28,3 +28,17 @@ class CredentialExposureTests(SimpleTestCase):
         options = admin.site._registry[Project]
 
         self.assertIn("token", options.list_display)
+
+    def test_project_names_are_not_exposed(self):
+        """A project name is the customer's own choice of words, unlike the
+        opaque token above - staff have no support reason to read it."""
+        options = admin.site._registry[Project]
+
+        self.assertNotIn("name", options.list_display)
+        self.assertNotIn("name", options.search_fields)
+        self.assertIn("name", options.exclude)
+
+    def test_projects_cannot_be_hand_authored(self):
+        options = admin.site._registry[Project]
+
+        self.assertIs(options.has_add_permission(None), False)

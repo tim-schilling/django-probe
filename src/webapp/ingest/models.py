@@ -180,7 +180,7 @@ class Project(models.Model):
         self.save(update_fields=["token"])
 
     def __str__(self) -> str:
-        return f"{self.name} ({self.organization})"
+        return f"Project {self.id} ({self.organization})"
 
 
 class CliCredentialQuerySet(models.QuerySet):

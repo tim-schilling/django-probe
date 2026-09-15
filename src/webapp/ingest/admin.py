@@ -33,9 +33,18 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "organization", "token", "created_at")
+    # name is deliberately absent from every surface below: it's the
+    # customer's own project name, and nothing an admin does here needs to
+    # read it.
+    list_display = ("id", "organization", "token", "created_at")
     list_filter = ("organization",)
-    search_fields = ("name", "token", "organization__name")
+    search_fields = ("token", "organization__name")
+    exclude = ("name",)
+
+    def has_add_permission(self, request) -> bool:
+        # Projects are only ever created through the app's own forms, which
+        # generate the token and enforce per-organization name uniqueness.
+        return False
 
 
 @admin.register(CliCredential)
@@ -70,7 +79,6 @@ class SubmissionAdmin(admin.ModelAdmin):
         "total_occurrences",
     )
     list_filter = ("created_at", "django_version", "client_version")
-    search_fields = ("project__name",)
     readonly_fields = tuple(
         field.name for field in Submission._meta.fields if field.name != "id"
     )
