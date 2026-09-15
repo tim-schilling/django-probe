@@ -300,11 +300,22 @@ pre code {
   border-left-color: var(--color-warning);
 }
 
-.stat-block {
-  align-items: baseline;
+.stat-cards {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.stat-cards .panel {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.stat-block {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .stat {

@@ -16,9 +16,15 @@
   </p>
 </header>
 
-<div class="panel panel--subtle stat-block">
-  <p class="stat">{{ submission_count }}</p>
-  <p class="muted">submission{{ submission_count|pluralize }} received</p>
+<div class="stat-cards">
+  <div class="panel panel--subtle stat-block">
+    <p class="stat">{{ submission_count }}</p>
+    <p class="muted">Submission{{ submission_count|pluralize }} Received</p>
+  </div>
+  <div class="panel panel--subtle stat-block">
+    <p class="stat">{{ project_count }}</p>
+    <p class="muted">Project{{ project_count|pluralize }} Sharing</p>
+  </div>
 </div>
 
 <h2>Get started locally</h2>

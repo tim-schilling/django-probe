@@ -241,6 +241,20 @@ class AccountNavigationTests(TestCase):
             content.index("Add it to CI"),
         )
 
+    def test_home_project_count_counts_distinct_projects_with_submissions(self):
+        """The landing page counts projects with at least one submission, not all projects."""
+        organization = OrganizationFactory()
+        project_with_submissions = ProjectFactory(organization=organization)
+        ProjectFactory(organization=organization)
+        SubmissionFactory(project=project_with_submissions)
+        SubmissionFactory(project=project_with_submissions)
+        SubmissionFactory(project=None)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.context["project_count"], 1)
+        self.assertContains(response, "Project Sharing")
+
     def test_anonymous(self):
         """Anonymous navigation offers authentication but no private links."""
         response = self.client.get(reverse("home"))

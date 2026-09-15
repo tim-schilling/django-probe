@@ -294,7 +294,12 @@ def home(request) -> HttpResponse:
     return render(
         request,
         "home.html",
-        {"submission_count": Submission.objects.count()},
+        {
+            "submission_count": Submission.objects.count(),
+            "project_count": Project.objects.filter(submissions__isnull=False)
+            .distinct()
+            .count(),
+        },
     )
 
 
