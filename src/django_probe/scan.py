@@ -12,7 +12,7 @@ from pathlib import Path
 import django_probe.probes  # noqa: F401  -- importing registers the probes
 from django_probe.ast_probe import count_patterns
 from django_probe.config import django_settings_enabled, packages
-from django_probe.settings import configured_django_settings, django_settings_vocabulary
+from django_probe.settings import DJANGO_SETTING_NAMES, configured_django_settings
 from django_probe.usage import count_package_usage
 
 SKIP_DIRS = frozenset(
@@ -84,9 +84,7 @@ def scan_path(root: Path) -> ScanResult:
     needs_django_vocabulary = (
         django_settings_enabled(root) or "django" in usage_packages
     )
-    django_vocabulary = (
-        django_settings_vocabulary() if needs_django_vocabulary else None
-    )
+    django_vocabulary = DJANGO_SETTING_NAMES if needs_django_vocabulary else frozenset()
 
     for path in iter_python_files(root):
         try:
@@ -103,9 +101,7 @@ def scan_path(root: Path) -> ScanResult:
             count_package_usage(
                 tree,
                 usage_packages,
-                django_vocabulary.names
-                if django_vocabulary is not None
-                else frozenset(),
+                django_vocabulary,
             )
         )
         if "settings" in rel.lower():

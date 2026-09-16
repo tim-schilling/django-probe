@@ -22,7 +22,7 @@ The scanner follows aliases such as `from django.shortcuts import render as show
 but does not follow attributes through function return values. Thus it records
 `django.shortcuts.get_object_or_404`, but not an application method called on the
 returned model instance. Reads from `django.conf.settings` include a setting name
-only when the installed Django version defines it.
+only when Django 4.2 through the current development version defines it.
 
 ## Django settings
 

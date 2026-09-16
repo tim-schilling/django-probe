@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bundled the Django 4.2 through the current development version's setting names
+  so settings collection no longer requires Django to be installed.
+
 ## 0.3.2
 
 - Mention when the user is being rate limited.
