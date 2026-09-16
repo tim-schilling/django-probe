@@ -16,13 +16,8 @@ $ uvx django-probe scan .
 This reads whichever lock file the project has, so it works the same for uv, Poetry
 and PDM projects. Alternatively, `pipx run django-probe scan .` does the same thing.
 
-To share the results, add Django Probe to the development dependencies of the project:
-
-=== "uv"
-
-    ```console
-    $ uv add --dev django-probe
-    ```
+To share the results, either run directly or add Django Probe to the development
+dependencies of the project:
 
 === "Poetry"
 
@@ -53,8 +48,8 @@ from the CLI:
 === "uv"
 
     ```console
-    $ uv run django-probe login       # approve access in your browser
-    $ uv run django-probe init        # creates a project and prints its token
+    $ uvx django-probe login       # approve access in your browser
+    $ uvx django-probe init        # creates a project and prints its token
     ```
 
 === "Poetry"
@@ -85,7 +80,7 @@ many repositories:
 === "uv"
 
     ```console
-    $ uv run django-probe login --org my-team
+    $ uvx django-probe login --org my-team
     ```
 
 === "Poetry"
@@ -113,7 +108,7 @@ and prints a separate project token. Copy that token now, since it is not saved:
 === "uv"
 
     ```console
-    $ uv run django-probe init
+    $ uvx django-probe init
     Created project 'my-repo' in My Team.
     Token: 1f2e3d4c5b6a...
     Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
@@ -155,8 +150,8 @@ You can also create an organization and project directly at
 
     ```console
     $ export DJANGO_PROBE_TOKEN=<token_from_init>
-    $ uv run django-probe scan . # Prints what submit shares
-    $ uv run django-probe submit .
+    $ uvx django-probe scan . # Prints what submit shares
+    $ uvx django-probe submit .
     ```
 
 === "Poetry"
@@ -234,8 +229,6 @@ Secrets and variables → Actions → New repository secret**, then commit this 
           path: "."
           # Environment to gate the submit job behind. Empty submits without an approval gate.
           environment: ""
-          # Space-separated uv dependency groups to sync before scanning.
-          dependency-groups: ""
           # Python version for uv to set up. Empty lets uv resolve its own.
           python-version: ""
         secrets:
@@ -368,7 +361,7 @@ Variables**. GitLab exposes it to the job automatically:
       image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
       stage: test
       script:
-        - uv run django-probe submit .
+        - uvx django-probe submit .
     ```
 
 === "Poetry"

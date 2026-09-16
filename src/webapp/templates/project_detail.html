@@ -58,8 +58,6 @@ jobs:
       path: "."
       # Environment to gate the submit job behind. Empty submits without an approval gate.
       environment: ""
-      # Space-separated uv dependency groups to sync before scanning.
-      dependency-groups: ""
       # Python version for uv to set up. Empty lets uv resolve its own.
       python-version: ""
     secrets:
@@ -184,7 +182,7 @@ jobs:
   image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - uvx run django-probe submit .</code></pre>
+    - uvx django-probe submit .</code></pre>
   </div>
   <div class="tabs__panel" role="tabpanel" id="pd-gitlab-panel-poetry" aria-labelledby="pd-gitlab-tab-poetry" hidden>
     <pre tabindex="0"><code>report_probe:

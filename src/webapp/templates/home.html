@@ -47,8 +47,8 @@ django-probe scan .</code></pre>
 </div>
 
 <p>
-  To share the results, add Django Probe to the project's development dependencies,
-  then create a project token:
+  To share the results, create a project token. If not using uv, you'll need to
+add Django Probe to the development dependencies first:
 </p>
 
 <div class="tabs" data-tab-group="pkg-manager">
@@ -59,9 +59,8 @@ django-probe scan .</code></pre>
     <button type="button" class="tabs__tab" role="tab" id="install-tab-pip" aria-controls="install-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
   </div>
   <div class="tabs__panel" role="tabpanel" id="install-panel-uv" aria-labelledby="install-tab-uv">
-    <pre tabindex="0"><code>uv add --dev django-probe
-uv run django-probe login
-uv run django-probe init</code></pre>
+    <pre tabindex="0"><code>uvx django-probe login
+uvx django-probe init</code></pre>
   </div>
   <div class="tabs__panel" role="tabpanel" id="install-panel-poetry" aria-labelledby="install-tab-poetry" hidden>
     <pre tabindex="0"><code>poetry add --group dev django-probe
@@ -96,8 +95,8 @@ django-probe init</code></pre>
   </div>
   <div class="tabs__panel" role="tabpanel" id="share-panel-uv" aria-labelledby="share-tab-uv">
     <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
-uv run django-probe scan .      # inspect the payload; sends nothing
-uv run django-probe submit .    # share the first scan</code></pre>
+uvx django-probe scan .      # inspect the payload; sends nothing
+uvx django-probe submit .    # share the first scan</code></pre>
   </div>
   <div class="tabs__panel" role="tabpanel" id="share-panel-poetry" aria-labelledby="share-tab-poetry" hidden>
     <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
@@ -175,8 +174,6 @@ jobs:
       path: "."
       # Environment to gate the submit job behind. Empty submits without an approval gate.
       environment: ""
-      # Space-separated uv dependency groups to sync before scanning.
-      dependency-groups: ""
       # Python version for uv to set up. Empty lets uv resolve its own.
       python-version: ""
     secrets:
@@ -313,7 +310,7 @@ jobs:
   image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - uvx run django-probe submit .</code></pre>
+    - uvx django-probe submit .</code></pre>
       </div>
       <div class="tabs__panel" role="tabpanel" id="gitlab-panel-poetry" aria-labelledby="gitlab-tab-poetry" hidden>
         <pre tabindex="0"><code>report_probe:

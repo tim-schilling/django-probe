@@ -233,11 +233,11 @@ class AccountNavigationTests(TestCase):
         response = self.client.get(reverse("home"))
         content = response.content.decode()
 
-        self.assertContains(response, "uv add --dev django-probe")
-        self.assertContains(response, "uv run django-probe scan .")
+        self.assertContains(response, "uvx django-probe init")
+        self.assertContains(response, "uvx django-probe scan .")
         self.assertContains(response, "${{ secrets.DJANGO_PROBE_TOKEN }}")
         self.assertLess(
-            content.index("uv add --dev django-probe"),
+            content.index("uvx django-probe init"),
             content.index("Add it to CI"),
         )
 

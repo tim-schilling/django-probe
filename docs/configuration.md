@@ -128,29 +128,10 @@ environment** with a required reviewer. Each run prints the payload and pauses f
 that reviewer's approval before submitting it. Leave `environment` unset to submit
 without a gate.
 
-## uv dependency groups
+## Other workflow inputs
 
-!!! warning "Outdated"
-    A project with a lock file no longer needs this. Dependency capture
-    reads `uv.lock`, which lists every group, and the Django settings names are bundled with Django Probe.
-
-If production dependencies live outside uv's default groups (for example, Django is
-installed only via a `production` group), pass `dependency-groups` to the reusable
-workflow:
-
-```yaml
-jobs:
-  django-probe:
-    uses: tim-schilling/django-probe/.github/workflows/django-probe-submit-uv.yml@0.3.2
-    with:
-      dependency-groups: "production docs"
-    secrets:
-      DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
-```
-
-Each space-separated group becomes its own `uv sync --group`. Pass `python-version`
-to pin the Python version uv sets up, and `path` to scan a project that isn't at the
-repository root.
+Pass `python-version` to pin the Python version uv sets up, and `path` to scan a
+project that isn't at the repository root.
 
 See [`django-probe-submit-uv.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/django-probe-submit-uv.yml)
 for the full set of inputs.

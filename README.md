@@ -20,14 +20,13 @@ $ pip install django-probe
 $ django-probe scan .
 ```
 
-To share the results, add Django Probe to the project's development dependencies,
-then create a project token:
+To share the results, create a project token. If not using uv, you'll need to
+add Django Probe to the development dependencies first:
 
 ```console
 # with uv
-$ uv add --dev django-probe
-$ uv run django-probe login
-$ uv run django-probe init
+$ uvx django-probe login
+$ uvx django-probe init
 
 # with Poetry
 $ poetry add --group dev django-probe
@@ -53,8 +52,8 @@ $ django-probe init
 $ export DJANGO_PROBE_TOKEN=<token_from_init>
 
 # with uv
-$ uv run django-probe scan .      # inspect the payload; sends nothing
-$ uv run django-probe submit .    # share the first scan
+$ uvx django-probe scan .      # inspect the payload; sends nothing
+$ uvx django-probe submit .    # share the first scan
 
 # with Poetry
 $ poetry run django-probe scan .
@@ -94,8 +93,6 @@ jobs:
       path: "."
       # Environment to gate the submit job behind. Empty submits without an approval gate.
       environment: ""
-      # Space-separated uv dependency groups to sync before scanning.
-      dependency-groups: ""
       # Python version for uv to set up. Empty lets uv resolve its own.
       python-version: ""
     secrets:

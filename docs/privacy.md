@@ -38,7 +38,7 @@ functions, because those attributes may be defined by the application.
 === "uv"
 
     ```console
-    $ uv run django-probe scan .
+    $ uvx django-probe scan .
     ```
 
 === "Poetry"

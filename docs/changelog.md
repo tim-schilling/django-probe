@@ -13,6 +13,9 @@
 - Excluded packages resolved from anywhere other than PyPI, for the lock files that
   record an index URL. See [What gets excluded](configuration.md#what-gets-excluded).
 - Added `dependencies_source` to the payload, recording which of those layers answered.
+- Removed the `dependency-groups` input from the reusable uv workflow, which now runs
+  `uvx django-probe` and reads every group from `uv.lock`. Drop the input from callers
+  when upgrading, since GitHub rejects unknown inputs.
 
 ## 0.3.2
 

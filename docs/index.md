@@ -24,15 +24,14 @@ To quickly see what Django Probe would share:
     $ django-probe scan .
     ```
 
-To share the results, add Django Probe to the project's development dependencies,
-then create a project token:
+To share the results, create a project token. If not using uv, you'll need to
+add Django Probe to the development dependencies first:
 
 === "uv"
 
     ```console
-    $ uv add --dev django-probe
-    $ uv run django-probe login
-    $ uv run django-probe init
+    $ uvx django-probe login
+    $ uvx django-probe init
     ```
 
 === "Poetry"
@@ -67,8 +66,8 @@ then create a project token:
 
     ```console
     $ export DJANGO_PROBE_TOKEN=<token_from_init>
-    $ uv run django-probe scan .      # inspect the payload; sends nothing
-    $ uv run django-probe submit .    # share the first scan
+    $ uvx django-probe scan .      # inspect the payload; sends nothing
+    $ uvx django-probe submit .    # share the first scan
     ```
 
 === "Poetry"
