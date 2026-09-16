@@ -1,9 +1,5 @@
-"""Resolve the project's dependencies from its lock file, or from what's installed.
-
-A lock file describes the project. The installed environment describes whatever
-django-probe is running inside, which is the project only when the tool was installed
-alongside it, so lock files are tried first. Django's absence means whatever we read
-described some other environment, and the whole set is dropped rather than reported.
+"""
+Resolve the project's dependencies from its lock file, or from what's installed.
 """
 
 from __future__ import annotations
