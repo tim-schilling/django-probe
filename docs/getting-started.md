@@ -1,17 +1,39 @@
 # Getting started
 
-Django Probe reports on the environment the project runs in, so it must run with
-the project's dependencies installed.
+Django Probe shares what packages are installed and which parts of Django are being
+used. If you're using a package manager like uv, this can be done by inspecting the
+lock file. If you're using pure pip, you'll need to run `django-probe` from within
+virtual environment that all the dependencies are installed.
 
 ## Install
 
-Add Django Probe to the development dependencies of the project whose usage you
-want to share:
+To quickly see what Django Probe would share:
+
+```console
+$ uvx django-probe scan .
+```
+
+This reads whichever lock file the project has, so it works the same for uv, Poetry
+and PDM projects. Alternatively, `pipx run django-probe scan .` does the same thing.
+
+To share the results, add Django Probe to the development dependencies of the project:
 
 === "uv"
 
     ```console
     $ uv add --dev django-probe
+    ```
+
+=== "Poetry"
+
+    ```console
+    $ poetry add --group dev django-probe
+    ```
+
+=== "PDM"
+
+    ```console
+    $ pdm add -dG dev django-probe
     ```
 
 === "pip"
@@ -35,6 +57,20 @@ from the CLI:
     $ uv run django-probe init        # creates a project and prints its token
     ```
 
+=== "Poetry"
+
+    ```console
+    $ poetry run django-probe login       # approve access in your browser
+    $ poetry run django-probe init        # creates a project and prints its token
+    ```
+
+=== "PDM"
+
+    ```console
+    $ pdm run django-probe login       # approve access in your browser
+    $ pdm run django-probe init        # creates a project and prints its token
+    ```
+
 === "pip"
 
     ```console
@@ -52,6 +88,18 @@ many repositories:
     $ uv run django-probe login --org my-team
     ```
 
+=== "Poetry"
+
+    ```console
+    $ poetry run django-probe login --org my-team
+    ```
+
+=== "PDM"
+
+    ```console
+    $ pdm run django-probe login --org my-team
+    ```
+
 === "pip"
 
     ```console
@@ -66,6 +114,24 @@ and prints a separate project token. Copy that token now, since it is not saved:
 
     ```console
     $ uv run django-probe init
+    Created project 'my-repo' in My Team.
+    Token: 1f2e3d4c5b6a...
+    Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
+    ```
+
+=== "Poetry"
+
+    ```console
+    $ poetry run django-probe init
+    Created project 'my-repo' in My Team.
+    Token: 1f2e3d4c5b6a...
+    Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
+    ```
+
+=== "PDM"
+
+    ```console
+    $ pdm run django-probe init
     Created project 'my-repo' in My Team.
     Token: 1f2e3d4c5b6a...
     Set this as DJANGO_PROBE_TOKEN wherever you run `django-probe submit`.
@@ -91,6 +157,22 @@ You can also create an organization and project directly at
     $ export DJANGO_PROBE_TOKEN=<token_from_init>
     $ uv run django-probe scan . # Prints what submit shares
     $ uv run django-probe submit .
+    ```
+
+=== "Poetry"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
+    $ poetry run django-probe scan . # Prints what submit shares
+    $ poetry run django-probe submit .
+    ```
+
+=== "PDM"
+
+    ```console
+    $ export DJANGO_PROBE_TOKEN=<token_from_init>
+    $ pdm run django-probe scan . # Prints what submit shares
+    $ pdm run django-probe submit .
     ```
 
 === "pip"
@@ -166,6 +248,78 @@ Secrets and variables → Actions → New repository secret**, then commit this 
 
     See [Privacy](https://docs.djangoprobe.org/privacy/) for exactly what a payload contains.
 
+=== "Poetry"
+
+    The reusable workflow is uv-only. Install the project yourself, then submit:
+
+    ```yaml
+    # .github/workflows/django-probe.yml
+    name: Django Probe
+
+    on:
+      schedule:
+        # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+        - cron: "17 4 1 * *"
+      workflow_dispatch:
+
+    permissions: {}
+
+    jobs:
+      submit:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+            with:
+              persist-credentials: false
+
+          - uses: actions/setup-python@v5
+            with:
+              python-version: "3.x"
+
+          - run: pipx install poetry
+          - run: poetry install
+
+          - run: poetry run django-probe submit .
+            env:
+              DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+    ```
+
+=== "PDM"
+
+    The reusable workflow is uv-only. Install the project yourself, then submit:
+
+    ```yaml
+    # .github/workflows/django-probe.yml
+    name: Django Probe
+
+    on:
+      schedule:
+        # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+        - cron: "17 4 1 * *"
+      workflow_dispatch:
+
+    permissions: {}
+
+    jobs:
+      submit:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+            with:
+              persist-credentials: false
+
+          - uses: actions/setup-python@v5
+            with:
+              python-version: "3.x"
+
+          - run: pipx install pdm
+          - run: pdm install
+
+          - run: pdm run django-probe submit .
+            env:
+              DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
+    ```
+
 === "pip"
 
     The reusable workflow is uv-only. Update the project's dependencies yourself,
@@ -215,6 +369,30 @@ Variables**. GitLab exposes it to the job automatically:
       stage: test
       script:
         - uv run django-probe submit .
+    ```
+
+=== "Poetry"
+
+    ```yaml
+    report_probe:
+      image: python:3.14-slim
+      stage: test
+      script:
+        - pip install poetry
+        - poetry install
+        - poetry run django-probe submit .
+    ```
+
+=== "PDM"
+
+    ```yaml
+    report_probe:
+      image: python:3.14-slim
+      stage: test
+      script:
+        - pip install pdm
+        - pdm install
+        - pdm run django-probe submit .
     ```
 
 === "pip"

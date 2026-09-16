@@ -32,7 +32,7 @@ def _installed_from_index(dist: metadata.Distribution) -> bool:
     return dist.read_text("direct_url.json") is None
 
 
-def dependencies(*, include_versions: bool = True) -> dict[str, str]:
+def dependencies() -> dict[str, str]:
     """Installed dependencies, excluding local-path, editable, and VCS installs.
 
     Still includes anything resolved through a package index, public or private -
@@ -42,7 +42,7 @@ def dependencies(*, include_versions: bool = True) -> dict[str, str]:
     for dist in metadata.distributions():
         name = dist.metadata["Name"]
         if name and _installed_from_index(dist):
-            found[normalize(name)] = (dist.version or "") if include_versions else ""
+            found[normalize(name)] = dist.version or ""
     return dict(sorted(found.items()))
 
 

@@ -57,6 +57,15 @@ def test_account_journey(
     expect(page.get_by_role("heading", name=PROJECT_NAME)).to_be_visible()
     assert_no_accessibility_violations(page)
 
+    # A project with no submissions yet opens its setup instructions, so the
+    # package-manager tabs are on screen.
+    page.locator("#pd-github-tab-poetry").click()
+    expect(page.locator("#pd-github-panel-poetry")).to_be_visible()
+    expect(page.locator("#pd-github-panel-uv")).to_be_hidden()
+    expect(page.locator("#pd-gitlab-tab-poetry")).to_have_attribute(
+        "aria-selected", "true"
+    )
+
     token = page.locator("#project-token")
     expect(token).to_be_visible()
     page.get_by_role("button", name="Show token").click()

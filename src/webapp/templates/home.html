@@ -29,46 +29,90 @@
 
 <h2>Get started locally</h2>
 
-<p>
-  Django Probe reports on the environment your project runs in, so run it with the
-  project's dependencies installed. Add it as a development dependency and preview
-  the exact payload without sending it:
-</p>
+<p>To quickly see what Django Probe would share:</p>
 
 <div class="tabs" data-tab-group="pkg-manager">
   <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
-    <button type="button" class="tabs__tab" role="tab" id="install-tab-uv" aria-controls="install-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
-    <button type="button" class="tabs__tab" role="tab" id="install-tab-pip" aria-controls="install-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+    <button type="button" class="tabs__tab" role="tab" id="quick-tab-uv" aria-controls="quick-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="quick-tab-pip" aria-controls="quick-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
   </div>
-  <div class="tabs__panel" role="tabpanel" id="install-panel-uv" aria-labelledby="install-tab-uv">
-    <pre tabindex="0"><code>uv add --dev django-probe
-uv run django-probe scan .</code></pre>
+  <div class="tabs__panel" role="tabpanel" id="quick-panel-uv" aria-labelledby="quick-tab-uv">
+    <pre tabindex="0"><code>uvx django-probe scan .</code></pre>
   </div>
-  <div class="tabs__panel" role="tabpanel" id="install-panel-pip" aria-labelledby="install-tab-pip" hidden>
+  <div class="tabs__panel" role="tabpanel" id="quick-panel-pip" aria-labelledby="quick-tab-pip" hidden>
     <pre tabindex="0"><code>source .venv/bin/activate
 pip install django-probe
 django-probe scan .</code></pre>
   </div>
 </div>
 
-<p>To share the project's Django usages:</p>
+<p>
+  To share the results, add Django Probe to the project's development dependencies,
+  then create a project token:
+</p>
+
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-uv" aria-controls="install-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-poetry" aria-controls="install-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-pdm" aria-controls="install-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
+    <button type="button" class="tabs__tab" role="tab" id="install-tab-pip" aria-controls="install-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-uv" aria-labelledby="install-tab-uv">
+    <pre tabindex="0"><code>uv add --dev django-probe
+uv run django-probe login
+uv run django-probe init</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-poetry" aria-labelledby="install-tab-poetry" hidden>
+    <pre tabindex="0"><code>poetry add --group dev django-probe
+poetry run django-probe login
+poetry run django-probe init</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-pdm" aria-labelledby="install-tab-pdm" hidden>
+    <pre tabindex="0"><code>pdm add -dG dev django-probe
+pdm run django-probe login
+pdm run django-probe init</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="install-panel-pip" aria-labelledby="install-tab-pip" hidden>
+    <pre tabindex="0"><code>source .venv/bin/activate
+pip install django-probe
+django-probe login
+django-probe init</code></pre>
+  </div>
+</div>
+
+<p>
+  <code>login</code> stores an organization credential in your user configuration
+  directory. <code>init</code> prints a separate project token; copy it, then inspect
+  and submit the first scan:
+</p>
 
 <div class="tabs" data-tab-group="pkg-manager">
   <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
     <button type="button" class="tabs__tab" role="tab" id="share-tab-uv" aria-controls="share-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="share-tab-poetry" aria-controls="share-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+    <button type="button" class="tabs__tab" role="tab" id="share-tab-pdm" aria-controls="share-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
     <button type="button" class="tabs__tab" role="tab" id="share-tab-pip" aria-controls="share-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
   </div>
   <div class="tabs__panel" role="tabpanel" id="share-panel-uv" aria-labelledby="share-tab-uv">
-    <pre tabindex="0"><code>uv run django-probe login
-uv run django-probe init
-export DJANGO_PROBE_TOKEN=[printed token]
-uv run django-probe submit .</code></pre>
+    <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
+uv run django-probe scan .      # inspect the payload; sends nothing
+uv run django-probe submit .    # share the first scan</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="share-panel-poetry" aria-labelledby="share-tab-poetry" hidden>
+    <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
+poetry run django-probe scan .      # inspect the payload; sends nothing
+poetry run django-probe submit .    # share the first scan</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="share-panel-pdm" aria-labelledby="share-tab-pdm" hidden>
+    <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
+pdm run django-probe scan .      # inspect the payload; sends nothing
+pdm run django-probe submit .    # share the first scan</code></pre>
   </div>
   <div class="tabs__panel" role="tabpanel" id="share-panel-pip" aria-labelledby="share-tab-pip" hidden>
-    <pre tabindex="0"><code>django-probe login
-django-probe init
-export DJANGO_PROBE_TOKEN=[printed token]
-django-probe submit .</code></pre>
+    <pre tabindex="0"><code>export DJANGO_PROBE_TOKEN=[printed token]
+django-probe scan .      # inspect the payload; sends nothing
+django-probe submit .    # share the first scan</code></pre>
   </div>
 </div>
 
@@ -101,6 +145,8 @@ django-probe submit .</code></pre>
     <div class="tabs" data-tab-group="pkg-manager">
       <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
         <button type="button" class="tabs__tab" role="tab" id="github-tab-uv" aria-controls="github-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+        <button type="button" class="tabs__tab" role="tab" id="github-tab-poetry" aria-controls="github-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+        <button type="button" class="tabs__tab" role="tab" id="github-tab-pdm" aria-controls="github-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
         <button type="button" class="tabs__tab" role="tab" id="github-tab-pip" aria-controls="github-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
       </div>
       <div class="tabs__panel" role="tabpanel" id="github-panel-uv" aria-labelledby="github-tab-uv">
@@ -135,6 +181,78 @@ jobs:
       python-version: ""
     secrets:
       DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="github-panel-poetry" aria-labelledby="github-tab-poetry" hidden>
+        <p>
+          The reusable workflow is uv-only. Install the project yourself, then submit:
+        </p>
+{% verbatim %}
+        <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install poetry
+      - run: poetry install
+
+      - run: poetry run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="github-panel-pdm" aria-labelledby="github-tab-pdm" hidden>
+        <p>
+          The reusable workflow is uv-only. Install the project yourself, then submit:
+        </p>
+{% verbatim %}
+        <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install pdm
+      - run: pdm install
+
+      - run: pdm run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
       </div>
       <div class="tabs__panel" role="tabpanel" id="github-panel-pip" aria-labelledby="github-tab-pip" hidden>
@@ -186,6 +304,8 @@ jobs:
     <div class="tabs" data-tab-group="pkg-manager">
       <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
         <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-uv" aria-controls="gitlab-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+        <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-poetry" aria-controls="gitlab-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+        <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-pdm" aria-controls="gitlab-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
         <button type="button" class="tabs__tab" role="tab" id="gitlab-tab-pip" aria-controls="gitlab-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
       </div>
       <div class="tabs__panel" role="tabpanel" id="gitlab-panel-uv" aria-labelledby="gitlab-tab-uv">
@@ -193,7 +313,25 @@ jobs:
   image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - uv run django-probe submit .</code></pre>
+    - uvx run django-probe submit .</code></pre>
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="gitlab-panel-poetry" aria-labelledby="gitlab-tab-poetry" hidden>
+        <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install poetry
+    - poetry install
+    - poetry run django-probe submit .</code></pre>
+      </div>
+      <div class="tabs__panel" role="tabpanel" id="gitlab-panel-pdm" aria-labelledby="gitlab-tab-pdm" hidden>
+        <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install pdm
+    - pdm install
+    - pdm run django-probe submit .</code></pre>
       </div>
       <div class="tabs__panel" role="tabpanel" id="gitlab-panel-pip" aria-labelledby="gitlab-tab-pip" hidden>
         <pre tabindex="0"><code>report_probe:

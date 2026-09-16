@@ -16,6 +16,7 @@ from django_probe.config import (
     dependency_mode,
     resolve_token,
 )
+from django_probe.dependencies import UNRESOLVED, unresolved_message
 from django_probe.init import init
 from django_probe.login import login
 from django_probe.logout import logout
@@ -153,8 +154,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         dependency_exclude_patterns=dependency_exclude_patterns(root),
     )
 
-    if args.command == "scan" or args.dry_run:
+    # Printed before the dependency check so a failing scan still shows what resolved.
+    prints_payload = args.command == "scan" or args.dry_run
+    if prints_payload:
         print(json.dumps(payload, indent=2, sort_keys=True))
+
+    if payload["dependencies_source"] == UNRESOLVED:
+        print(unresolved_message(root), file=sys.stderr)
+        return 1
+
+    if prints_payload:
         return 0
 
     try:

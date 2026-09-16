@@ -1052,6 +1052,7 @@ socialaccount = [
 name = "django-probe"
 source = { editable = "." }
 dependencies = [
+    { name = "packaging" },
     { name = "tomli", marker = "python_full_version < '3.11' or (extra == 'group-12-django-probe-django42' and extra == 'group-12-django-probe-django50') or (extra == 'group-12-django-probe-django42' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django42' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django42' and extra == 'group-12-django-probe-django61') or (extra == 'group-12-django-probe-django42' and extra == 'group-12-django-probe-djangomain') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django52') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-django61') or (extra == 'group-12-django-probe-django50' and extra == 'group-12-django-probe-djangomain') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django60') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-django61') or (extra == 'group-12-django-probe-django52' and extra == 'group-12-django-probe-djangomain') or (extra == 'group-12-django-probe-django60' and extra == 'group-12-django-probe-django61') or (extra == 'group-12-django-probe-django60' and extra == 'group-12-django-probe-djangomain') or (extra == 'group-12-django-probe-django61' and extra == 'group-12-django-probe-djangomain')" },
 ]
 
@@ -1149,7 +1150,10 @@ webapp = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" }]
+requires-dist = [
+    { name = "packaging", specifier = ">=21" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
+]
 
 [package.metadata.requires-dev]
 dev = [

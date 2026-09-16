@@ -343,6 +343,8 @@ class Submission(models.Model):
     usage_packages = models.JSONField(default=list)
     usage = models.JSONField(default=dict)
     dependencies = models.JSONField(default=dict)
+    # "uv", "poetry", "pdm", "installed" or "none"; blank from schema version 1 clients.
+    dependencies_source = models.CharField(max_length=128, blank=True)
     django_settings = models.JSONField(default=dict)
     django_settings_scanned = models.BooleanField(default=False)
 

@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import keyword
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+# Clients upgrade on their own schedule, so every published shape stays acceptable.
+SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
@@ -128,8 +130,11 @@ def validate_payload(payload: object) -> dict:
     schema_version = payload.get("schema_version")
     if not isinstance(schema_version, int) or isinstance(schema_version, bool):
         raise ValidationError("schema_version must be an integer")
-    if schema_version != SCHEMA_VERSION:
-        raise ValidationError(f"unsupported schema_version, expected {SCHEMA_VERSION}")
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+        expected = ", ".join(
+            str(version) for version in sorted(SUPPORTED_SCHEMA_VERSIONS)
+        )
+        raise ValidationError(f"unsupported schema_version, expected one of {expected}")
 
     files_scanned = payload.get("files_scanned")
     if not isinstance(files_scanned, int) or isinstance(files_scanned, bool):
@@ -145,7 +150,7 @@ def validate_payload(payload: object) -> dict:
     usage = _usage(payload.get("usage", {}), usage_packages)
 
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": schema_version,
         "client_version": _string(payload.get("client_version", ""), "client_version"),
         "python_version": _string(payload.get("python_version", ""), "python_version"),
         "django_version": _string(payload.get("django_version", ""), "django_version"),
@@ -158,6 +163,9 @@ def validate_payload(payload: object) -> dict:
         "usage": usage,
         "dependencies": _str_map(
             payload.get("dependencies", {}), "dependencies", MAX_DEPENDENCIES
+        ),
+        "dependencies_source": _string(
+            payload.get("dependencies_source", ""), "dependencies_source"
         ),
         "django_settings": _int_map(
             payload.get("django_settings", {}),

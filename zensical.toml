@@ -15,7 +15,7 @@ nav = [
     { "Overview" = "contributing.md" },
     { "Writing a probe" = "writing-probes.md" },
     { "Third-party probe packages" = "third-party-probes.md" },
-    { "Repository layout" = "architecture.md" },
+    { "Architecture" = "architecture.md" },
     { "Frontend style" = "frontend-style.md" },
   ] },
 ]

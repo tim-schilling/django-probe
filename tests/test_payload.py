@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase, mock
 
+from django_probe import collect
 from django_probe.payload import build_payload
 
 SOURCE = (
@@ -27,7 +28,7 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 1)
+        self.assertEqual(payload["schema_version"], 2)
         self.assertEqual(payload["usage_packages"], ["django"])
         self.assertEqual(
             payload["usage"],
@@ -53,17 +54,18 @@ class PayloadTests(TestCase):
             payload = build_payload(self.root, dependency_mode="none")
 
         self.assertEqual(payload["dependencies"], {})
+        self.assertEqual(payload["dependencies_source"], "none")
         dependencies.assert_not_called()
 
     def test_dependency_names(self):
         with mock.patch(
             "django_probe.payload.collect.dependencies",
-            return_value={"django": ""},
-        ) as dependencies:
+            return_value={"django": "5.0"},
+        ):
             payload = build_payload(self.root, dependency_mode="names")
 
         self.assertEqual(payload["dependencies"], {"django": ""})
-        dependencies.assert_called_once_with(include_versions=False)
+        self.assertEqual(payload["dependencies_source"], "installed")
 
     def test_dependency_exclude_patterns_are_applied(self):
         with mock.patch(
@@ -73,6 +75,27 @@ class PayloadTests(TestCase):
             payload = build_payload(self.root, dependency_exclude_patterns=["acme-*"])
 
         self.assertEqual(payload["dependencies"], {"django": "5.0"})
+
+    def test_django_version_comes_from_the_lock_file(self):
+        (self.root / "uv.lock").write_text(
+            '[[package]]\nname = "django"\nversion = "4.2.30"\n'
+            'source = { registry = "https://pypi.org/simple" }\n',
+            encoding="utf-8",
+        )
+
+        payload = build_payload(self.root)
+
+        self.assertEqual(payload["django_version"], "4.2.30")
+        self.assertEqual(payload["dependencies_source"], "uv")
+
+    def test_django_version_falls_back_to_the_environment(self):
+        with mock.patch(
+            "django_probe.payload.collect.dependencies",
+            return_value={"django": "5.0"},
+        ):
+            payload = build_payload(self.root, dependency_mode="names")
+
+        self.assertEqual(payload["django_version"], collect.django_version())
 
     def test_leaks_nothing_identifying(self):
         """The privacy claim, asserted rather than assumed."""

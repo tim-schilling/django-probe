@@ -8,17 +8,36 @@ By sharing what your project uses, you help support the Django community. No sou
 
 ## Quickstart
 
-Django Probe reports on the environment the project runs in, so it must run with
-the project's dependencies installed.
+To quickly see what Django Probe would share:
 
-Add Django Probe to the project's development dependencies, then create a project
-token:
+```console
+# with uv
+$ uvx django-probe scan .
+
+# with pip
+$ source .venv/bin/activate
+$ pip install django-probe
+$ django-probe scan .
+```
+
+To share the results, add Django Probe to the project's development dependencies,
+then create a project token:
 
 ```console
 # with uv
 $ uv add --dev django-probe
 $ uv run django-probe login
 $ uv run django-probe init
+
+# with Poetry
+$ poetry add --group dev django-probe
+$ poetry run django-probe login
+$ poetry run django-probe init
+
+# with PDM
+$ pdm add -dG dev django-probe
+$ pdm run django-probe login
+$ pdm run django-probe init
 
 # with pip
 $ source .venv/bin/activate
@@ -36,6 +55,14 @@ $ export DJANGO_PROBE_TOKEN=<token_from_init>
 # with uv
 $ uv run django-probe scan .      # inspect the payload; sends nothing
 $ uv run django-probe submit .    # share the first scan
+
+# with Poetry
+$ poetry run django-probe scan .
+$ poetry run django-probe submit .
+
+# with PDM
+$ pdm run django-probe scan .
+$ pdm run django-probe submit .
 
 # with pip
 $ django-probe scan .      # inspect the payload; sends nothing

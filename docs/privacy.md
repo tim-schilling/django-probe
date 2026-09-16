@@ -10,10 +10,11 @@ settings through [Django Probe's configuration](configuration.md). If you want t
 keep scheduled submissions but review each payload before it's shared, see the
 [GitHub Actions approval gate](configuration.md#github-actions-approval-gate).
 
-Dependency capture excludes local-path, editable, and VCS installs automatically.
-If your project has private dependencies from another source, such as a private
-package index, list their name patterns in `dependencies_exclude` to omit them. See
-[Configuration](configuration.md#dependencies) for details.
+Dependency capture excludes local-path, editable, and VCS installs automatically, and
+excludes packages a `uv.lock` or `poetry.lock` resolved from somewhere other than
+PyPI. Where a private index can't be recognized, they can be excluded by using
+`dependencies_exclude`. See
+[Configuration](configuration.md#what-gets-excluded) for details.
 
 ## Highest privacy settings
 
@@ -22,17 +23,15 @@ sharing some information with the community.
 
 ```toml
 [tool.django_probe]
-packages = []  # Don't include detailed package API usage
 dependencies = "none"  # Don't include dependencies
 dependencies_exclude = []  # e.g. ["mycompany-*"]
 django_settings = false  # Don't include names of the defined Django settings
+packages = []  # Don't include detailed package API usage
 ```
 
 Package usage contains only statically resolved dotted names and integer occurrence
 counts. The scanner does not report attributes called on values returned by package
-functions, because those attributes may be defined by the application. For
-`django.conf.settings`, project-defined names are collapsed to
-`django.conf.settings` rather than reported.
+functions, because those attributes may be defined by the application.
 
 ## Verify it yourself
 
@@ -42,6 +41,18 @@ functions, because those attributes may be defined by the application. For
     $ uv run django-probe scan .
     ```
 
+=== "Poetry"
+
+    ```console
+    $ poetry run django-probe scan .
+    ```
+
+=== "PDM"
+
+    ```console
+    $ pdm run django-probe scan .
+    ```
+
 === "pip"
 
     ```console
@@ -49,7 +60,6 @@ functions, because those attributes may be defined by the application. For
     ```
 
 `scan` prints the exact payload that `submit` would send, without sending anything.
-Run it with the project's dependencies installed, the same way `submit` runs.
 
 If you want to see the code, please see [`payload.py`](https://github.com/tim-schilling/django-probe/blob/main/src/django_probe/payload.py).
 

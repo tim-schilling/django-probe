@@ -27,10 +27,19 @@
 <h2>Add it to CI</h2>
 
 <h3>GitHub Actions</h3>
-<p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then call Django Probe's reusable workflow. Each option shows its default, so you can remove any you don't need to change.</p>
+<p>Add a repository secret named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong>, then commit a workflow.</p>
 
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="pd-github-tab-uv" aria-controls="pd-github-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-github-tab-poetry" aria-controls="pd-github-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-github-tab-pdm" aria-controls="pd-github-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-github-tab-pip" aria-controls="pd-github-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-github-panel-uv" aria-labelledby="pd-github-tab-uv">
+    <p>Django Probe's reusable workflow checks out the repository, sets up uv, and submits from the project's own environment. Each option shows its default, so you can remove any you don't need to change.</p>
 {% verbatim %}
-<pre tabindex="0"><code># .github/workflows/django-probe.yml
+    <pre tabindex="0"><code># .github/workflows/django-probe.yml
 name: Django Probe
 
 on:
@@ -56,23 +65,175 @@ jobs:
     secrets:
       DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
 {% endverbatim %}
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-github-panel-poetry" aria-labelledby="pd-github-tab-poetry" hidden>
+    <p>The reusable workflow is uv-only. Install the project yourself, then submit:</p>
+{% verbatim %}
+    <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install poetry
+      - run: poetry install
+
+      - run: poetry run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-github-panel-pdm" aria-labelledby="pd-github-tab-pdm" hidden>
+    <p>The reusable workflow is uv-only. Install the project yourself, then submit:</p>
+{% verbatim %}
+    <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install pdm
+      - run: pdm install
+
+      - run: pdm run django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-github-panel-pip" aria-labelledby="pd-github-tab-pip" hidden>
+    <p>The reusable workflow is uv-only. Update the project's dependencies yourself, then submit:</p>
+{% verbatim %}
+    <pre tabindex="0"><code># .github/workflows/django-probe.yml
+name: Django Probe
+
+on:
+  schedule:
+    # Runs monthly. Choose a different minute and hour to help spread load on our servers.
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pip install -r requirements.txt
+
+      - run: django-probe submit .
+        env:
+          DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}</code></pre>
+{% endverbatim %}
+  </div>
+</div>
 
 <h3>GitLab CI</h3>
 <p>Add a masked CI/CD variable named <code>DJANGO_PROBE_TOKEN</code> under <strong>Settings &rarr; CI/CD &rarr; Variables</strong> &mdash; GitLab exposes it to the job automatically, no extra config needed:</p>
 
-<pre tabindex="0"><code>report_probe:
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="pd-gitlab-tab-uv" aria-controls="pd-gitlab-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-gitlab-tab-poetry" aria-controls="pd-gitlab-panel-poetry" aria-selected="false" tabindex="-1" data-tab-value="poetry">Poetry</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-gitlab-tab-pdm" aria-controls="pd-gitlab-panel-pdm" aria-selected="false" tabindex="-1" data-tab-value="pdm">PDM</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-gitlab-tab-pip" aria-controls="pd-gitlab-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-gitlab-panel-uv" aria-labelledby="pd-gitlab-tab-uv">
+    <pre tabindex="0"><code>report_probe:
   image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
   stage: test
   script:
-    - uv run django-probe submit .</code></pre>
+    - uvx run django-probe submit .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-gitlab-panel-poetry" aria-labelledby="pd-gitlab-tab-poetry" hidden>
+    <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install poetry
+    - poetry install
+    - poetry run django-probe submit .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-gitlab-panel-pdm" aria-labelledby="pd-gitlab-tab-pdm" hidden>
+    <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install pdm
+    - pdm install
+    - pdm run django-probe submit .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-gitlab-panel-pip" aria-labelledby="pd-gitlab-tab-pip" hidden>
+    <pre tabindex="0"><code>report_probe:
+  image: python:3.14-slim
+  stage: test
+  script:
+    - pip install -r requirements.txt
+    - django-probe submit .</code></pre>
+  </div>
+</div>
 
 <h2>Inspect it locally</h2>
-<p>Preview the exact payload without sending anything:</p>
+<p>To quickly see what Django Probe would share, without sending anything:</p>
 
-<pre tabindex="0"><code>uv run django-probe scan .</code></pre>
+<div class="tabs" data-tab-group="pkg-manager">
+  <div class="tabs__list" role="tablist" aria-label="Choose your package manager">
+    <button type="button" class="tabs__tab" role="tab" id="pd-quick-tab-uv" aria-controls="pd-quick-panel-uv" aria-selected="true" data-tab-value="uv">uv</button>
+    <button type="button" class="tabs__tab" role="tab" id="pd-quick-tab-pip" aria-controls="pd-quick-panel-pip" aria-selected="false" tabindex="-1" data-tab-value="pip">pip</button>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-quick-panel-uv" aria-labelledby="pd-quick-tab-uv">
+    <pre tabindex="0"><code>uvx django-probe scan .</code></pre>
+  </div>
+  <div class="tabs__panel" role="tabpanel" id="pd-quick-panel-pip" aria-labelledby="pd-quick-tab-pip" hidden>
+    <pre tabindex="0"><code>source .venv/bin/activate
+pip install django-probe
+django-probe scan .</code></pre>
+  </div>
+</div>
 
-<p>To test a manual submission, export the token as
-<code>DJANGO_PROBE_TOKEN</code> and run <code>uv run django-probe submit .</code>.</p>
+<p>To test a manual submission, export the token as <code>DJANGO_PROBE_TOKEN</code>
+and run <code>uvx django-probe submit .</code>.</p>
 </details>
 
 <h2>Submissions</h2>
@@ -87,4 +248,4 @@ jobs:
 <p class="back-link"><a href="{% url 'organization-detail' organization_id=organization.pk %}">&larr; Back to {{ organization.name }}</a></p>
 {% endblock %}
 
-{% block scripts %}<script src="{% static 'js/token-reveal.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'js/token-reveal.js' %}" defer></script><script src="{% static 'js/command-tabs.js' %}" defer></script>{% endblock %}

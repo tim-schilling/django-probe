@@ -4,6 +4,15 @@
 
 - Bundled the Django 4.2 through the current development version's setting names
   so settings collection no longer requires Django to be installed.
+- Read dependencies from `uv.lock`, `poetry.lock`, or `pdm.lock` when one is present,
+  falling back to the installed distributions. See
+  [Dependencies](configuration.md#dependencies).
+- Refused to report dependencies that can't be verified: when Django is missing from
+  whatever was resolved, `scan` and `submit` now explain and exit non-zero instead of
+  sharing another environment's packages.
+- Excluded packages resolved from anywhere other than PyPI, for the lock files that
+  record an index URL. See [What gets excluded](configuration.md#what-gets-excluded).
+- Added `dependencies_source` to the payload, recording which of those layers answered.
 
 ## 0.3.2
 

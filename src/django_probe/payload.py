@@ -11,11 +11,11 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TypedDict
 
-from django_probe import collect
+from django_probe import collect, dependencies
 from django_probe.config import DependencyMode
 from django_probe.scan import scan_path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class SubmissionPayload(TypedDict):
@@ -36,6 +36,7 @@ class SubmissionPayload(TypedDict):
     django_settings: dict[str, int]
     django_settings_scanned: bool
     dependencies: dict[str, str]
+    dependencies_source: str
 
 
 def build_payload(
@@ -45,20 +46,18 @@ def build_payload(
     dependency_exclude_patterns: Sequence[str] = (),
 ) -> SubmissionPayload:
     result = scan_path(root)
-    if dependency_mode == "none":
-        dependencies = {}
-    else:
-        dependencies = collect.dependencies(
-            include_versions=dependency_mode == "versions"
-        )
-        dependencies = collect.exclude_by_pattern(
-            dependencies, dependency_exclude_patterns
-        )
+    resolved = dependencies.resolve(
+        root, mode=dependency_mode, exclude_patterns=dependency_exclude_patterns
+    )
+    django_version = (
+        resolved.packages.get(dependencies.REQUIRED_DISTRIBUTION)
+        or collect.django_version()
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),
         "python_version": collect.python_version(),
-        "django_version": collect.django_version(),
+        "django_version": django_version,
         "files_scanned": result.files_scanned,
         "probe_sources": collect.probe_sources(),
         "patterns": dict(sorted(result.patterns.items())),
@@ -66,5 +65,6 @@ def build_payload(
         "usage": dict(sorted(result.usage.items())),
         "django_settings": dict(sorted(result.django_settings.items())),
         "django_settings_scanned": result.django_settings_scanned,
-        "dependencies": dependencies,
+        "dependencies": resolved.packages,
+        "dependencies_source": resolved.source,
     }

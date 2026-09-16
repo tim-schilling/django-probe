@@ -3,9 +3,9 @@ from __future__ import annotations
 import io
 import json
 import tempfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from django_probe.main import insecure_server_url, main
 
@@ -20,9 +20,19 @@ PAYLOAD_KEYS = {
     "usage_packages",
     "usage",
     "dependencies",
+    "dependencies_source",
     "django_settings",
     "django_settings_scanned",
 }
+
+
+@contextmanager
+def no_django_installed():
+    with (
+        mock.patch("django_probe.dependencies.collect.dependencies", return_value={}),
+        mock.patch("django_probe.dependencies.collect.django_version", return_value=""),
+    ):
+        yield
 
 
 class CliTests(TestCase):
@@ -72,6 +82,39 @@ class CliTests(TestCase):
     def test_missing_directory_errors(self):
         code, _ = self.run_cli(["scan", str(self.root / "nope")])
         self.assertEqual(code, 2)
+
+    def test_scan_prints_the_payload_before_failing_on_dependencies(self):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with no_django_installed(), redirect_stdout(stdout), redirect_stderr(stderr):
+            code = main(["scan", str(self.root)])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(stdout.getvalue())["dependencies"], {})
+        self.assertIn("could not find django", stderr.getvalue())
+
+    def test_submit_refuses_to_send_when_dependencies_are_unresolved(self):
+        with (
+            no_django_installed(),
+            mock.patch("django_probe.main.submit") as submit,
+            redirect_stdout(io.StringIO()),
+            redirect_stderr(io.StringIO()),
+        ):
+            code = main(["submit", str(self.root)])
+
+        self.assertEqual(code, 1)
+        submit.assert_not_called()
+
+    def test_disabled_dependencies_do_not_trip_the_check(self):
+        (self.root / "pyproject.toml").write_text(
+            '[tool.django_probe]\ndependencies = "none"\n',
+            encoding="utf-8",
+        )
+
+        with no_django_installed():
+            code, output = self.run_cli(["scan", str(self.root)])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["dependencies_source"], "none")
 
 
 class InsecureServerUrlTests(TestCase):

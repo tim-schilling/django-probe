@@ -36,6 +36,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "packaging>=21",
   "tomli>=2; python_version<'3.11'",
 ]
 scripts.django-probe = "django_probe.main:main"

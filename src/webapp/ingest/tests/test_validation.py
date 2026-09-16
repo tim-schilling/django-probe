@@ -24,6 +24,26 @@ class ValidationTests(IngestTestCase):
     def test_unsupported_schema_version(self):
         self.assertRejected(payload(schema_version=99))
 
+    def test_schema_version_1_is_still_accepted(self):
+        body = payload(schema_version=1)
+        del body["dependencies_source"]
+
+        response = self.post(body)
+
+        self.assertEqual(response.status_code, 201, response.content)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.schema_version, 1)
+        self.assertEqual(submission.dependencies_source, "")
+
+    def test_dependencies_source_is_stored(self):
+        response = self.post(payload(dependencies_source="poetry"))
+
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(Submission.objects.get().dependencies_source, "poetry")
+
+    def test_non_string_dependencies_source(self):
+        self.assertRejected(payload(dependencies_source=["uv"]))
+
     def test_non_integer_count(self):
         self.assertRejected(payload(patterns={"probe:queryset_filter": "many"}))
 

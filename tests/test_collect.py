@@ -85,14 +85,6 @@ class DependenciesTests(TestCase):
 
         self.assertEqual(result, {"django": "5.0"})
 
-    def test_names_only_mode_omits_versions(self):
-        dists = [FakeDistribution("Django", "5.0")]
-
-        with mock.patch("importlib.metadata.distributions", return_value=dists):
-            result = dependencies(include_versions=False)
-
-        self.assertEqual(result, {"django": ""})
-
 
 class ExcludeByPatternTests(TestCase):
     def test_no_patterns_is_a_no_op(self):
