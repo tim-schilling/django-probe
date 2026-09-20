@@ -36,6 +36,7 @@ urlpatterns = [
         views.cli_credential_revoke,
         name="cli-credential-revoke",
     ),
+    path("account/export/", views.account_export, name="account-export"),
     path("account/delete/", views.account_delete, name="account-delete"),
     path("organizations/new/", views.organization_create, name="organization-create"),
     path(

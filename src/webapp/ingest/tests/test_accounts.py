@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import json
+from datetime import date, datetime, timezone
 
-from django.test import TestCase
+from allauth.socialaccount.models import SocialAccount
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import translation
 
+from ingest.export import iter_json
 from ingest.models import Organization, Submission, User
 from ingest.tests.factories import (
     PASSWORD,
     CliCredentialFactory,
     OrganizationFactory,
+    OrganizationMembershipFactory,
     ProjectFactory,
     SubmissionFactory,
     UserFactory,
@@ -24,6 +28,13 @@ class AccountAccessTests(TestCase):
         response = self.client.get(reverse("account"))
 
         self.assertRedirects(response, f"{reverse('account_login')}?next=/account/")
+
+    def test_account_export(self):
+        response = self.client.get(reverse("account-export"))
+
+        self.assertRedirects(
+            response, f"{reverse('account_login')}?next=/account/export/"
+        )
 
 
 class AccountTests(TestCase):
@@ -107,6 +118,11 @@ class AccountTests(TestCase):
         self.assertContains(response, "15.01.2027")
         self.assertContains(response, "03.02.2027")
 
+    def test_account_offers_an_export(self):
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, reverse("account-export"))
+
     def test_account_delete_retains_submissions_by_default(self):
         organization = OrganizationFactory(owner=self.user)
         project = ProjectFactory(organization=organization)
@@ -147,6 +163,174 @@ class AccountTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
         self.assertTrue(Submission.objects.filter(pk=submission.pk).exists())
+
+
+class AccountExportTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(username="owner", email="owner@example.com")
+        cls.other_user = UserFactory(username="other")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.user)
+        cls.project = ProjectFactory(organization=cls.organization, name="Storefront")
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def body(self) -> str:
+        """Drain the streamed response into the file a browser would save."""
+        response = self.client.get(reverse("account-export"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        return b"".join(response.streaming_content).decode()
+
+    def export(self) -> dict:
+        return json.loads(self.body())
+
+    def test_downloads_as_a_dated_json_file(self):
+        response = self.client.get(reverse("account-export"))
+
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="django-probe-owner-{date.today():%Y-%m-%d}.json"',
+        )
+
+    def test_includes_the_account_and_its_github_identity(self):
+        SocialAccount.objects.create(user=self.user, provider="github", uid="12345")
+
+        document = self.export()
+
+        self.assertEqual(document["account"]["username"], "owner")
+        self.assertEqual(document["account"]["email"], "owner@example.com")
+        [identity] = document["account"]["identities"]
+        self.assertEqual(identity["provider"], "github")
+        self.assertEqual(identity["uid"], "12345")
+        self.assertIsNotNone(identity["connected_at"])
+
+    def test_includes_organizations_projects_and_submissions(self):
+        submission = SubmissionFactory(project=self.project, django_version="5.2.1")
+
+        document = self.export()
+
+        organization = document["organizations"][0]
+        self.assertEqual(organization["name"], "Django team")
+        self.assertEqual(organization["your_role"], "owner")
+        [project] = organization["projects"]
+        self.assertEqual(project["name"], "Storefront")
+        self.assertEqual(
+            project["submissions"],
+            [
+                {
+                    "id": str(submission.pk),
+                    "created_at": submission.created_at.isoformat(),
+                    "schema_version": submission.schema_version,
+                    "client_version": submission.client_version,
+                    "python_version": submission.python_version,
+                    "django_version": "5.2.1",
+                    "files_scanned": submission.files_scanned,
+                    "probe_sources": submission.probe_sources,
+                    "patterns": submission.patterns,
+                    "usage_packages": submission.usage_packages,
+                    "usage": submission.usage,
+                    "dependencies": submission.dependencies,
+                    "dependencies_source": submission.dependencies_source,
+                    "django_settings": submission.django_settings,
+                    "django_settings_scanned": submission.django_settings_scanned,
+                }
+            ],
+        )
+
+    def test_omits_project_tokens(self):
+        SubmissionFactory(project=self.project)
+
+        self.assertNotIn(self.project.token, self.body())
+
+    def test_omits_other_peoples_organizations(self):
+        other_organization = OrganizationFactory(
+            name="Other team", owner=self.other_user
+        )
+        ProjectFactory(organization=other_organization, name="Other project")
+
+        body = self.body()
+
+        self.assertNotIn("Other team", body)
+        self.assertNotIn("Other project", body)
+
+    def test_omits_the_other_members_of_a_shared_organization(self):
+        """A shared organization is exported for the member asking, without the
+        usernames and roles of everyone else in it."""
+        OrganizationMembershipFactory(
+            organization=self.organization, user=UserFactory(username="teammate-zed")
+        )
+
+        body = self.body()
+
+        self.assertIn("Django team", body)
+        self.assertNotIn("teammate-zed", body)
+
+    def test_includes_credentials_without_their_digests(self):
+        credential, token = issue_cli_credential(
+            user=self.user, organization=self.organization, label="laptop"
+        )
+        CliCredentialFactory(user=self.other_user, label="someone-elses")
+
+        document = self.export()
+
+        self.assertEqual(
+            [entry["label"] for entry in document["cli_credentials"]], ["laptop"]
+        )
+        self.assertEqual(document["cli_credentials"][0]["status"], "active")
+        self.assertEqual(document["cli_credentials"][0]["organization"], "Django team")
+        serialized = json.dumps(document)
+        self.assertNotIn(token, serialized)
+        self.assertNotIn(credential.token_digest, serialized)
+
+    def test_rejects_a_post(self):
+        response = self.client.post(reverse("account-export"))
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_submissions_are_read_in_chunks(self):
+        """One query per project rather than one per submission, so streaming did
+        not trade a buffered response for an N+1."""
+        for _ in range(5):
+            SubmissionFactory(project=self.project)
+
+        with self.assertNumQueries(7):
+            self.body()
+
+
+class JsonStreamTests(SimpleTestCase):
+    def test_matches_json_dumps(self):
+        """Streaming changed how the file is written, not what it contains."""
+        document = {
+            "quoting": 'a "b" \\ c',
+            "unicode": "caf\u00e9",
+            "scalars": [1, 2.5, True, False, None],
+            "empty": {"object": {}, "list": []},
+            "nested": {"a": {"b": [{"c": ["d"]}]}},
+        }
+
+        self.assertEqual("".join(iter_json(document)), json.dumps(document, indent=2))
+
+    def test_an_iterable_stands_in_for_a_list(self):
+        streamed = "".join(iter_json({"items": (number for number in range(3))}))
+
+        self.assertEqual(streamed, json.dumps({"items": [0, 1, 2]}, indent=2))
+
+    def test_pulls_items_only_as_it_writes_them(self):
+        pulled = []
+
+        def items():
+            for number in range(3):
+                pulled.append(number)
+                yield number
+
+        stream = iter_json({"items": items()})
+        while "0" not in next(stream):
+            pass
+
+        self.assertEqual(pulled, [0])
 
 
 class OwnedAccountTemplateTests(TestCase):

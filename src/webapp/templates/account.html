@@ -92,6 +92,12 @@
   </div>
 {% endif %}
 
+<h2>Export your data</h2>
+<div class="panel">
+  <p>Download a JSON file of your account, the organizations you belong to, and their projects and submissions. Project tokens are left out; find those on each project's page.</p>
+  <p><a class="button button--secondary" href="{% url 'account-export' %}">Export your data</a></p>
+</div>
+
 <h2>Delete account</h2>
 <div class="panel panel--caution">
   <p>Deleting your account removes organizations where you are the only member and their projects. Shared organizations remain available to their other members.</p>

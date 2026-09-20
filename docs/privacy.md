@@ -74,6 +74,11 @@ Any filter combination narrow enough to describe fewer than a set minimum number
 of submissions is withheld rather than shown, so a filtered result can't be used
 to single out one project's data.
 
+## Exporting data
+
+**Your account → Export your data** downloads a JSON file of your account, the
+organizations you belong to, and their projects and submissions.
+
 ## Deleting data
 
 A user can delete all their data, including their submissions if needed. Otherwise

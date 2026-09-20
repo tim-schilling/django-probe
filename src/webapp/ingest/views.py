@@ -13,13 +13,14 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Subquery
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from ingest.export import export_account, iter_json
 from ingest.forms import (
     AccountDeleteForm,
     MembershipAddForm,
@@ -357,6 +358,27 @@ def account(request) -> HttpResponse:
             "credentials": credentials,
         },
     )
+
+
+@login_required
+@require_GET
+def account_export(request) -> StreamingHttpResponse:
+    """Download everything the account holds as one JSON file.
+
+    Streamed: a project keeps a submission per CI run forever, so the one account
+    that has been here longest decides how much a buffered response would hold. A
+    failure part way through truncates the file, which JSON being self-delimiting
+    turns into a parse error rather than a short export that reads as complete.
+    """
+    filename = (
+        f"django-probe-{request.user.get_username()}-{timezone.now():%Y-%m-%d}.json"
+    )
+    response = StreamingHttpResponse(
+        iter_json(export_account(request.user)),
+        content_type="application/json",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required
