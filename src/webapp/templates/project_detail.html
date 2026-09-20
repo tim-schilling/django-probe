@@ -4,7 +4,7 @@
 
 {% block content %}
 <header class="page-header">
-  <h1>{{ project.name }} <a class="heading-action" href="{% url 'project-edit' organization_id=organization.pk project_id=project.pk %}">(rename)</a></h1>
+  <h1>{{ project.name }} <a class="heading-action" href="{% url 'project-edit' organization_id=organization.pk project_id=project.pk %}">(edit)</a></h1>
   <p class="lede">Add this token to CI to attach scheduled submissions to this project.</p>
 </header>
 

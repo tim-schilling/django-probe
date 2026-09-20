@@ -24,7 +24,7 @@
             {% endif %}
           </td>
           <td><a href="{% url 'project-submissions' organization_id=project.organization_id project_id=project.pk %}">View all</a></td>
-          <td class="table__actions"><a class="heading-action" href="{% url 'project-edit' organization_id=project.organization_id project_id=project.pk %}">(rename)</a></td>
+          <td class="table__actions"><a class="heading-action" href="{% url 'project-edit' organization_id=project.organization_id project_id=project.pk %}">(edit)</a></td>
         </tr>
       {% endfor %}
     </tbody>
