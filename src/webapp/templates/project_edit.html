@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Rename {{ project.name }} | Django Probe{% endblock %}
+{% block title %}Edit {{ project.name }} | Django Probe{% endblock %}
 
 {% block content %}
 <header class="page-header">
-  <h1>Rename {{ project.name }}</h1>
+  <h1>Edit {{ project.name }}</h1>
 </header>
 
 <div class="panel panel--subtle auth-panel">
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+    <p class="muted">Changing the organization moves this project and all its submissions. The project token stays the same, and access follows the destination organization's membership.</p>
     <p class="muted">
       Prefer not to use an identifying name?
       <a href="{% url 'project-edit' organization_id=organization.pk project_id=project.pk %}?suggest=1">Generate a codename.</a>

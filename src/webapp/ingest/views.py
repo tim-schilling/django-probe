@@ -29,6 +29,7 @@ from ingest.forms import (
     OrganizationDeleteForm,
     OrganizationForm,
     ProjectDeleteForm,
+    ProjectEditForm,
     ProjectForm,
 )
 from ingest.models import (
@@ -545,20 +546,45 @@ def project_edit(request, organization_id: uuid.UUID, project_id: int) -> HttpRe
         pk=project_id,
         organization=membership.organization,
     )
-    form = ProjectForm(
+    form = ProjectEditForm(
         request.POST or None,
         instance=project,
-        organization=membership.organization,
+        user=request.user,
         suggest_name=request.method == "GET" and "suggest" in request.GET,
     )
     if request.method == "POST" and form.is_valid():
+        destination = form.cleaned_data["organization"]
         try:
             with transaction.atomic():
-                form.save()
+                required_organization_ids = {
+                    membership.organization_id,
+                    destination.pk,
+                }
+                membership_organization_ids = set(
+                    OrganizationMembership.objects.select_for_update()
+                    .filter(
+                        user=request.user,
+                        organization_id__in=required_organization_ids,
+                    )
+                    .values_list("organization_id", flat=True)
+                )
+                if membership_organization_ids != required_organization_ids:
+                    raise PermissionDenied(
+                        "Projects can only be moved between your organizations."
+                    )
+                locked_project = get_object_or_404(
+                    Project.objects.select_for_update(),
+                    pk=project.pk,
+                    organization_id=membership.organization_id,
+                )
+                locked_project.name = form.cleaned_data["name"]
+                locked_project.organization = destination
+                locked_project.save(update_fields=["name", "organization"])
+                project = locked_project
         except IntegrityError:
             if (
                 Project.objects.filter(
-                    organization=membership.organization,
+                    organization=destination,
                     name__iexact=form.cleaned_data["name"],
                 )
                 .exclude(pk=project.pk)
@@ -571,10 +597,10 @@ def project_edit(request, organization_id: uuid.UUID, project_id: int) -> HttpRe
             else:
                 raise
         else:
-            messages.success(request, f"Renamed project to {project.name}.")
+            messages.success(request, f"Updated project {project.name}.")
             return redirect(
                 "project-detail",
-                organization_id=organization_id,
+                organization_id=project.organization_id,
                 project_id=project.pk,
             )
     return render(

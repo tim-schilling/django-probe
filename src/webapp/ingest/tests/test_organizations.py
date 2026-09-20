@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from ingest.forms import ProjectEditForm
 from ingest.models import (
     SLUG_COLLISION_RETRIES,
     Organization,
@@ -172,6 +173,29 @@ class OrganizationAccessTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_member_transfer(self):
+        """A member may transfer between organizations they belong to."""
+        destination = OrganizationFactory(name="Other team", owner=self.owner)
+        OrganizationMembershipFactory(
+            organization=destination,
+            user=self.member,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+        self.client.force_login(self.member)
+
+        response = self.client.post(
+            reverse("project-edit", args=[self.organization.pk, self.project.pk]),
+            {"name": self.project.name, "organization": destination.pk},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("project-detail", args=[destination.pk, self.project.pk]),
+            fetch_redirect_response=False,
+        )
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.organization, destination)
 
     def test_members_can_do_everything_the_organization_offers(self):
         """Membership is the only thing authorization asks about.
@@ -388,7 +412,7 @@ class OrganizationManagementViewTests(TestCase):
         )
 
     def test_edit_project_form_suggests_a_fake_name_on_request(self):
-        """The rename form keeps the current name until a suggestion is requested."""
+        """The edit form keeps the current name until a suggestion is requested."""
         project = ProjectFactory(organization=self.organization, name="Website")
 
         unchanged_response = self.client.get(
@@ -400,6 +424,10 @@ class OrganizationManagementViewTests(TestCase):
         )
 
         self.assertEqual(unchanged_response.context["form"]["name"].value(), "Website")
+        self.assertContains(
+            unchanged_response,
+            "Changing the organization moves this project and all its submissions.",
+        )
         suggested_name = suggested_response.context["form"]["name"].value()
         self.assertNotEqual(suggested_name, "Website")
         self.assertEqual(len(suggested_name.split(" ")), 3)
@@ -411,7 +439,10 @@ class OrganizationManagementViewTests(TestCase):
 
         response = self.client.post(
             reverse("project-edit", args=[self.organization.pk, project.pk]),
-            {"name": "Marketing site"},
+            {
+                "name": "Marketing site",
+                "organization": self.organization.pk,
+            },
         )
 
         project.refresh_from_db()
@@ -428,7 +459,7 @@ class OrganizationManagementViewTests(TestCase):
 
         response = self.client.post(
             reverse("project-edit", args=[self.organization.pk, project.pk]),
-            {"name": "Website"},
+            {"name": "Website", "organization": self.organization.pk},
         )
 
         self.assertRedirects(
@@ -443,7 +474,7 @@ class OrganizationManagementViewTests(TestCase):
 
         response = self.client.post(
             reverse("project-edit", args=[self.organization.pk, other_project.pk]),
-            {"name": "Website"},
+            {"name": "Website", "organization": self.organization.pk},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -453,6 +484,134 @@ class OrganizationManagementViewTests(TestCase):
         )
         other_project.refresh_from_db()
         self.assertEqual(other_project.name, "Docs")
+
+    def test_transfer_project(self):
+        destination = OrganizationFactory(name="Other team", owner=self.owner)
+        source_member = UserFactory(username="source-member")
+        destination_member = UserFactory(username="destination-member")
+        OrganizationMembershipFactory(
+            organization=self.organization,
+            user=source_member,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+        OrganizationMembershipFactory(
+            organization=destination,
+            user=destination_member,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+        project = ProjectFactory(organization=self.organization, name="Website")
+        submission = SubmissionFactory(project=project)
+        original_token = project.token
+
+        response = self.client.post(
+            reverse("project-edit", args=[self.organization.pk, project.pk]),
+            {"name": project.name, "organization": destination.pk},
+        )
+
+        project.refresh_from_db()
+        self.assertRedirects(
+            response,
+            reverse("project-detail", args=[destination.pk, project.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(project.organization, destination)
+        self.assertEqual(project.token, original_token)
+
+        self.client.force_login(source_member)
+        self.assertEqual(
+            self.client.get(
+                reverse("submission-detail", args=[submission.pk])
+            ).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse(
+                    "project-detail",
+                    args=[self.organization.pk, project.pk],
+                )
+            ).status_code,
+            404,
+        )
+
+        self.client.force_login(destination_member)
+        self.assertEqual(
+            self.client.get(
+                reverse("submission-detail", args=[submission.pk])
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("project-detail", args=[destination.pk, project.pk])
+            ).status_code,
+            200,
+        )
+
+    def test_transfer_requires_membership(self):
+        outsider = UserFactory(username="outsider")
+        destination = OrganizationFactory(name="Other team", owner=outsider)
+        project = ProjectFactory(organization=self.organization, name="Website")
+
+        response = self.client.post(
+            reverse("project-edit", args=[self.organization.pk, project.pk]),
+            {"name": project.name, "organization": destination.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "organization",
+            "Select a valid choice. That choice is not one of the available choices.",
+        )
+        project.refresh_from_db()
+        self.assertEqual(project.organization, self.organization)
+
+    def test_transfer_rechecks_membership(self):
+        destination = OrganizationFactory(
+            name="Other team",
+            owner=UserFactory(username="other-owner"),
+        )
+        membership = OrganizationMembershipFactory(
+            organization=destination,
+            user=self.owner,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+        project = ProjectFactory(organization=self.organization, name="Website")
+        original_clean = ProjectEditForm.clean
+
+        def clean_and_revoke(form):
+            cleaned_data = original_clean(form)
+            membership.delete()
+            return cleaned_data
+
+        with mock.patch.object(ProjectEditForm, "clean", clean_and_revoke):
+            response = self.client.post(
+                reverse("project-edit", args=[self.organization.pk, project.pk]),
+                {"name": project.name, "organization": destination.pk},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        project.refresh_from_db()
+        self.assertEqual(project.organization, self.organization)
+
+    def test_transfer_duplicate_name(self):
+        destination = OrganizationFactory(name="Other team", owner=self.owner)
+        ProjectFactory(organization=destination, name="Website")
+        project = ProjectFactory(organization=self.organization, name="website")
+
+        response = self.client.post(
+            reverse("project-edit", args=[self.organization.pk, project.pk]),
+            {"name": project.name, "organization": destination.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "A project with this name already exists in this organization.",
+        )
+        project.refresh_from_db()
+        self.assertEqual(project.organization, self.organization)
 
     def test_regenerate_token(self):
         """Owners can regenerate a project's token."""

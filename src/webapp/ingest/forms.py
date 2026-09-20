@@ -11,6 +11,21 @@ from ingest.fake_names import generate_fake_name
 from ingest.models import Organization, OrganizationMembership, Project, Submission
 
 
+def _validate_project_name(
+    *,
+    name: str,
+    organization: Organization,
+    exclude_project: Project | None = None,
+) -> None:
+    queryset = Project.objects.filter(organization=organization, name__iexact=name)
+    if exclude_project is not None:
+        queryset = queryset.exclude(pk=exclude_project.pk)
+    if queryset.exists():
+        raise forms.ValidationError(
+            "A project with this name already exists in this organization."
+        )
+
+
 class SocialSignupForm(AllauthSocialSignupForm):
     """The form shown if a GitHub sign-in can't auto-complete (e.g. an email
     collision). `disabled` makes Django use the initial value regardless of what's
@@ -46,20 +61,45 @@ class ProjectForm(forms.ModelForm):
 
     def clean_name(self) -> str:
         name = self.cleaned_data["name"]
-        queryset = Project.objects.filter(
-            organization=self.organization, name__iexact=name
+        _validate_project_name(
+            name=name,
+            organization=self.organization,
+            exclude_project=None if self.instance._state.adding else self.instance,
         )
-        if not self.instance._state.adding:
-            queryset = queryset.exclude(pk=self.instance.pk)
-        if queryset.exists():
-            raise forms.ValidationError(
-                "A project with this name already exists in this organization."
-            )
         return name
 
     class Meta:
         model = Project
         fields = ["name"]
+
+
+class ProjectEditForm(forms.ModelForm):
+    def __init__(self, *args, user, suggest_name: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["organization"].queryset = Organization.objects.filter(
+            members=user
+        ).order_by("name", "id")
+        if not self.is_bound and suggest_name:
+            self.initial["name"] = generate_fake_name()
+
+    def clean(self) -> dict:
+        cleaned_data = super().clean()
+        name = cleaned_data.get("name")
+        organization = cleaned_data.get("organization")
+        if name and organization:
+            try:
+                _validate_project_name(
+                    name=name,
+                    organization=organization,
+                    exclude_project=self.instance,
+                )
+            except forms.ValidationError as error:
+                self.add_error("name", error)
+        return cleaned_data
+
+    class Meta:
+        model = Project
+        fields = ["name", "organization"]
 
 
 class MembershipAddForm(forms.Form):
