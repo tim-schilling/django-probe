@@ -107,13 +107,12 @@ than the endpoints that create rows:
 
 ### Scheduled maintenance
 
-Expired and denied CLI login requests accumulate as rows that can never become
-credentials. Run this daily, alongside the pre-deployment steps:
+CLI login requests and credentials accumulate as rows nothing can use. Run this
+daily, alongside the pre-deployment steps:
 
 ```console
-$ python src/webapp/manage.py purge_cli_auth_requests
+$ python src/webapp/manage.py purge_cli_credentials
 ```
 
-It deletes unapproved requests older than seven days (`--days` to change,
-`--dry-run` to preview). Approved rows are live credentials and are never touched;
-those get revoked, not purged.
+It deletes rows unusable for more than seven days (`--days` to change,
+`--dry-run` to preview). Active credentials are never touched.

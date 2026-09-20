@@ -18,16 +18,30 @@ from ingest.tests.factories import (
 
 def _aged(credential: CliCredential, days: int) -> CliCredential:
     """Backdate `created_at`, which is auto_now_add and so can't be set on create."""
+    return _backdate(credential, created_at=days)
+
+
+def _backdate(credential: CliCredential, **fields: int) -> CliCredential:
+    """Set each named timestamp to the given number of days ago."""
+    now = timezone.now()
     CliCredential.objects.filter(pk=credential.pk).update(
-        created_at=timezone.now() - timedelta(days=days)
+        **{name: now - timedelta(days=days) for name, days in fields.items()}
     )
     return credential
 
 
-class PurgeCliAuthRequestsTests(TestCase):
+class PurgeCliCredentialsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.user)
+
+    def credential(self) -> tuple[CliCredential, str]:
+        return issue_cli_credential(organization=self.organization, user=self.user)
+
     def purge(self, *args: str) -> str:
         out = StringIO()
-        call_command("purge_cli_auth_requests", *args, stdout=out)
+        call_command("purge_cli_credentials", *args, stdout=out)
         return out.getvalue()
 
     def test_deletes_requests_older_than_the_retention_window(self):
@@ -36,7 +50,7 @@ class PurgeCliAuthRequestsTests(TestCase):
         output = self.purge()
 
         self.assertFalse(CliCredential.objects.filter(pk=stale.pk).exists())
-        self.assertIn("Deleted 1 CLI auth request(s)", output)
+        self.assertIn("Deleted 1 CLI credential row(s)", output)
 
     def test_keeps_recent_requests(self):
         recent = _aged(CliCredentialFactory(), days=1)
@@ -52,17 +66,44 @@ class PurgeCliAuthRequestsTests(TestCase):
 
         self.assertTrue(CliCredential.objects.filter(pk=pending.pk).exists())
 
-    def test_never_deletes_an_approved_credential(self):
-        """Collected rows are live credentials, however old. They get revoked, not
-        purged; deleting one would silently break a working CLI install."""
-        owner = UserFactory(username="owner")
-        organization = OrganizationFactory(name="Django team", owner=owner)
-        credential, _ = issue_cli_credential(organization=organization, user=owner)
+    def test_never_deletes_an_active_credential(self):
+        """A credential still within its lifetime stays however old the row is;
+        deleting one would silently break a working CLI install."""
+        credential, _ = self.credential()
         _aged(credential, days=365)
 
         self.purge()
 
         self.assertTrue(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_deletes_long_expired_credentials(self):
+        credential, _ = self.credential()
+        _backdate(credential, created_at=120, token_expires_at=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_deletes_long_revoked_credentials(self):
+        credential, _ = self.credential()
+        _backdate(credential, created_at=30, revoked_at=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_keeps_recently_dead_credentials(self):
+        """The account page shows expired and revoked devices, so a window's worth
+        of them stays around for someone auditing a lost laptop."""
+        expired, _ = self.credential()
+        _backdate(expired, created_at=90, token_expires_at=1)
+        revoked, _ = self.credential()
+        _backdate(revoked, created_at=30, revoked_at=1)
+
+        self.purge()
+
+        self.assertTrue(CliCredential.objects.filter(pk=expired.pk).exists())
+        self.assertTrue(CliCredential.objects.filter(pk=revoked.pk).exists())
 
     def test_deletes_denied_requests(self):
         denied = _aged(CliCredentialFactory(denied_at=timezone.now()), days=30)
@@ -83,9 +124,9 @@ class PurgeCliAuthRequestsTests(TestCase):
 
         output = self.purge("--dry-run")
 
-        self.assertIn("Would delete 1 CLI auth request(s)", output)
+        self.assertIn("Would delete 1 CLI credential row(s)", output)
         self.assertTrue(CliCredential.objects.filter(pk=stale.pk).exists())
 
     def test_rejects_a_nonsensical_window(self):
         with self.assertRaises(SystemExit):
-            call_command("purge_cli_auth_requests", "--days", "0", stderr=StringIO())
+            call_command("purge_cli_credentials", "--days", "0", stderr=StringIO())

@@ -89,8 +89,8 @@ with their projects.
 ## Data retention
 
 Account data (username, email, GitHub identity) and organization/project data are
-kept for as long as the account exists. CLI device-login requests that never turn
-into a credential are purged automatically after 7 days.
+kept for as long as the account exists. CLI device-login rows are purged
+automatically 7 days after they become unusable.
 
 The database is backed up in two places:
 
