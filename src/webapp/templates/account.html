@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load socialaccount %}
 {% block title %}Your account | Django Probe{% endblock %}
 
 {% block content %}
@@ -6,6 +7,27 @@
   <h1>Your account</h1>
   <p class="lede">Signed in as <strong>{{ user.get_username }}</strong>. Organization projects and submissions are visible only to current members.</p>
 </header>
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  {% get_social_accounts user as social_accounts %}
+  <h2>Sign-in methods</h2>
+  <div class="panel">
+    {% if social_accounts.github %}
+      {% with github_account=social_accounts.github.0 %}
+        {% with provider_account=github_account.get_provider_account %}
+          <p><strong>GitHub is connected.</strong> You can sign in as {{ provider_account }}.</p>
+        {% endwith %}
+      {% endwith %}
+      <p><a class="button button--secondary" href="{% url 'socialaccount_connections' %}">Manage sign-in methods</a></p>
+    {% else %}
+      <p>Connect your GitHub account to use it to sign in.</p>
+      {% for provider in socialaccount_providers %}
+        <p><a class="button" href="{% provider_login_url provider.id process='connect' next=request.path %}">Connect {{ provider.name }}</a></p>
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endif %}
 
 <h2>Your projects</h2>
 {% if projects %}

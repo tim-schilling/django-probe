@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+from allauth.socialaccount.models import SocialAccount
+from django.test import override_settings
 from playwright.sync_api import Page, expect
 from pytest_django.live_server_helper import LiveServer
 
@@ -13,8 +15,20 @@ MEMBER_USERNAME = "organization-member"
 MEMBER_PASSWORD = "Organization-member-password"
 ORGANIZATION_NAME = "Django team"
 PROJECT_NAME = "Django website"
+GITHUB_PROVIDER_SETTINGS = {
+    "github": {
+        "APPS": [
+            {
+                "client_id": "github-client-id",
+                "secret": "github-secret",
+                "key": "",
+            }
+        ]
+    }
+}
 
 
+@override_settings(SOCIALACCOUNT_PROVIDERS=GITHUB_PROVIDER_SETTINGS)
 @pytest.mark.django_db(transaction=True)
 def test_account_journey(
     live_server: LiveServer,
@@ -39,6 +53,23 @@ def test_account_journey(
     expect(page.get_by_text("No organizations yet.")).to_be_visible()
     expect(page.get_by_role("link", name="Style guide")).to_have_count(0)
     assert_no_accessibility_violations(page)
+
+    user = django_user_model.objects.get(username=USERNAME)
+    SocialAccount.objects.create(
+        user=user,
+        provider="github",
+        uid="123",
+        extra_data={"login": "account-journey"},
+    )
+    page.goto(f"{live_server.url}/accounts/3rdparty/")
+    expect(page.get_by_role("heading", name="Sign-in methods")).to_be_visible()
+    expect(page.get_by_label("GitHub — account-journey")).to_be_visible()
+    expect(
+        page.get_by_role("button", name="Disconnect selected account")
+    ).to_be_visible()
+    assert_no_accessibility_violations(page)
+    page.get_by_role("link", name="Back to your account").click()
+    expect(page.get_by_text("GitHub is connected.")).to_be_visible()
 
     page.get_by_role("link", name="Create organization").click()
     expect(page.get_by_role("heading", name="Create an organization")).to_be_visible()

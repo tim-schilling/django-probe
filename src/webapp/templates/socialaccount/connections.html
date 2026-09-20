@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% block title %}Sign-in methods | Django Probe{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <h1>Sign-in methods</h1>
+  <p class="lede">Connect an account you can use to sign in to Django Probe.</p>
+</header>
+
+{% if form.accounts %}
+  <h2>Connected accounts</h2>
+  <div class="panel">
+    <form method="post" action="{% url 'socialaccount_connections' %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<p role="alert">{{ form.non_field_errors }}</p>{% endif %}
+      {% for account_choice in form.fields.account.choices %}
+        {% with provider_account=account_choice.0.instance.get_provider_account %}
+          <p class="check-field">
+            <input type="radio" name="account" value="{{ provider_account.account.pk }}" id="account-{{ provider_account.account.pk }}" required>
+            <label for="account-{{ provider_account.account.pk }}">{{ provider_account.get_brand.name }} — {{ provider_account }}</label>
+          </p>
+        {% endwith %}
+      {% endfor %}
+      {% if form.account.errors %}<p role="alert">{{ form.account.errors }}</p>{% endif %}
+      <button type="submit" class="button--secondary">Disconnect selected account</button>
+    </form>
+  </div>
+{% endif %}
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  <h2>Connect an account</h2>
+  <div class="panel">
+    {% for provider in socialaccount_providers %}
+      <p><a class="button" href="{% provider_login_url provider.id process='connect' %}">Connect {{ provider.name }}</a></p>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<p class="back-link"><a href="{% url 'account' %}">Back to your account</a></p>
+{% endblock %}
