@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 
 from allauth.socialaccount.models import SocialAccount
 from django.test import SimpleTestCase, TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import translation
 
@@ -20,6 +21,18 @@ from ingest.tests.factories import (
     UserFactory,
     issue_cli_credential,
 )
+
+GITHUB_PROVIDER_SETTINGS = {
+    "github": {
+        "APPS": [
+            {
+                "client_id": "github-client-id",
+                "secret": "github-secret",
+                "key": "",
+            }
+        ]
+    }
+}
 
 
 class AccountAccessTests(TestCase):
@@ -55,6 +68,32 @@ class AccountTests(TestCase):
 
         self.assertContains(response, "No organizations yet")
         self.assertContains(response, reverse("organization-create"))
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=GITHUB_PROVIDER_SETTINGS)
+    def test_can_connect_github(self):
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, "Connect GitHub")
+        self.assertContains(
+            response,
+            f'href="{reverse("github_login")}?process=connect&amp;next=%2Faccount%2F"',
+        )
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=GITHUB_PROVIDER_SETTINGS)
+    def test_connected_github_account(self):
+        SocialAccount.objects.create(
+            user=self.user,
+            provider="github",
+            uid="123",
+            extra_data={"login": "octocat"},
+        )
+
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, "GitHub is connected")
+        self.assertContains(response, "octocat")
+        self.assertContains(response, reverse("socialaccount_connections"))
+        self.assertNotContains(response, "Connect GitHub")
 
     def test_organization_scope(self):
         """The account lists only organizations where the user is a member."""
@@ -360,6 +399,47 @@ class OwnedAccountTemplateTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/logout.html")
         self.assertContains(response, "Are you sure")
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=GITHUB_PROVIDER_SETTINGS)
+    def test_socialaccount_connections(self):
+        """Connected identities use the repository-owned management template."""
+        user = UserFactory(username="owner")
+        account = SocialAccount.objects.create(
+            user=user,
+            provider="github",
+            uid="123",
+            extra_data={"login": "octocat"},
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("socialaccount_connections"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "socialaccount/connections.html")
+        self.assertContains(response, "octocat")
+        self.assertContains(response, "Disconnect selected account")
+        self.assertContains(response, f'value="{account.pk}"')
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=GITHUB_PROVIDER_SETTINGS)
+    def test_disconnect_socialaccount(self):
+        user = UserFactory(username="owner")
+        account = SocialAccount.objects.create(
+            user=user,
+            provider="github",
+            uid="123",
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("socialaccount_connections"), {"account": account.pk}
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("socialaccount_connections"),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(SocialAccount.objects.filter(pk=account.pk).exists())
 
 
 class AuthenticationJourneyTests(TestCase):
