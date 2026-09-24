@@ -15,4 +15,3 @@ db.sqlite3
 docs
 site
 tests
-src/django_probe

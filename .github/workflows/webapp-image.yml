@@ -1,14 +1,16 @@
 name: Build and publish webapp image
 
-# Scoped to src/webapp and the Docker build files so that commits touching only
-# src/django_probe (the PyPI package) never trigger a webapp rebuild/redeploy. This
-# workflow never runs on tags: tags are reserved for versioning the PyPI package, kept
-# entirely separate from this continuous-deploy flow.
+# Scoped to src/webapp, the Docker build files and the PyPI package's version file.
+# The webapp displays that version, so a bump redeploys, but other commits touching
+# only src/django_probe never trigger a webapp rebuild/redeploy. This workflow never
+# runs on tags: tags are reserved for versioning the PyPI package, kept entirely
+# separate from this continuous-deploy flow.
 on:
   push:
     branches: [main]
     paths:
       - src/webapp/**
+      - src/django_probe/__init__.py
       - pyproject.toml
       - uv.lock
       - .github/workflows/webapp-image.yml
