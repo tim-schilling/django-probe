@@ -31,7 +31,7 @@
 
 <h2>Your projects</h2>
 {% if projects %}
-  {% include "includes/projects_table.html" with projects=projects show_organization=True %}
+  {% include "includes/projects_table.html" with projects=projects show_organization=True current_client_version=current_client_version %}
 {% else %}
   <div class="panel">
     <p><strong>No projects yet.</strong></p>

@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import translation
 
+from django_probe import __version__
 from ingest.export import iter_json
 from ingest.models import Organization, Submission, User
 from ingest.tests.factories import (
@@ -127,9 +128,49 @@ class AccountTests(TestCase):
         projects = list(response.context["projects"])
         self.assertEqual(projects, [own_project])
         self.assertEqual(projects[0].latest_submission_id, own_submission.pk)
+        self.assertEqual(
+            projects[0].latest_client_version, own_submission.client_version
+        )
         self.assertContains(response, own_project.name)
         self.assertContains(response, own_organization.name)
         self.assertNotContains(response, other_project.name)
+
+    def test_client_versions(self):
+        """Different latest client versions are highlighted, while missing ones are not."""
+        organization = OrganizationFactory(owner=self.user)
+        old_project = ProjectFactory(organization=organization, name="Old client")
+        missing_project = ProjectFactory(
+            organization=organization, name="Missing client"
+        )
+        current_project = ProjectFactory(
+            organization=organization, name="Current client"
+        )
+        SubmissionFactory(project=old_project, client_version=__version__)
+        latest_submission = SubmissionFactory(
+            project=old_project, client_version="0.3.2"
+        )
+        SubmissionFactory(project=missing_project, client_version="")
+        SubmissionFactory(project=current_project, client_version=__version__)
+
+        response = self.client.get(reverse("account"))
+
+        projects = {project.pk: project for project in response.context["projects"]}
+        self.assertEqual(
+            projects[old_project.pk].latest_client_version,
+            latest_submission.client_version,
+        )
+        self.assertContains(response, "0.3.2")
+        self.assertContains(response, "Out of date", count=1)
+        self.assertContains(response, "Latest")
+        self.assertContains(response, __version__)
+        self.assertContains(response, "View changelog diff")
+        self.assertContains(
+            response,
+            f"https://github.com/tim-schilling/django-probe/compare/0.3.2...{__version__}"
+            "#diff-77f023b99d3d58008351d3e82fc06e6d06ba1bc2da9e41be6329b7fa4f419f05",
+        )
+        self.assertNotContains(response, "Not reported")
+        self.assertContains(response, '<td class="table__meta">-</td>', html=True)
 
     def test_projects_show_empty_submission_state(self):
         """Projects without submissions explain that their history is empty."""

@@ -1,9 +1,11 @@
+{% load static %}
 <div class="table-wrap">
   <table class="table">
     <thead>
       <tr>
         <th scope="col">Name</th>
         {% if show_organization %}<th scope="col">Organization</th>{% endif %}
+        <th scope="col">Client</th>
         <th scope="col">Latest submission</th>
         <th scope="col">Submissions</th>
         <th scope="col"><span class="visually-hidden">Actions</span></th>
@@ -16,6 +18,48 @@
           {% if show_organization %}
             <td><a href="{% url 'organization-detail' organization_id=project.organization_id %}">{{ project.organization.name }}</a></td>
           {% endif %}
+          <td class="table__meta">
+            {% if project.latest_client_version %}
+              <span class="client-version-value">{{ project.latest_client_version }}</span>
+              {% if project.latest_client_version != current_client_version %}
+                <button
+                  class="client-version-alert"
+                  type="button"
+                  data-dialog-open="client-version-{{ project.pk }}"
+                  aria-label="View update details for client {{ project.latest_client_version }}"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+                    <path d="M12 9v4m0 4h.01M10.3 3.7 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/>
+                  </svg>
+                </button>
+                <dialog class="client-version-dialog" id="client-version-{{ project.pk }}">
+                  <form method="dialog">
+                    <button class="dialog-close" value="close" aria-label="Close update details">&times;</button>
+                    <p class="eyebrow client-version-dialog__eyebrow">Client update available</p>
+                    <h2>Out of date</h2>
+                    <p>This project's latest submission used an older Django Probe client.</p>
+                    <div class="version-comparison">
+                      <span>
+                        <small>Submitted</small>
+                        <code>{{ project.latest_client_version }}</code>
+                      </span>
+                      <span class="version-comparison__arrow" aria-hidden="true">&rarr;</span>
+                      <span>
+                        <small>Latest</small>
+                        <code>{{ current_client_version }}</code>
+                      </span>
+                    </div>
+                    <div class="actions">
+                      <a class="button" href="https://github.com/tim-schilling/django-probe/compare/{{ project.latest_client_version|urlencode:"" }}...{{ current_client_version|urlencode:"" }}#diff-77f023b99d3d58008351d3e82fc06e6d06ba1bc2da9e41be6329b7fa4f419f05">View changelog diff</a>
+                      <button class="button--secondary" value="close">Close</button>
+                    </div>
+                  </form>
+                </dialog>
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </td>
           <td class="table__meta">
             {% if project.latest_submission_id %}
               <a href="{% url 'submission-detail' submission_id=project.latest_submission_id %}">{{ project.latest_submission_at|date:"SHORT_DATETIME_FORMAT" }}</a>
@@ -30,3 +74,4 @@
     </tbody>
   </table>
 </div>
+<script src="{% static 'js/dialogs.js' %}" defer></script>

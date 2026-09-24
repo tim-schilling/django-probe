@@ -29,4 +29,4 @@ class StyleGuideTests(TestCase):
         self.assertContains(response, "Frontend style guide")
         self.assertContains(response, "Color tokens")
         self.assertContains(response, "guide-dialog")
-        self.assertContains(response, "js/style-guide.js")
+        self.assertContains(response, "js/dialogs.js")

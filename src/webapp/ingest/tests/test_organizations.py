@@ -129,7 +129,9 @@ class OrganizationAccessTests(TestCase):
     def test_member_access(self):
         """Members see organization projects and all of a project's submissions."""
         first_submission = SubmissionFactory(project=self.project)
-        second_submission = SubmissionFactory(project=self.project)
+        second_submission = SubmissionFactory(
+            project=self.project, client_version="different-version"
+        )
         self.client.force_login(self.member)
 
         organization_response = self.client.get(
@@ -143,6 +145,13 @@ class OrganizationAccessTests(TestCase):
         projects = list(organization_response.context["projects"])
         self.assertEqual(projects, [self.project])
         self.assertEqual(projects[0].latest_submission_id, second_submission.pk)
+        self.assertEqual(
+            projects[0].latest_client_version, second_submission.client_version
+        )
+        self.assertContains(
+            organization_response, '<th scope="col">Client</th>', html=True
+        )
+        self.assertContains(organization_response, "Out of date")
         self.assertEqual(
             list(project_response.context["page_obj"].object_list),
             [second_submission, first_submission],
