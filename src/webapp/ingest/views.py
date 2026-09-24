@@ -13,10 +13,16 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Subquery
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.http import (
+    Http404,
+    HttpResponse,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -43,9 +49,21 @@ from ingest.models import (
     Submission,
     hash_cli_token,
 )
+from ingest.stats import (
+    FILTER_FIELDS,
+    SIZE_BUCKETS,
+    StatsFilterForm,
+    query_string,
+    summarize,
+    summarize_keys,
+)
 from ingest.validation import MAX_BODY_BYTES, ValidationError, validate_payload
 
 RECENT_SUBMISSION_WINDOW = timedelta(days=35)
+
+#: Stats only change as submissions arrive, so the CDN can hold a page for a day.
+#: Browsers get a shorter lifetime so a reload picks up the CDN's copy.
+stats_cache_control = cache_control(public=True, max_age=300, s_maxage=86400)
 
 
 def _error(message: str, status: int) -> JsonResponse:
@@ -327,6 +345,90 @@ def home(request) -> HttpResponse:
             .count(),
         },
     )
+
+
+def _clean_stats_query(request) -> dict | None:
+    """Validate the stats query string, returning its filters or None if invalid.
+
+    Only valid values of known filters are accepted, and only ``key`` may repeat,
+    so the CDN caches a bounded set of URLs instead of one per arbitrary query
+    string.
+    """
+    for name, values in request.GET.lists():
+        if name not in FILTER_FIELDS or (len(values) > 1 and name != "key"):
+            return None
+    form = StatsFilterForm(request.GET)
+    if not form.is_valid():
+        return None
+    return form.filters()
+
+
+def _canonical_stats_redirect(request, filters: dict) -> HttpResponse | None:
+    canonical = query_string(filters)
+    if request.META.get("QUERY_STRING", "") == canonical:
+        return None
+    return redirect(f"{request.path}?{canonical}" if canonical else request.path)
+
+
+def _stats_context(filters: dict, summary: dict) -> dict:
+    return {
+        "summary": summary,
+        "filters": filters,
+        "chosen_keys": filters.get("key", []),
+        "size_buckets": SIZE_BUCKETS,
+        "query": query_string(filters),
+    }
+
+
+@require_GET
+@stats_cache_control
+def stats(request) -> HttpResponse:
+    filters = _clean_stats_query(request)
+    if filters is None:
+        raise Http404("Unknown stats filter")
+    if response := _canonical_stats_redirect(request, filters):
+        return response
+    return render(request, "stats.html", _stats_context(filters, summarize(filters)))
+
+
+@require_GET
+@stats_cache_control
+def stats_keys(request, source: str) -> HttpResponse:
+    filters = _clean_stats_query(request)
+    if filters is None:
+        raise Http404("Unknown stats filter")
+    if response := _canonical_stats_redirect(request, filters):
+        return response
+    return render(
+        request,
+        "stats_keys.html",
+        {
+            **_stats_context(filters, summarize_keys(filters, source)),
+            "source": source,
+        },
+    )
+
+
+@require_GET
+@stats_cache_control
+def api_stats(request) -> HttpResponse:
+    filters = _clean_stats_query(request)
+    if filters is None:
+        return _error("unknown stats filter", 404)
+    if response := _canonical_stats_redirect(request, filters):
+        return response
+    return JsonResponse(summarize(filters))
+
+
+@require_GET
+@stats_cache_control
+def api_stats_keys(request) -> HttpResponse:
+    filters = _clean_stats_query(request)
+    if filters is None:
+        return _error("unknown stats filter", 404)
+    if response := _canonical_stats_redirect(request, filters):
+        return response
+    return JsonResponse(summarize_keys(filters))
 
 
 @staff_member_required

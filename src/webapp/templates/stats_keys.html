@@ -1,0 +1,16 @@
+{% extends "stats_base.html" %}
+{% load ingest_extras %}
+{% block title %}{% if source == "setting" %}Settings{% else %}Django APIs{% endif %} | Stats | Django Probe{% endblock %}
+
+{% block heading %}All {% if source == "setting" %}settings{% else %}Django APIs{% endif %}{% endblock %}
+
+{% block lede %}{% if source == "setting" %}Every setting Django Probe recognizes is listed, even when no project defines it.{% endif %}{% endblock %}
+
+{% block results %}
+<section id="{% if source == "setting" %}settings{% else %}apis{% endif %}">
+  {% include "includes/stats_keys_table.html" with keys=summary.keys empty_message="Nothing matches." %}
+</section>
+<p class="back-link"><a href="{% url 'stats' %}{% stats_query filters %}">Back to the overview</a></p>
+{% endblock %}
+
+{% block json_url %}{% url 'api-stats-keys' %}{% endblock %}

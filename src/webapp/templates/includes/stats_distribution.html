@@ -1,0 +1,20 @@
+{% load ingest_extras %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>{{ column }}</th><th>Projects</th><th>Share</th></tr></thead>
+    <tbody>
+      {% for row in distribution.values %}
+      <tr>
+        <td>{% if row.projects >= summary.minimum_projects and facet not in filters %}<a href="{% url 'stats' %}{% stats_query filters facet row.value %}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td>
+        {% include "includes/stats_count_cells.html" with projects=row.projects %}
+      </tr>
+      {% endfor %}
+      {% if distribution.other != 0 %}
+      <tr>
+        <td class="table__meta">Older or unrecognized</td>
+        {% include "includes/stats_count_cells.html" with projects=distribution.other %}
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>

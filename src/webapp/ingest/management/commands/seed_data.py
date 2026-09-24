@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import random
 import uuid
+from types import ModuleType
 from typing import Any
 
+from django import http, shortcuts, urls
+from django.conf import global_settings
+from django.contrib.auth import decorators as auth_decorators
 from django.core.management.base import BaseCommand, CommandError
+from django.db import models, transaction
+from django.utils import timezone
+from django.views import generic
 
 from config import environment
 from ingest.models import User
@@ -43,6 +50,54 @@ DEPENDENCY_NAMES = [
     "gunicorn",
     "sentry-sdk",
 ]
+
+
+SETTING_NAMES = sorted(name for name in dir(global_settings) if name.isupper())
+USAGE_MODULES = (
+    auth_decorators,
+    generic,
+    http,
+    models,
+    shortcuts,
+    timezone,
+    transaction,
+    urls,
+)
+
+
+def _public_names(module: ModuleType) -> list[str]:
+    """What a project would import from ``module``.
+
+    Its ``__all__`` when it has one, otherwise the functions and classes it defines.
+    """
+    if hasattr(module, "__all__"):
+        return list(module.__all__)
+    return [
+        name
+        for name, value in vars(module).items()
+        if not name.startswith("_")
+        and getattr(value, "__module__", None) == module.__name__
+    ]
+
+
+USAGE_NAMES = sorted(
+    f"{module.__name__}.{name}"
+    for module in USAGE_MODULES
+    for name in _public_names(module)
+)
+
+
+def _adoption_rates(names: list[str]) -> dict[str, float]:
+    """The share of projects using each name, skewed so most names are rare."""
+    return {name: random.betavariate(0.5, 1.5) for name in names}
+
+
+def _adopted(rates: dict[str, float], counts: tuple[int, int]) -> dict[str, int]:
+    return {
+        name: random.randint(*counts)
+        for name, rate in rates.items()
+        if random.random() < rate
+    }
 
 
 def _random_patterns() -> dict[str, int]:
@@ -95,6 +150,8 @@ class Command(BaseCommand):
 
         total_projects = 0
         total_submissions = 0
+        setting_rates = _adoption_rates(SETTING_NAMES)
+        usage_rates = _adoption_rates(USAGE_NAMES)
 
         for index in range(ORGANIZATIONS):
             owner = (
@@ -120,6 +177,10 @@ class Command(BaseCommand):
                         files_scanned=random.randint(5, 500),
                         patterns=_random_patterns(),
                         dependencies=_random_dependencies(),
+                        django_settings=_adopted(setting_rates, (1, 1)),
+                        django_settings_scanned=True,
+                        usage_packages=["django"],
+                        usage=_adopted(usage_rates, (1, 40)),
                     )
                     total_submissions += 1
 

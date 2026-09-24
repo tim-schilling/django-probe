@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Django Probe{% endblock %}</title>
+  {% block stylesheets %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/probe.css' %}">
 </head>
 <body>
@@ -18,6 +19,8 @@
       <nav class="site-nav" aria-label="Primary">
         <ul>
           <li><a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>Home</a></li>
+          <li><a href="{% url 'stats' %}"{% if request.resolver_match.url_name == 'stats' %} aria-current="page"{% endif %}>Stats</a></li>
+          {% block account_nav %}
           {% if user.is_authenticated %}
             <li><a href="{% url 'account' %}"{% if request.resolver_match.url_name == 'account' %} aria-current="page"{% endif %}>Account</a></li>
             {% if user.is_staff %}<li><a href="{% url 'style-guide' %}"{% if request.resolver_match.url_name == 'style-guide' %} aria-current="page"{% endif %}>Style guide</a></li>{% endif %}
@@ -26,16 +29,19 @@
             <li><a href="{% url 'account_login' %}"{% if request.resolver_match.url_name == 'account_login' %} aria-current="page"{% endif %}>Sign in</a></li>
             <li><a href="{% url 'account_signup' %}"{% if request.resolver_match.url_name == 'account_signup' %} aria-current="page"{% endif %}>Sign up</a></li>
           {% endif %}
+          {% endblock %}
         </ul>
       </nav>
     </div>
   </header>
   <main class="container site-main" id="main-content">
+    {% block messages %}
     {% if messages %}
       <ul class="messages" aria-label="Messages">
         {% for message in messages %}<li class="message{% if message.tags %} message--{{ message.tags }}{% endif %}">{{ message }}</li>{% endfor %}
       </ul>
     {% endif %}
+    {% endblock %}
     {% block content %}{% endblock %}
   </main>
   <footer class="site-footer">

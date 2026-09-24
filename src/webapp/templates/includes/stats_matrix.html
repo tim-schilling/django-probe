@@ -1,0 +1,28 @@
+{% load ingest_extras %}
+<div class="table-wrap">
+  <table class="table stats-matrix">
+    <thead>
+      <tr>
+        <th scope="col">Django \ Python</th>
+        {% for python in matrix.python %}<th scope="col">{{ python|default:"Other" }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in matrix.rows %}
+      <tr>
+        <th scope="row">{{ row.django|default:"Other" }}</th>
+        {% for cell in row.cells %}
+          {% if cell.projects == 0 %}
+          <td class="table__meta">0</td>
+          {% elif row.django and cell.python and cell.projects >= summary.minimum_projects %}
+          <td><a href="{% url 'stats' %}{% stats_query filters django=row.django python=cell.python %}">{{ cell.projects }}</a></td>
+          {% else %}
+          <td>{{ cell.projects }}</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="muted">Each cell is the number of projects on that Django and Python version. "Other" is older or unrecognized versions.</p>

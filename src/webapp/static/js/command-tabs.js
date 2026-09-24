@@ -33,6 +33,8 @@ document.querySelectorAll("[data-tab-group]").forEach((tabs) => {
   tabButtons.forEach((tab, index) => {
     tab.addEventListener("click", () => {
       selectTab(group, tab.dataset.tabValue);
+      // Only package-manager style choices are worth carrying between pages.
+      if ("tabEphemeral" in tabs.dataset) return;
       try {
         localStorage.setItem(STORAGE_KEY, tab.dataset.tabValue);
       } catch {
@@ -70,3 +72,17 @@ if (storedValue) {
     }
   });
 }
+
+function selectTabForHash() {
+  const panel = location.hash && document.getElementById(location.hash.slice(1));
+  if (!panel || panel.getAttribute("role") !== "tabpanel") return;
+  const tabs = panel.closest("[data-tab-group]");
+  const tab = document.getElementById(panel.getAttribute("aria-labelledby"));
+  if (!tabs || !tab) return;
+  selectTab(tabs.dataset.tabGroup, tab.dataset.tabValue);
+  panel.scrollIntoView();
+}
+
+// A link to a panel's id, like #python-versions, opens that tab.
+selectTabForHash();
+window.addEventListener("hashchange", selectTabForHash);

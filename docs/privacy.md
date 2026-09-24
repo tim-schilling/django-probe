@@ -66,13 +66,14 @@ If you want to see the code, please see [`payload.py`](https://github.com/tim-sc
 ## Public aggregate data
 
 Submissions inform aggregated, filterable statistics (e.g. by Django version,
-Python version, dependency, or pattern usage) that anyone can view. This view
-never identifies which project or organization a figure came from, and there is
-no way to filter by date or otherwise reconstruct a history for a single source.
+Python version, or the settings and Django APIs a project uses) that anyone can
+view. This view never identifies which project or organization a figure came
+from, and there is no way to filter by date or otherwise reconstruct a history for
+a single source. Anonymous submissions aren't included.
 
 Any filter combination narrow enough to describe fewer than a set minimum number
-of submissions is withheld rather than shown, so a filtered result can't be used
-to single out one project's data.
+of projects is withheld rather than shown, so a filtered result can't be used to
+single out one project's data.
 
 ## Exporting data
 

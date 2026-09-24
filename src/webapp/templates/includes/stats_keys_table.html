@@ -1,0 +1,16 @@
+{% load ingest_extras %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Projects</th><th>Share</th></tr></thead>
+    <tbody>
+      {% for row in keys %}
+      <tr>
+        <td>{% if row.projects >= summary.minimum_projects and row.key not in chosen_keys %}<a href="{% url 'stats' %}{% stats_query filters add_key=row.key %}"><code>{{ row.key }}</code></a>{% else %}<code>{{ row.key }}</code>{% endif %}</td>
+        {% include "includes/stats_count_cells.html" with projects=row.projects %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="table__meta">{{ empty_message|default:"Nothing to show." }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

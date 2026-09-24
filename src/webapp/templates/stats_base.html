@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load ingest_extras static %}
+
+{% block stylesheets %}<link rel="stylesheet" href="{% static 'vendor/tom-select/tom-select.min.css' %}">{% endblock %}
+
+{# Shared caches serve these pages to everyone, so they must not depend on who is asking. #}
+{% block account_nav %}{% endblock %}
+{% block messages %}{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <p class="eyebrow">Community data</p>
+  <h1>{% block heading %}{% endblock %}</h1>
+  <p class="stats-count" id="project-count">
+    {% if summary.withheld %}
+      Fewer than {{ summary.minimum_projects }} projects
+    {% else %}
+      <span class="stat">{{ summary.projects }}</span> project{{ summary.projects|pluralize }}
+    {% endif %}
+    {% if filters.key or filters.django or filters.python or filters.size %}match these filters{% endif %}
+  </p>
+  <p class="lede">
+    Each project counts once, using its latest submission. Results for fewer than
+    {{ summary.minimum_projects }} projects are withheld.
+    {% block lede %}{% endblock %}
+  </p>
+</header>
+
+{# Only usable with JavaScript, which reveals it; the browse pages link every name. #}
+<form action="{% url 'stats' %}" class="stats-search" hidden>
+  {% if filters.django %}<input type="hidden" name="django" value="{{ filters.django }}">{% endif %}
+  {% if filters.python %}<input type="hidden" name="python" value="{{ filters.python }}">{% endif %}
+  {% if filters.size %}<input type="hidden" name="size" value="{{ filters.size }}">{% endif %}
+  {% for key in filters.key %}<input type="hidden" name="key" value="{{ key }}">{% endfor %}
+  <p>
+    <label for="stats-key">Filter by a setting or Django API</label>
+    <input id="stats-key" placeholder="CACHES or select_related" autocomplete="off" data-stats-search="{% url 'api-stats-keys' %}{% stats_query filters %}">
+  </p>
+</form>
+
+{% if filters.django or filters.python or filters.size or filters.key %}
+<div class="panel panel--subtle">
+  <p><strong>Filters</strong></p>
+  <ul class="stats-filters">
+    {% if filters.django %}<li>Django {{ filters.django }} <a href="{{ request.path }}{% stats_query filters django='' %}">(remove)</a></li>{% endif %}
+    {% if filters.python %}<li>Python {{ filters.python }} <a href="{{ request.path }}{% stats_query filters python='' %}">(remove)</a></li>{% endif %}
+    {% if filters.size %}<li>{% for bucket in size_buckets %}{% if bucket.value == filters.size %}{{ bucket.label }}{% endif %}{% endfor %} <a href="{{ request.path }}{% stats_query filters size='' %}">(remove)</a></li>{% endif %}
+    {% for key in filters.key %}<li>Uses <code>{{ key }}</code> <a href="{{ request.path }}{% stats_query filters remove_key=key %}">(remove)</a></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if summary.withheld %}
+<div class="panel panel--caution">
+  <p>Fewer than {{ summary.minimum_projects }} projects match these filters, so the results are withheld.</p>
+</div>
+{% else %}
+{% block results %}{% endblock %}
+{% endif %}
+
+<p class="muted">This data is also available as <a href="{% block json_url %}{% endblock %}{% if query %}?{{ query }}{% endif %}">JSON</a>.</p>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'vendor/tom-select/tom-select.base.min.js' %}" defer></script><script src="{% static 'js/stats-search.js' %}" defer></script>{% endblock %}

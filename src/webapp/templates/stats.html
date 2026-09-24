@@ -1,0 +1,49 @@
+{% extends "stats_base.html" %}
+{% load ingest_extras static %}
+{% block title %}Stats | Django Probe{% endblock %}
+
+{% block heading %}How projects use Django{% endblock %}
+
+{% block results %}
+<section id="versions">
+  <h2>Versions</h2>
+  <div class="tabs" data-tab-group="stats-versions" data-tab-ephemeral>
+    <div class="tabs__list" role="tablist" aria-label="Version breakdown">
+      <button type="button" class="tabs__tab" role="tab" id="versions-tab-django" aria-controls="django-versions" aria-selected="true" data-tab-value="django">Django</button>
+      <button type="button" class="tabs__tab" role="tab" id="versions-tab-python" aria-controls="python-versions" aria-selected="false" tabindex="-1" data-tab-value="python">Python</button>
+      <button type="button" class="tabs__tab" role="tab" id="versions-tab-django-python" aria-controls="django-python" aria-selected="false" tabindex="-1" data-tab-value="django-python">Django &times; Python</button>
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="django-versions" aria-labelledby="versions-tab-django">
+      {% include "includes/stats_distribution.html" with column="Django" facet="django" distribution=summary.distributions.django %}
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="python-versions" aria-labelledby="versions-tab-python" hidden>
+      {% include "includes/stats_distribution.html" with column="Python" facet="python" distribution=summary.distributions.python %}
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="django-python" aria-labelledby="versions-tab-django-python" hidden>
+      {% include "includes/stats_matrix.html" with matrix=summary.django_python %}
+    </div>
+  </div>
+</section>
+
+<section id="project-size">
+  <h2>Project size</h2>
+  {% include "includes/stats_distribution.html" with column="Size" facet="size" distribution=summary.distributions.size %}
+  <p class="muted">Size is the number of Python files scanned. These groupings are provisional and will change.</p>
+</section>
+
+<section id="settings">
+  <h2>Most used settings</h2>
+  {% include "includes/stats_keys_table.html" with keys=summary.popular.setting %}
+  <p><a href="{% url 'stats-settings' %}{% stats_query filters %}">Browse all settings</a></p>
+</section>
+
+<section id="apis">
+  <h2>Most used Django APIs</h2>
+  {% include "includes/stats_keys_table.html" with keys=summary.popular.usage %}
+  <p><a href="{% url 'stats-apis' %}{% stats_query filters %}">Browse all Django APIs</a></p>
+</section>
+{% endblock %}
+
+{% block json_url %}{% url 'api-stats' %}{% endblock %}
+
+{% block scripts %}{{ block.super }}<script src="{% static 'js/command-tabs.js' %}" defer></script>{% endblock %}

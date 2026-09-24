@@ -94,6 +94,10 @@ redirect to HTTPS that comes straight back as HTTP — an infinite loop that tak
 site down. The same arrangement is why `DJANGO_PROBE_CSRF_TRUSTED_ORIGINS` must list
 origins with their scheme.
 
+**A Cache Rule must make the stats pages eligible for caching.** Cloudflare doesn't
+cache HTML or JSON by default. Add a rule for `/stats/*` and `/api/stats/*` that
+respects the origin's `Cache-Control`. These pages render the same for every visitor,
+so they have no CSRF tokens, messages or account links.
 
 **Rate limiting must cover every unauthenticated endpoint.** Note that this is wider
 than the endpoints that create rows:
@@ -104,6 +108,17 @@ than the endpoints that create rows:
 | `POST /api/cli/auth/` | Unauthenticated row creation, once per request. |
 | `GET /api/cli/auth/<code>/poll/` | Issues the CLI credential. It is a **GET**, so a rule scoped to POSTs or to "create" endpoints will miss it. |
 | `/accounts/login/`, `/accounts/signup/` | allauth; otherwise unbounded credential stuffing. |
+
+### New Django and Python releases
+
+When Django or Python ships a new feature release:
+
+- Add it to `DJANGO_VERSIONS` or `PYTHON_VERSIONS` in `src/webapp/ingest/stats.py`.
+  The stats pages list these even before any project reports them. Drop versions
+  that are no longer supported; their projects then count as "Older".
+- For Django, add its new setting names to `DJANGO_SETTING_NAMES_BY_VERSION` in
+  `src/django_probe/settings.py`.
+- Add it to the `tox.ini` matrix and the `pyproject.toml` classifiers.
 
 ### Scheduled maintenance
 

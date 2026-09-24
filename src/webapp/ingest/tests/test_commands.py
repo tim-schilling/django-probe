@@ -7,7 +7,8 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from ingest.models import CliCredential
+from ingest.management.commands.seed_data import SETTING_NAMES, USAGE_NAMES
+from ingest.models import CliCredential, Submission
 from ingest.tests.factories import (
     CliCredentialFactory,
     OrganizationFactory,
@@ -130,3 +131,20 @@ class PurgeCliCredentialsTests(TestCase):
     def test_rejects_a_nonsensical_window(self):
         with self.assertRaises(SystemExit):
             call_command("purge_cli_credentials", "--days", "0", stderr=StringIO())
+
+
+class SeedDataTests(TestCase):
+    def test_seeds_settings_and_usage(self):
+        """Names come from the installed Django, so the stats pages have data to show."""
+        call_command("seed_data", stdout=StringIO())
+
+        submissions = Submission.objects.all()
+        self.assertTrue(submissions.exists())
+        settings = {
+            name for submission in submissions for name in submission.django_settings
+        }
+        usage = {name for submission in submissions for name in submission.usage}
+        self.assertTrue(settings)
+        self.assertTrue(usage)
+        self.assertLessEqual(settings, set(SETTING_NAMES))
+        self.assertLessEqual(usage, set(USAGE_NAMES))

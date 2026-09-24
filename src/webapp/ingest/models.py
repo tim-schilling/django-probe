@@ -328,6 +328,9 @@ class Submission(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="submissions",
+        # The submission_project_latest index leads with this column, so it already
+        # covers lookups by project alone.
+        db_index=False,
     )
 
     schema_version = models.PositiveSmallIntegerField()
@@ -350,6 +353,12 @@ class Submission(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # Public stats pick each project's latest submission.
+            models.Index(
+                fields=["project", "-created_at"], name="submission_project_latest"
+            ),
+        ]
 
     def __str__(self) -> str:
         who = self.project or "anonymous"
