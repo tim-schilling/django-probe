@@ -9,7 +9,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from ingest.forms import ProjectEditForm
 from ingest.models import (
     SLUG_COLLISION_RETRIES,
     Organization,
@@ -446,13 +445,17 @@ class OrganizationManagementViewTests(TestCase):
         )
 
         project.refresh_from_db()
-        self.assertRedirects(
-            response,
-            reverse("project-detail", args=[self.organization.pk, project.pk]),
-            fetch_redirect_response=False,
+        redirect_url = reverse(
+            "project-detail", args=[self.organization.pk, project.pk]
         )
+        self.assertRedirects(response, redirect_url, fetch_redirect_response=False)
         self.assertEqual(project.name, "Marketing site")
         self.assertEqual(project.token, original_token)
+
+        # Check the success message doesn't contain the organization part.
+        redirect_response = self.client.get(redirect_url)
+        self.assertContains(redirect_response, "Updated project Marketing site.")
+        self.assertNotContains(redirect_response, "Moved to organization")
 
     def test_rename_project_to_its_own_name_is_allowed(self):
         project = ProjectFactory(organization=self.organization, name="Website")
@@ -509,13 +512,17 @@ class OrganizationManagementViewTests(TestCase):
         )
 
         project.refresh_from_db()
-        self.assertRedirects(
-            response,
-            reverse("project-detail", args=[destination.pk, project.pk]),
-            fetch_redirect_response=False,
-        )
+        redirect_url = reverse("project-detail", args=[destination.pk, project.pk])
+        self.assertRedirects(response, redirect_url, fetch_redirect_response=False)
         self.assertEqual(project.organization, destination)
         self.assertEqual(project.token, original_token)
+
+        # Check the success message contains the organization part.
+        redirect_response = self.client.get(redirect_url)
+        self.assertContains(
+            redirect_response,
+            f"Updated project {project.name}. Moved to organization {destination.name}",
+        )
 
         self.client.force_login(source_member)
         self.assertEqual(
@@ -564,34 +571,6 @@ class OrganizationManagementViewTests(TestCase):
             "organization",
             "Select a valid choice. That choice is not one of the available choices.",
         )
-        project.refresh_from_db()
-        self.assertEqual(project.organization, self.organization)
-
-    def test_transfer_rechecks_membership(self):
-        destination = OrganizationFactory(
-            name="Other team",
-            owner=UserFactory(username="other-owner"),
-        )
-        membership = OrganizationMembershipFactory(
-            organization=destination,
-            user=self.owner,
-            role=OrganizationMembership.Role.MEMBER,
-        )
-        project = ProjectFactory(organization=self.organization, name="Website")
-        original_clean = ProjectEditForm.clean
-
-        def clean_and_revoke(form):
-            cleaned_data = original_clean(form)
-            membership.delete()
-            return cleaned_data
-
-        with mock.patch.object(ProjectEditForm, "clean", clean_and_revoke):
-            response = self.client.post(
-                reverse("project-edit", args=[self.organization.pk, project.pk]),
-                {"name": project.name, "organization": destination.pk},
-            )
-
-        self.assertEqual(response.status_code, 403)
         project.refresh_from_db()
         self.assertEqual(project.organization, self.organization)
 

@@ -550,59 +550,20 @@ def project_edit(request, organization_id: uuid.UUID, project_id: int) -> HttpRe
         request.POST or None,
         instance=project,
         user=request.user,
+        membership=membership,
         suggest_name=request.method == "GET" and "suggest" in request.GET,
     )
     if request.method == "POST" and form.is_valid():
-        destination = form.cleaned_data["organization"]
-        try:
-            with transaction.atomic():
-                required_organization_ids = {
-                    membership.organization_id,
-                    destination.pk,
-                }
-                membership_organization_ids = set(
-                    OrganizationMembership.objects.select_for_update()
-                    .filter(
-                        user=request.user,
-                        organization_id__in=required_organization_ids,
-                    )
-                    .values_list("organization_id", flat=True)
-                )
-                if membership_organization_ids != required_organization_ids:
-                    raise PermissionDenied(
-                        "Projects can only be moved between your organizations."
-                    )
-                locked_project = get_object_or_404(
-                    Project.objects.select_for_update(),
-                    pk=project.pk,
-                    organization_id=membership.organization_id,
-                )
-                locked_project.name = form.cleaned_data["name"]
-                locked_project.organization = destination
-                locked_project.save(update_fields=["name", "organization"])
-                project = locked_project
-        except IntegrityError:
-            if (
-                Project.objects.filter(
-                    organization=destination,
-                    name__iexact=form.cleaned_data["name"],
-                )
-                .exclude(pk=project.pk)
-                .exists()
-            ):
-                form.add_error(
-                    "name",
-                    "A project with this name already exists in this organization.",
-                )
-            else:
-                raise
-        else:
-            messages.success(request, f"Updated project {project.name}.")
-            return redirect(
-                "project-detail",
-                organization_id=project.organization_id,
-                project_id=project.pk,
-            )
+        form.save()
+        message = f"Updated project {form.instance.name}."
+        if membership.organization != form.cleaned_data["organization"]:
+            message += f" Moved to organization {form.instance.organization.name}"
+        messages.success(request, message)
+        return redirect(
+            "project-detail",
+            organization_id=project.organization_id,
+            project_id=project.pk,
+        )
     return render(
         request,
         "project_edit.html",

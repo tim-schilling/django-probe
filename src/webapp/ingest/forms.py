@@ -74,7 +74,7 @@ class ProjectForm(forms.ModelForm):
 
 
 class ProjectEditForm(forms.ModelForm):
-    def __init__(self, *args, user, suggest_name: bool = False, **kwargs):
+    def __init__(self, *args, user, membership, suggest_name: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["organization"].queryset = Organization.objects.filter(
             members=user
