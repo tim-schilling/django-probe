@@ -6,6 +6,7 @@ from django.test import override_settings
 from playwright.sync_api import Page, expect
 from pytest_django.live_server_helper import LiveServer
 
+from django_probe import __version__
 from ingest.tests.helpers import payload
 from tests.e2e.helpers import assert_no_accessibility_violations
 
@@ -129,13 +130,23 @@ def test_account_journey(
     accepted = page.request.post(
         f"{live_server.url}/api/submissions/",
         headers={"Authorization": f"Token {replacement_token}"},
-        data=payload(),
+        data=payload(client_version="0.3.2"),
     )
     assert accepted.status == 201
 
     page.get_by_role("link", name=f"← Back to {ORGANIZATION_NAME}").click()
     expect(page.get_by_role("link", name=PROJECT_NAME).first).to_be_visible()
+    page.get_by_role("button", name="View update details for client 0.3.2").click()
+    version_status = page.get_by_role("dialog")
+    expect(version_status.get_by_role("heading", name="Out of date")).to_be_visible()
+    expect(version_status.get_by_text("Submitted")).to_be_visible()
+    expect(version_status.get_by_text("Latest", exact=True)).to_be_visible()
+    expect(version_status.get_by_role("link", name="View changelog")).to_have_attribute(
+        "href",
+        f"https://github.com/tim-schilling/django-probe/blob/{__version__}/docs/changelog.md",
+    )
     assert_no_accessibility_violations(page)
+    version_status.get_by_role("button", name="Close", exact=True).click()
 
     page.get_by_role("link", name=PROJECT_NAME).first.click()
     expect(page.get_by_role("heading", name=PROJECT_NAME)).to_be_visible()

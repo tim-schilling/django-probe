@@ -25,6 +25,7 @@ SUBMISSIONS_PER_PROJECT = 5
 
 PYTHON_VERSIONS = ["3.10.14", "3.11.9", "3.12.6", "3.13.0"]
 DJANGO_VERSIONS = ["4.2.16", "5.0.9", "5.1.2"]
+CLIENT_VERSIONS = ["0.2.0", "0.4.0"]
 PATTERN_NAMES = [
     "probe:queryset_filter",
     "probe:queryset_exclude",
@@ -113,6 +114,7 @@ class Command(BaseCommand):
                 for _ in range(SUBMISSIONS_PER_PROJECT):
                     SubmissionFactory(
                         project=project,
+                        client_version=random.choice(CLIENT_VERSIONS),
                         python_version=random.choice(PYTHON_VERSIONS),
                         django_version=random.choice(DJANGO_VERSIONS),
                         files_scanned=random.randint(5, 500),

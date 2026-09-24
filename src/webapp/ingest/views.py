@@ -20,6 +20,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from django_probe import __version__
 from ingest.export import export_account, iter_json
 from ingest.forms import (
     AccountDeleteForm,
@@ -94,6 +95,7 @@ def _with_latest_submission(projects):
     return projects.annotate(
         latest_submission_id=Subquery(latest.values("id")[:1]),
         latest_submission_at=Subquery(latest.values("created_at")[:1]),
+        latest_client_version=Subquery(latest.values("client_version")[:1]),
     )
 
 
@@ -357,6 +359,7 @@ def account(request) -> HttpResponse:
             "memberships": memberships,
             "projects": projects,
             "credentials": credentials,
+            "current_client_version": __version__,
         },
     )
 
@@ -463,6 +466,7 @@ def organization_detail(request, organization_id: uuid.UUID) -> HttpResponse:
             "organization": membership.organization,
             "projects": projects,
             "is_sole_member": membership.organization.memberships.count() == 1,
+            "current_client_version": __version__,
         },
     )
 
