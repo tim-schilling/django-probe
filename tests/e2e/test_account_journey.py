@@ -141,12 +141,9 @@ def test_account_journey(
     expect(version_status.get_by_role("heading", name="Out of date")).to_be_visible()
     expect(version_status.get_by_text("Submitted")).to_be_visible()
     expect(version_status.get_by_text("Latest", exact=True)).to_be_visible()
-    expect(
-        version_status.get_by_role("link", name="View changelog diff")
-    ).to_have_attribute(
+    expect(version_status.get_by_role("link", name="View changelog")).to_have_attribute(
         "href",
-        f"https://github.com/tim-schilling/django-probe/compare/0.3.2...{__version__}"
-        "#diff-77f023b99d3d58008351d3e82fc06e6d06ba1bc2da9e41be6329b7fa4f419f05",
+        f"https://github.com/tim-schilling/django-probe/blob/{__version__}/docs/changelog.md",
     )
     assert_no_accessibility_violations(page)
     version_status.get_by_role("button", name="Close", exact=True).click()

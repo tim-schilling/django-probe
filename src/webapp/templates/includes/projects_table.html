@@ -50,7 +50,11 @@
                       </span>
                     </div>
                     <div class="actions">
-                      <a class="button" href="https://github.com/tim-schilling/django-probe/compare/{{ project.latest_client_version|urlencode:"" }}...{{ current_client_version|urlencode:"" }}#diff-77f023b99d3d58008351d3e82fc06e6d06ba1bc2da9e41be6329b7fa4f419f05">View changelog diff</a>
+                      <a class="button"
+                         target="_blank"
+                         href="https://github.com/tim-schilling/django-probe/blob/{{ current_client_version|urlencode:"" }}/docs/changelog.md">
+                          View changelog
+                      </a>
                       <button class="button--secondary" value="close">Close</button>
                     </div>
                   </form>

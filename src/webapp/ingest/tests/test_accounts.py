@@ -163,11 +163,10 @@ class AccountTests(TestCase):
         self.assertContains(response, "Out of date", count=1)
         self.assertContains(response, "Latest")
         self.assertContains(response, __version__)
-        self.assertContains(response, "View changelog diff")
+        self.assertContains(response, "View changelog")
         self.assertContains(
             response,
-            f"https://github.com/tim-schilling/django-probe/compare/0.3.2...{__version__}"
-            "#diff-77f023b99d3d58008351d3e82fc06e6d06ba1bc2da9e41be6329b7fa4f419f05",
+            f"https://github.com/tim-schilling/django-probe/blob/{__version__}/docs/changelog.md",
         )
         self.assertNotContains(response, "Not reported")
         self.assertContains(response, '<td class="table__meta">-</td>', html=True)
