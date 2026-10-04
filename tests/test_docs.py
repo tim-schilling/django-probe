@@ -8,7 +8,7 @@ from unittest import TestCase
 from django_probe import __version__
 
 ROOT = Path(__file__).resolve().parent.parent
-#: Every file showing the reusable workflow example to a user setting up CI.
+# Every file showing the reusable workflow example to a user setting up CI.
 WORKFLOW_EXAMPLES = (
     "README.md",
     "docs/getting-started.md",
@@ -21,8 +21,8 @@ YAML_BLOCK = re.compile(
     r"^(?P<indent> *)```yaml\n(?P<body>.*?)^(?P=indent)```$",
     re.DOTALL | re.MULTILINE,
 )
-#: Each CI example in docs/getting-started.md, and the pages repeating it verbatim.
-#: docs/configuration.md is excluded: it shows the same workflow cut down to one input.
+# Each CI example in docs/getting-started.md, and the pages repeating it verbatim.
+# docs/configuration.md is excluded: it shows the same workflow cut down to one input.
 CI_EXAMPLES = {
     "django-probe-submit-uv.yml": (
         "README.md",

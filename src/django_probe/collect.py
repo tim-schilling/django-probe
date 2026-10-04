@@ -10,7 +10,7 @@ from importlib import metadata
 
 _NORMALIZE_RE = re.compile(r"[-_.]+")
 
-#: Recorded in every payload so a zero count can be told apart from "nothing looked".
+# Recorded in every payload so a zero count can be told apart from "nothing looked".
 PROBE_SOURCE_DISTRIBUTIONS = ("django-probe",)
 
 

@@ -24,7 +24,7 @@ from django_probe.payload import build_payload
 from django_probe.submit import SubmitError, submit
 
 DEFAULT_SERVER = "https://djangoprobe.org"
-#: Plain HTTP to one of these is a local development server, not a network hop.
+# Plain HTTP to one of these is a local development server, not a network hop.
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 

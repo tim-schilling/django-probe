@@ -16,9 +16,9 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 CLI_AUTH_REQUEST_TTL = timedelta(minutes=10)
-#: How long an issued CLI credential stays valid. A credential is a bearer token on
-#: a developer's laptop, so it expires on its own rather than living until someone
-#: remembers to revoke it.
+# How long an issued CLI credential stays valid. A credential is a bearer token on
+# a developer's laptop, so it expires on its own rather than living until someone
+# remembers to revoke it.
 CLI_CREDENTIAL_TTL = timedelta(days=90)
 
 
@@ -254,8 +254,8 @@ class CliCredential(models.Model):
         related_name="cli_credentials",
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    #: When the login *request* stops being approvable, not when the credential
-    #: expires; see `token_expires_at` for that.
+    # When the login *request* stops being approvable, not when the credential
+    # expires; see `token_expires_at` for that.
     expires_at = models.DateTimeField(default=_cli_auth_request_expiry)
     approved_at = models.DateTimeField(null=True, blank=True)
     denied_at = models.DateTimeField(null=True, blank=True)

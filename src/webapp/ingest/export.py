@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from ingest.models import CliCredential, Project, Submission
 
-#: Rows per round trip while streaming a project's submissions.
+# Rows per round trip while streaming a project's submissions.
 SUBMISSION_CHUNK_SIZE = 200
 
 _INDENT = "  "

@@ -66,8 +66,8 @@ def _poetry_from_pypi(entry: LockEntry) -> bool:
     return isinstance(url, str) and _is_pypi(url)
 
 
-#: pdm names a VCS entry after its backend, and marks the rest with "path" or "url".
-#: Index entries carry none of these, so this has to enumerate rather than allow-list.
+# pdm names a VCS entry after its backend, and marks the rest with "path" or "url".
+# Index entries carry none of these, so this has to enumerate rather than allow-list.
 PDM_NON_INDEX_KEYS = ("git", "hg", "svn", "bzr", "path", "url")
 
 

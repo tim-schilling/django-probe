@@ -24,10 +24,10 @@ METHODS = ("extra", "filter", "exclude", "alias", "annotate")
 
 LIBRARY_PATHS = frozenset({"Library", "template.Library", "django.template.Library"})
 
-#: Only `filter` collides with the template-tag API; `register.exclude` is not a thing.
+# Only `filter` collides with the template-tag API; `register.exclude` is not a thing.
 LIBRARY_METHODS = frozenset({"filter"})
 
-#: Names bound to a template Library, per file.
+# Names bound to a template Library, per file.
 _libraries: WeakKeyDictionary[State, set[str]] = WeakKeyDictionary()
 
 

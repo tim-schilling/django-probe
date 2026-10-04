@@ -9,10 +9,10 @@ from collections.abc import Callable, Iterable
 from functools import cached_property
 from typing import Any
 
-#: ``Any`` node param: each registered function narrows it to a specific node type
-#: (e.g. ``ast.Call``), which Callable's contravariant parameter check would reject
-#: against ``ast.AST``. ``Any`` return: probes may yield anything, since
-#: ``count_patterns`` only tallies how many times a probe yields, never what.
+# ``Any`` node param: each registered function narrows it to a specific node type
+# (e.g. ``ast.Call``), which Callable's contravariant parameter check would reject
+# against ``ast.AST``. ``Any`` return: probes may yield anything, since
+# ``count_patterns`` only tallies how many times a probe yields, never what.
 ProbeFunc = Callable[["State", Any, tuple[ast.AST, ...]], Iterable[Any]]
 
 settings_re = re.compile(r"(\b|_)settings(\b|_)")
@@ -21,9 +21,9 @@ settings_re = re.compile(r"(\b|_)settings(\b|_)")
 class State:
     """Per-file state threaded through every probe callback."""
 
-    #: ``__weakref__`` lets probes key a ``WeakKeyDictionary`` by ``State`` (see
-    #: ``probes.orm``'s per-file ``Library`` tracking); ``__dict__`` backs
-    #: ``cached_property``.
+    # ``__weakref__`` lets probes key a ``WeakKeyDictionary`` by ``State`` (see
+    # ``probes.orm``'s per-file ``Library`` tracking); ``__dict__`` backs
+    # ``cached_property``.
     __slots__ = ("filename", "from_imports", "__weakref__", "__dict__")
 
     def __init__(self, filename: str, from_imports: defaultdict[str, set[str]]) -> None:
@@ -46,8 +46,8 @@ class _Registration:
         self.ast_funcs: dict[type[ast.AST], list[ProbeFunc]] = defaultdict(list)
 
 
-#: Every probe registered so far, keyed by "namespace:name", populated at import time
-#: by ``probes.Probe``.
+# Every probe registered so far, keyed by "namespace:name", populated at import time
+# by ``probes.Probe``.
 _REGISTRY: dict[str, _Registration] = {}
 
 
