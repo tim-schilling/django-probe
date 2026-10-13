@@ -3,7 +3,7 @@
     <li>
       <span class="item-list__title"><a href="{% url 'submission-detail' submission_id=submission.pk %}">{{ submission.created_at|date:"SHORT_DATETIME_FORMAT" }}</a></span>
       <span class="item-list__meta">
-        Python {{ submission.python_version }} ·
+        Python {% if submission.schema_version >= 3 %}{{ submission.python_version|default:"unknown" }}{% else %}unknown{% endif %} ·
         Django {{ submission.django_version|default:"not detected" }} ·
         {{ submission.files_scanned }} file{{ submission.files_scanned|pluralize }} scanned
       </span>

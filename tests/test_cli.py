@@ -55,6 +55,46 @@ class CliTests(TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(set(json.loads(output)), PAYLOAD_KEYS)
 
+    def test_explicit_python_version(self):
+        (self.root / ".python-version").write_text("3.14", encoding="utf-8")
+        for command in (["scan"], ["submit", "--dry-run"]):
+            with self.subTest(command=command):
+                code, output = self.run_cli(
+                    [*command, str(self.root), "--python-version", "3.15.0"]
+                )
+                self.assertEqual(code, 0)
+                self.assertEqual(json.loads(output)["python_version"], "3.15.0")
+
+    def test_empty_python_version_uses_file(self):
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
+        code, output = self.run_cli(["scan", str(self.root), "--python-version", ""])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["python_version"], "3.15")
+
+    def test_invalid_python_version_stops_before_scanning(self):
+        for command in ("scan", "submit"):
+            for version in ("system", "/private/python", "3.15; echo injected"):
+                with (
+                    self.subTest(command=command, version=version),
+                    mock.patch("django_probe.main.build_payload") as build,
+                    redirect_stderr(io.StringIO()),
+                ):
+                    with self.assertRaises(SystemExit) as error:
+                        main([command, str(self.root), "--python-version", version])
+                    self.assertEqual(error.exception.code, 2)
+                    build.assert_not_called()
+
+    def test_submit_sends_explicit_python_version(self):
+        with mock.patch(
+            "django_probe.main.submit", return_value={"status": "ok"}
+        ) as send:
+            code, _ = self.run_cli(
+                ["submit", str(self.root), "--python-version", "3.15.0"]
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(send.call_args.args[0]["python_version"], "3.15.0")
+
     def test_pyproject_disables_dependencies(self):
         (self.root / "pyproject.toml").write_text(
             '[tool.django_probe]\ndependencies = "none"\n',

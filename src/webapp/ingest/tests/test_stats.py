@@ -58,6 +58,23 @@ class StatsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
+    def test_unknown_project_version_does_not_use_scanner(self):
+        SubmissionFactory(
+            project=ProjectFactory(),
+            schema_version=2,
+            python_version="3.15.0",
+        )
+
+        stats = self.get_stats()
+
+        self.assertEqual(stats["distributions"]["python"]["other"], 2)
+        self.assertEqual(
+            Submission.objects.with_minor_versions()
+            .filter(python_minor="3.15")
+            .count(),
+            0,
+        )
+
     def test_counts_latest_submission_per_project(self):
         """Only a project's latest submission counts, and newer versions are listed."""
         project = Submission.objects.filter(django_version="3.2.0").get().project

@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 from unittest import TestCase, mock
 
-from django_probe.collect import dependencies, exclude_by_pattern, normalize
+from django_probe.collect import (
+    dependencies,
+    exclude_by_pattern,
+    normalize,
+    python_version,
+)
 
 
 class FakeDistribution:
@@ -109,3 +116,54 @@ class ExcludeByPatternTests(TestCase):
 class NormalizeTests(TestCase):
     def test_pep503_normalization(self):
         self.assertEqual(normalize("Django_Extensions.Foo"), "django-extensions-foo")
+
+
+class PythonVersionTests(TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+
+    def test_missing_version(self):
+        self.assertEqual(python_version(self.root), "")
+
+    def test_explicit_version_overrides_file(self):
+        (self.root / ".python-version").write_text("3.14", encoding="utf-8")
+        self.assertEqual(python_version(self.root, override="3.15.0"), "3.15.0")
+
+    def test_empty_override_uses_file(self):
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
+        self.assertEqual(python_version(self.root, override=""), "3.15")
+
+    def test_invalid_override_does_not_fall_back(self):
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            python_version(self.root, override="system")
+
+    def test_configured_version(self):
+        for version in ("3.15", "3.15.0", "3.15.0rc1"):
+            with self.subTest(version=version):
+                (self.root / ".python-version").write_text(
+                    version + "\n", encoding="utf-8"
+                )
+                self.assertEqual(python_version(self.root), version)
+
+    def test_invalid_version(self):
+        for version in (
+            "system",
+            "/private/python",
+            "3.14\n3.15",
+            "",
+            "3." + "1" * 128,
+        ):
+            with self.subTest(version=version):
+                (self.root / ".python-version").write_text(version, encoding="utf-8")
+                self.assertEqual(python_version(self.root), "")
+
+    def test_invalid_utf8(self):
+        (self.root / ".python-version").write_bytes(b"\xff")
+        self.assertEqual(python_version(self.root), "")
+
+    def test_unreadable_version(self):
+        with mock.patch.object(Path, "read_text", side_effect=PermissionError):
+            self.assertEqual(python_version(self.root), "")

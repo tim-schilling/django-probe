@@ -8,9 +8,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 VALID: dict[str, Any] = {
-    "schema_version": 2,
+    "schema_version": 3,
     "client_version": "0.4.1",
-    "python_version": "3.12.3",
+    "python_version": "",
     "django_version": "5.1.2",
     "files_scanned": 12,
     "probe_sources": {"django-probe": "0.4.1"},

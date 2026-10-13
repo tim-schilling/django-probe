@@ -28,7 +28,8 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 2)
+        self.assertEqual(payload["schema_version"], 3)
+        self.assertEqual(payload["python_version"], "")
         self.assertEqual(payload["usage_packages"], ["django"])
         self.assertEqual(
             payload["usage"],
@@ -56,6 +57,17 @@ class PayloadTests(TestCase):
         self.assertEqual(payload["dependencies"], {})
         self.assertEqual(payload["dependencies_source"], "none")
         dependencies.assert_not_called()
+
+    def test_python_version_comes_from_project(self):
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
+        with mock.patch(
+            "platform.python_version", return_value="3.12.3"
+        ) as scanner_version:
+            payload = build_payload(self.root)
+
+        scanner_version.assert_not_called()
+        self.assertNotIn("scanner_python_version", payload)
+        self.assertEqual(payload["python_version"], "3.15")
 
     def test_dependency_names(self):
         with mock.patch(

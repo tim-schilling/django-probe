@@ -12,7 +12,7 @@
   <h2>Metadata</h2>
   <dl>
     <dt>Client</dt><dd>{{ submission.client_version }}</dd>
-    <dt>Python</dt><dd>{{ submission.python_version }}</dd>
+    <dt>Python</dt><dd>{% if submission.schema_version >= 3 %}{{ submission.python_version|default:"unknown" }}{% else %}unknown{% endif %}</dd>
     <dt>Django</dt><dd>{{ submission.django_version|default:"not detected" }}</dd>
     <dt>Files scanned</dt><dd>{{ submission.files_scanned }}</dd>
     <dt>Schema version</dt><dd>{{ submission.schema_version }}</dd>

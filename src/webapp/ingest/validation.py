@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import keyword
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 # Clients upgrade on their own schedule, so every published shape stays acceptable.
-SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
+SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
