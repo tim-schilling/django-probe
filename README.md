@@ -83,7 +83,8 @@ on:
     - cron: "17 4 1 * *"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   django-probe:

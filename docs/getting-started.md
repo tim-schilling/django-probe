@@ -219,7 +219,8 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
-    permissions: {}
+    permissions:
+      contents: read
 
     jobs:
       django-probe:
@@ -255,7 +256,8 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
-    permissions: {}
+    permissions:
+      contents: read
 
     jobs:
       submit:
@@ -291,7 +293,8 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
-    permissions: {}
+    permissions:
+      contents: read
 
     jobs:
       submit:
@@ -328,7 +331,8 @@ Secrets and variables → Actions → New repository secret**, then commit this 
         - cron: "17 4 1 * *"
       workflow_dispatch:
 
-    permissions: {}
+    permissions:
+      contents: read
 
     jobs:
       submit:

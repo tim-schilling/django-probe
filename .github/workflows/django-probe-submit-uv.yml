@@ -25,7 +25,8 @@ on:
       DJANGO_PROBE_TOKEN:
         required: false
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   scan:
