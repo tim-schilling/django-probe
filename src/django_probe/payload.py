@@ -1,8 +1,7 @@
 """Assemble the submission payload.
 
 Everything the server ever receives is built here, in one function, so the privacy
-claim can be checked by reading a single file: integers, package names and version
-strings, and nothing else.
+claim can be checked by reading a single file: counts, package names, and versions.
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ from django_probe import collect, dependencies
 from django_probe.config import DependencyMode
 from django_probe.scan import scan_path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class SubmissionPayload(TypedDict):
@@ -42,6 +41,7 @@ class SubmissionPayload(TypedDict):
 def build_payload(
     root: Path,
     *,
+    python_version: str = "",
     dependency_mode: DependencyMode = "versions",
     dependency_exclude_patterns: Sequence[str] = (),
 ) -> SubmissionPayload:
@@ -56,7 +56,7 @@ def build_payload(
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),
-        "python_version": collect.python_version(),
+        "python_version": collect.python_version(root, override=python_version),
         "django_version": django_version,
         "files_scanned": result.files_scanned,
         "probe_sources": collect.probe_sources(),
