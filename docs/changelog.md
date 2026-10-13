@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Granted `contents: read` in the reusable uv workflow so checkout works in private
+  repositories. This requires the callers set `permissions: contents: read`
+  when upgrading.
+
 ## 0.4.0
 
 - Bundled the Django 4.2 through the current development version's setting names
