@@ -43,7 +43,7 @@ class StatsTests(TestCase):
         )
         submit_projects(
             1,
-            django_version="3.2.0",
+            django_version="2.1.0",
             python_version="3.9.1",
             files_scanned=12,
             # Stored keys are untrusted; malformed ones are never published.
@@ -60,7 +60,7 @@ class StatsTests(TestCase):
 
     def test_counts_latest_submission_per_project(self):
         """Only a project's latest submission counts, and newer versions are listed."""
-        project = Submission.objects.filter(django_version="3.2.0").get().project
+        project = Submission.objects.filter(django_version="2.1.0").get().project
         Submission.objects.filter(project=project).update(
             created_at=timezone.now() - timedelta(days=30)
         )
@@ -80,6 +80,12 @@ class StatsTests(TestCase):
                     {"value": "5.1", "label": "5.1", "projects": MINIMUM_PROJECTS},
                     {"value": "5.0", "label": "5.0", "projects": 0},
                     {"value": "4.2", "label": "4.2", "projects": MINIMUM_PROJECTS},
+                    {"value": "4.1", "label": "4.1", "projects": 0},
+                    {"value": "4.0", "label": "4.0", "projects": 0},
+                    {"value": "3.2", "label": "3.2", "projects": 0},
+                    {"value": "3.1", "label": "3.1", "projects": 0},
+                    {"value": "3.0", "label": "3.0", "projects": 0},
+                    {"value": "2.2", "label": "2.2", "projects": 0},
                 ],
                 "other": 0,
             },
@@ -93,7 +99,20 @@ class StatsTests(TestCase):
         self.assertEqual(stats["projects"], 2 * MINIMUM_PROJECTS + 1)
         self.assertEqual(
             [row["value"] for row in stats["distributions"]["django"]["values"]],
-            ["6.1", "6.0", "5.2", "5.1", "5.0", "4.2"],
+            [
+                "6.1",
+                "6.0",
+                "5.2",
+                "5.1",
+                "5.0",
+                "4.2",
+                "4.1",
+                "4.0",
+                "3.2",
+                "3.1",
+                "3.0",
+                "2.2",
+            ],
         )
         self.assertEqual(stats["distributions"]["django"]["other"], 1)
         self.assertEqual(
@@ -164,6 +183,12 @@ class StatsTests(TestCase):
                 "5.1": [0, 0, MINIMUM_PROJECTS, 0, 0],
                 "5.0": [0, 0, 0, 0, 0],
                 "4.2": [0, 0, MINIMUM_PROJECTS, 0, 0],
+                "4.1": [0, 0, 0, 0, 0],
+                "4.0": [0, 0, 0, 0, 0],
+                "3.2": [0, 0, 0, 0, 0],
+                "3.1": [0, 0, 0, 0, 0],
+                "3.0": [0, 0, 0, 0, 0],
+                "2.2": [0, 0, 0, 0, 0],
                 None: [0, 0, 0, 0, 1],
             },
         )
@@ -196,10 +221,10 @@ class StatsTests(TestCase):
     def test_withheld(self):
         """Fewer than the minimum projects returns no figures at all."""
         self.assertEqual(
-            self.get_stats("?django=3.2"),
+            self.get_stats("?django=2.1"),
             {
                 "minimum_projects": MINIMUM_PROJECTS,
-                "filters": {"django": "3.2"},
+                "filters": {"django": "2.1"},
                 "withheld": True,
                 "projects": None,
                 "distributions": {},
@@ -208,10 +233,10 @@ class StatsTests(TestCase):
             },
         )
         self.assertEqual(
-            self.get_stats("?django=3.2", url="api-stats-keys"),
+            self.get_stats("?django=2.1", url="api-stats-keys"),
             {
                 "minimum_projects": MINIMUM_PROJECTS,
-                "filters": {"django": "3.2"},
+                "filters": {"django": "2.1"},
                 "withheld": True,
                 "projects": None,
                 "keys": [],
@@ -261,7 +286,7 @@ class StatsTests(TestCase):
             filtered,
         )
         self.assertNotIn("django.db.models.F", {row["key"] for row in filtered})
-        self.assertTrue(self.get_stats("?django=3.2", url="api-stats-keys")["withheld"])
+        self.assertTrue(self.get_stats("?django=2.1", url="api-stats-keys")["withheld"])
 
     def test_invalid_queries(self):
         for query in [
@@ -341,7 +366,7 @@ class StatsTests(TestCase):
             response, '<a href="/stats/?django=5.1&amp;python=3.12">10</a>'
         )
         self.assertContains(
-            self.client.get(f"{reverse('stats')}?django=3.2"),
+            self.client.get(f"{reverse('stats')}?django=2.1"),
             "so the results are withheld",
         )
 

@@ -23,7 +23,20 @@ MAX_KEYS = 10
 FILTER_FIELDS = ("django", "key", "python", "size")
 
 # Older versions are grouped into ``other``, and newer ones appear as soon as a project reports them.
-DJANGO_VERSIONS = ("4.2", "5.0", "5.1", "5.2", "6.0", "6.1")
+DJANGO_VERSIONS = (
+    "2.2",
+    "3.0",
+    "3.1",
+    "3.2",
+    "4.0",
+    "4.1",
+    "4.2",
+    "5.0",
+    "5.1",
+    "5.2",
+    "6.0",
+    "6.1",
+)
 PYTHON_VERSIONS = ("3.11", "3.12", "3.13", "3.14")
 
 _MINOR_VERSION_PATTERN = r"^[1-9]\d?\.(0|[1-9]\d{0,2})$"
