@@ -151,6 +151,24 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 
+# Containers log to stderr, where the host collects them.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "{asctime} {levelname} {name} {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.environ.get("DJANGO_PROBE_LOG_LEVEL", "INFO"),
+    },
+    # Replaces Django's own handlers, which would print debug output twice.
+    "loggers": {"django": {"handlers": [], "level": "INFO"}},
+}
+
 LOGIN_REDIRECT_URL = "/account/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_SIGNUP_REDIRECT_URL = "/account/"
