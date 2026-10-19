@@ -26,6 +26,13 @@ test-all *ARGS:
 
 # Regenerate the vendored vocabularies for every supported Django version
 vendor-django-vocabularies:
+    # Django 3.1 and older import distutils, which Python 3.12 removed
+    uv run --isolated --no-project --python 3.9 --refresh-package django --with 'Django>=2.2,<2.3' python scripts/vendor_django_vocabularies.py
+    uv run --isolated --no-project --python 3.9 --refresh-package django --with 'Django>=3.0,<3.1' python scripts/vendor_django_vocabularies.py
+    uv run --isolated --no-project --python 3.9 --refresh-package django --with 'Django>=3.1,<3.2' python scripts/vendor_django_vocabularies.py
+    uv run --isolated --no-project --refresh-package django --with 'Django>=3.2,<3.3' python scripts/vendor_django_vocabularies.py
+    uv run --isolated --no-project --refresh-package django --with 'Django>=4.0,<4.1' python scripts/vendor_django_vocabularies.py
+    uv run --isolated --no-project --refresh-package django --with 'Django>=4.1,<4.2' python scripts/vendor_django_vocabularies.py
     uv run --isolated --no-project --refresh-package django --with 'Django>=4.2,<4.3' python scripts/vendor_django_vocabularies.py
     uv run --isolated --no-project --refresh-package django --with 'Django>=5.0,<5.1' python scripts/vendor_django_vocabularies.py
     uv run --isolated --no-project --refresh-package django --with 'Django>=5.1,<5.2' python scripts/vendor_django_vocabularies.py

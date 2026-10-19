@@ -38,7 +38,21 @@ class DjangoAPICatalogTests(TestCase):
     def test_catalog_versions(self):
         self.assertEqual(
             DJANGO_API_VERSIONS,
-            ("4.2", "5.0", "5.1", "5.2", "6.0", "6.1", "6.2"),
+            (
+                "2.2",
+                "3.0",
+                "3.1",
+                "3.2",
+                "4.0",
+                "4.1",
+                "4.2",
+                "5.0",
+                "5.1",
+                "5.2",
+                "6.0",
+                "6.1",
+                "6.2",
+            ),
         )
 
     def test_combined_catalog(self):
@@ -57,8 +71,10 @@ class DjangoAPICatalogTests(TestCase):
         )
 
         self.assertEqual(names, expected)
-        self.assertEqual(len(names), 44363)
+        self.assertEqual(len(names), 47819)
         self.assertTrue(is_django_api_name("django.shortcuts.render"))
+        # Removed in Django 4.0, but still used by projects on older releases.
+        self.assertTrue(is_django_api_name("django.conf.urls.url"))
         self.assertFalse(is_django_api_name("django.my_random.offensive_statement"))
 
     def test_common_usage_paths(self):
@@ -77,12 +93,18 @@ class DjangoAPICatalogTests(TestCase):
         self.assertEqual(
             {version: len(_read_api_names(version)) for version in DJANGO_API_VERSIONS},
             {
+                "2.2": 33296,
+                "3.0": 33121,
+                "3.1": 34233,
+                "3.2": 35090,
+                "4.0": 35920,
+                "4.1": 37044,
                 "4.2": 38325,
                 "5.0": 38978,
                 "5.1": 39413,
                 "5.2": 40552,
                 "6.0": 41326,
                 "6.1": 42166,
-                "6.2": 42271,
+                "6.2": 42272,
             },
         )

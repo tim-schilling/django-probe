@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bundled setting names for Django 2.2 through 4.1.
+
 ## 0.4.1
 
 - Granted `contents: read` in the reusable uv workflow so checkout works in private

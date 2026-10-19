@@ -135,7 +135,21 @@ class ScanPathTests(TestCase):
         """The catalog records each supported and development feature release."""
         self.assertEqual(
             DJANGO_SETTINGS_VERSIONS,
-            ("4.2", "5.0", "5.1", "5.2", "6.0", "6.1", "6.2"),
+            (
+                "2.2",
+                "3.0",
+                "3.1",
+                "3.2",
+                "4.0",
+                "4.1",
+                "4.2",
+                "5.0",
+                "5.1",
+                "5.2",
+                "6.0",
+                "6.1",
+                "6.2",
+            ),
         )
         self.assertEqual(
             {
@@ -143,6 +157,12 @@ class ScanPathTests(TestCase):
                 for version, names in DJANGO_SETTING_NAMES_BY_VERSION.items()
             },
             {
+                "2.2": 153,
+                "3.0": 156,
+                "3.1": 158,
+                "3.2": 160,
+                "4.0": 159,
+                "4.1": 161,
                 "4.2": 162,
                 "5.0": 160,
                 "5.1": 158,
@@ -160,6 +180,37 @@ class ScanPathTests(TestCase):
     def test_catalog_changes(self):
         """Each release's catalog reflects its exact additions and removals."""
         changes = {
+            ("2.2", "3.0"): (
+                {
+                    "LANGUAGE_COOKIE_HTTPONLY",
+                    "LANGUAGE_COOKIE_SAMESITE",
+                    "LANGUAGE_COOKIE_SECURE",
+                    "SECURE_REFERRER_POLICY",
+                },
+                {"DEFAULT_CONTENT_TYPE"},
+            ),
+            ("3.0", "3.1"): (
+                {
+                    "DEFAULT_EXCEPTION_REPORTER",
+                    "DEFAULT_HASHING_ALGORITHM",
+                    "PASSWORD_RESET_TIMEOUT",
+                },
+                {"FILE_CHARSET"},
+            ),
+            ("3.1", "3.2"): (
+                {"DATA_UPLOAD_MAX_NUMBER_FILES", "DEFAULT_AUTO_FIELD"},
+                set(),
+            ),
+            ("3.2", "4.0"): (
+                {"SECURE_CROSS_ORIGIN_OPENER_POLICY", "USE_DEPRECATED_PYTZ"},
+                {
+                    "DEFAULT_HASHING_ALGORITHM",
+                    "PASSWORD_RESET_TIMEOUT_DAYS",
+                    "SECURE_BROWSER_XSS_FILTER",
+                },
+            ),
+            ("4.0", "4.1"): ({"CSRF_COOKIE_MASKED", "SECRET_KEY_FALLBACKS"}, set()),
+            ("4.1", "4.2"): ({"STORAGES"}, set()),
             ("4.2", "5.0"): (
                 {"FORMS_URLFIELD_ASSUME_HTTPS"},
                 {"CSRF_COOKIE_MASKED", "USE_DEPRECATED_PYTZ", "USE_L10N"},

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ast
 import gzip
+import io
 import json
 from dataclasses import dataclass, field
 from importlib import metadata
@@ -312,7 +313,13 @@ def build_settings_vocabulary(root: Path) -> frozenset[str]:
 def _write_compressed_json(path: Path, payload: dict[str, object]) -> None:
     """Write deterministic compressed JSON for an API vocabulary."""
     contents = (json.dumps(payload, separators=(",", ":")) + "\n").encode()
-    path.write_bytes(gzip.compress(contents, compresslevel=9, mtime=0))
+    # gzip.compress sets the header's OS byte differently across Python versions,
+    # and the catalogs are written by several interpreters. GzipFile always
+    # writes the same header.
+    buffer = io.BytesIO()
+    with gzip.GzipFile(fileobj=buffer, mode="wb", compresslevel=9, mtime=0) as file:
+        file.write(contents)
+    path.write_bytes(buffer.getvalue())
 
 
 def _write_combined_api_vocabulary(output_dir: Path) -> int:
