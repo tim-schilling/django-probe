@@ -27,7 +27,6 @@ DJANGO_VERSIONS = ("4.2", "5.0", "5.1", "5.2", "6.0", "6.1")
 PYTHON_VERSIONS = ("3.11", "3.12", "3.13", "3.14")
 
 _MINOR_VERSION_PATTERN = r"^[1-9]\d?\.(0|[1-9]\d{0,2})$"
-_USAGE_PATTERN = r"^django(\.[A-Za-z_][A-Za-z0-9_]*){1,10}$"
 
 
 class KeySource(StrEnum):
@@ -318,9 +317,11 @@ class Cohort:
         ``DJANGO_SETTING_NAMES`` and the vendored Django API vocabulary are
         returned, since anything else is untrusted or may be private to a project.
         """
-        cohort_sql, params = self.queryset.values(
-            "django_settings", "usage"
-        ).query.sql_with_params()
+        cohort_sql, params = (
+            self.queryset.values("django_settings", "usage")
+            .order_by()
+            .query.sql_with_params()
+        )
         sql = f"""
             SELECT
                 found.key,
@@ -334,7 +335,7 @@ class Cohort:
                 UNION ALL
                 SELECT key, %s::text AS source
                 FROM jsonb_object_keys(cohort.usage) AS key
-                WHERE key ~ %s
+                WHERE key LIKE 'django.%%'
             ) AS found
             WHERE %s::text IS NULL OR found.source = %s
             GROUP BY found.key, found.source
@@ -348,7 +349,6 @@ class Cohort:
                     KeySource.SETTING,
                     sorted(DJANGO_SETTING_NAMES),
                     KeySource.USAGE,
-                    _USAGE_PATTERN,
                     source,
                     source,
                 ],
