@@ -16,6 +16,11 @@ PyPI. Where a private index can't be recognized, they can be excluded by using
 `dependencies_exclude`. See
 [Configuration](configuration.md#what-gets-excluded) for details.
 
+Python metadata includes the explicit version supplied to Probe or the configured
+version from `.python-version`.
+Only the validated version value is shared;
+interpreter paths and file contents are not shared.
+
 ## Highest privacy settings
 
 The following is the configuration for maximizing your project's privacy while still

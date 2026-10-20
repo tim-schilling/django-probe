@@ -25,7 +25,7 @@ class ValidationTests(IngestTestCase):
         self.assertRejected(payload(schema_version=99))
 
     def test_schema_version_1_is_still_accepted(self):
-        body = payload(schema_version=1)
+        body = payload(schema_version=1, python_version="3.12.3")
         del body["dependencies_source"]
 
         response = self.post(body)
@@ -40,6 +40,41 @@ class ValidationTests(IngestTestCase):
 
         self.assertEqual(response.status_code, 201, response.content)
         self.assertEqual(Submission.objects.get().dependencies_source, "poetry")
+
+    def test_project_python_is_stored(self):
+        response = self.post(payload(python_version="3.15"))
+
+        self.assertEqual(response.status_code, 201, response.content)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.python_version, "3.15")
+
+    def test_missing_project_python_is_unknown(self):
+        response = self.post(payload())
+
+        self.assertEqual(response.status_code, 201, response.content)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.python_version, "")
+
+    def test_legacy_python_version_is_not_a_project_version(self):
+        for schema_version in (1, 2):
+            with self.subTest(schema_version=schema_version):
+                response = self.post(
+                    payload(
+                        schema_version=schema_version,
+                        python_version="3.11.9",
+                    )
+                )
+                self.assertEqual(response.status_code, 201, response.content)
+                submission = Submission.objects.with_minor_versions().latest(
+                    "created_at"
+                )
+                self.assertEqual(submission.python_version, "3.11.9")
+                self.assertIsNone(submission.python_minor)
+
+    def test_invalid_python_version(self):
+        for value in (315, [], "3" * 129):
+            with self.subTest(value=value):
+                self.assertRejected(payload(python_version=value))
 
     def test_non_string_dependencies_source(self):
         self.assertRejected(payload(dependencies_source=["uv"]))

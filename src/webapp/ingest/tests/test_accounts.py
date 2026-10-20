@@ -287,7 +287,11 @@ class AccountExportTests(TestCase):
         self.assertIsNotNone(identity["connected_at"])
 
     def test_includes_organizations_projects_and_submissions(self):
-        submission = SubmissionFactory(project=self.project, django_version="5.2.1")
+        submission = SubmissionFactory(
+            project=self.project,
+            django_version="5.2.1",
+            python_version="3.15",
+        )
 
         document = self.export()
 

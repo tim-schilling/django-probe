@@ -84,7 +84,7 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
         model = Submission
 
     project = None
-    schema_version = 1
+    schema_version = 3
     client_version = "0.2.0"
     python_version = "3.12.3"
     django_version = "5.1.2"
