@@ -10,7 +10,7 @@ from django.utils import timezone
 from django_probe.settings import DJANGO_SETTING_NAMES_BY_VERSION
 from ingest.management.commands.seed_data import USAGE_NAMES
 from ingest.models import CliCredential, Submission
-from ingest.stats import POPULAR_KEYS_LIMIT, Cohort, KeySource
+from ingest.stats import POPULAR_LIMIT, Cohort, KeySource
 from ingest.tests.factories import (
     CliCredentialFactory,
     OrganizationFactory,
@@ -154,5 +154,5 @@ class SeedDataTests(TestCase):
             )
 
         popular = Cohort({}).overview()["popular"]
-        self.assertEqual(len(popular[KeySource.SETTING]), POPULAR_KEYS_LIMIT)
-        self.assertEqual(len(popular[KeySource.USAGE]), POPULAR_KEYS_LIMIT)
+        self.assertEqual(len(popular[KeySource.SETTING]), POPULAR_LIMIT)
+        self.assertEqual(len(popular[KeySource.USAGE]), POPULAR_LIMIT)

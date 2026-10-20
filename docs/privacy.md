@@ -65,11 +65,18 @@ If you want to see the code, please see [`payload.py`](https://github.com/tim-sc
 
 ## Public aggregate data
 
-Submissions inform aggregated, filterable statistics (e.g. by Django version,
-Python version, or the settings and Django APIs a project uses) that anyone can
-view. This view never identifies which project or organization a figure came
-from, and there is no way to filter by date or otherwise reconstruct a history for
-a single source.
+Submissions inform aggregated statistics that anyone can view: Django and Python
+versions, project size, the dependencies, settings and Django APIs a project
+uses, and version combinations. Django and Python versions, project size,
+dependencies, and the settings and Django APIs are filterable. This view never
+identifies which project or organization a figure came from, and there is no way
+to filter by date or otherwise reconstruct a history for a single source.
+
+Dependency names are published from what projects submit. To keep a private
+package out, add it to `dependencies_exclude`. Before a name appears in the
+stats, the service asks PyPI whether the package exists and reads its
+classifiers. That request carries only the package name, and the
+`Framework :: Django` classifier decides which list the package lands in.
 
 Any filter combination narrow enough to describe fewer than a set minimum number
 of projects is withheld rather than shown, so a filtered result can't be used to

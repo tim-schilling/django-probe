@@ -7,8 +7,10 @@ from django.test import Client, TestCase
 from django.urls import get_resolver, reverse
 from django.utils import timezone
 
+from ingest import stats as stats_module
 from ingest.models import Submission
-from ingest.stats import MINIMUM_PROJECTS, StatsFilterForm
+from ingest.package_index import PackageInfo
+from ingest.stats import MINIMUM_PROJECTS, POPULAR_LIMIT, StatsFilterForm
 from ingest.tests.factories import ProjectFactory, SubmissionFactory, UserFactory
 
 
@@ -33,6 +35,18 @@ class StatsTests(TestCase):
                 "django.my_random.offensive_statement": 1,
                 "acme.billing.charge": 1,
             },
+            dependencies={
+                "django": "5.1.2",
+                "asgiref": "3.8.1",
+                "backports-zoneinfo": "0.2.1",
+                "pytz": "2024.1",
+                "sqlparse": "0.5.0",
+                "tzdata": "2024.1",
+                "celery": "5.4.0",
+                "psycopg": "3.2.0",
+                # Not a package name, so it is never published.
+                "not a package name": "1.0",
+            },
         )
         submit_projects(
             MINIMUM_PROJECTS,
@@ -40,6 +54,12 @@ class StatsTests(TestCase):
             python_version="3.12.1",
             files_scanned=300,
             django_settings={"CACHES": 1, "TEMPLATES": 1},
+            dependencies={
+                "django": "4.2.16",
+                "asgiref": "3.7.2",
+                "celery": "5.3.6",
+                "djangorestframework": "3.15.0",
+            },
         )
         submit_projects(
             1,
@@ -49,6 +69,7 @@ class StatsTests(TestCase):
             # Stored keys are untrusted; malformed ones are never published.
             django_settings={"CACHE_MIDDLEWARE_SECONDS": 1, "'; DROP TABLE x; --": 1},
             usage={"django.<script>": 1, "django.%s": 1},
+            dependencies={"django": "2.1.0", "sentry-sdk": "2.0.0"},
         )
         # Anonymous submissions can't be deduplicated, so they're never counted.
         SubmissionFactory.create_batch(MINIMUM_PROJECTS, django_version="6.0")
@@ -167,6 +188,21 @@ class StatsTests(TestCase):
                 ],
             },
         )
+        self.assertEqual(
+            stats["dependencies"],
+            {
+                "django": [
+                    {
+                        "name": "djangorestframework",
+                        "projects": MINIMUM_PROJECTS,
+                    },
+                ],
+                "other": [
+                    {"name": "celery", "projects": 2 * MINIMUM_PROJECTS},
+                    {"name": "psycopg", "projects": MINIMUM_PROJECTS},
+                ],
+            },
+        )
         self.assertNotIn("keys", stats)
 
         matrix = stats["django_python"]
@@ -193,6 +229,81 @@ class StatsTests(TestCase):
             },
         )
 
+    def test_dependencies_count_projects_once(self):
+        """Aliases cannot make one project reach the minimum on its own."""
+        submit_projects(
+            1,
+            dependencies={
+                "django": "5.1.2",
+                "alias-package": "1.0",
+                "alias_package": "1.0",
+                "alias.package": "1.0",
+                "ALIAS-PACKAGE": "1.0",
+                "Alias_Package": "1.0",
+                "alias..package": "1.0",
+                "alias__package": "1.0",
+                "alias.-package": "1.0",
+                "alias_.package": "1.0",
+                "alias-._package": "1.0",
+            },
+        )
+
+        names = {
+            row["name"]
+            for group in self.get_stats()["dependencies"].values()
+            for row in group
+        }
+
+        self.assertNotIn("alias-package", names)
+
+    def test_dependencies_normalize_names(self):
+        """Spellings of one package are counted together."""
+        for spelling in ["alias-package"] * 5 + ["Alias.Package"] * 5:
+            submit_projects(
+                1,
+                dependencies={"django": "5.1.2", spelling: "1.0"},
+            )
+
+        self.assertIn(
+            {"name": "alias-package", "projects": MINIMUM_PROJECTS},
+            self.get_stats()["dependencies"]["other"],
+        )
+
+    def test_dependencies_replace_unindexed(self):
+        """An unknown name does not take a slot from the ten."""
+        submit_projects(
+            MINIMUM_PROJECTS,
+            dependencies={f"aaa-{letter}": "1.0" for letter in "abcdefghijk"},
+        )
+
+        def lookup(name: str) -> PackageInfo | None:
+            return None if name == "aaa-a" else PackageInfo(is_django=False)
+
+        original = stats_module.package_info
+        self.addCleanup(setattr, stats_module, "package_info", original)
+        stats_module.package_info = lookup
+
+        self.assertEqual(
+            [row["name"] for row in self.get_stats()["dependencies"]["other"]],
+            ["celery", *(f"aaa-{letter}" for letter in "bcdefghij")],
+        )
+
+    def test_dependencies_limit(self):
+        """The ten most used dependencies are listed, highest count first."""
+        for number in range(POPULAR_LIMIT):
+            submit_projects(
+                MINIMUM_PROJECTS + number,
+                dependencies={"django": "5.1.2", f"package-{number}": "1.0"},
+            )
+
+        self.assertEqual(
+            [row["name"] for row in self.get_stats()["dependencies"]["other"]],
+            [
+                "celery",
+                *(f"package-{number}" for number in range(POPULAR_LIMIT - 1, 0, -1)),
+            ],
+        )
+
     def test_filters(self):
         self.assertEqual(self.get_stats("?django=5.1")["projects"], MINIMUM_PROJECTS)
         self.assertEqual(
@@ -204,6 +315,14 @@ class StatsTests(TestCase):
         self.assertEqual(
             self.get_stats("?key=django.db.models.F")["projects"], MINIMUM_PROJECTS
         )
+        self.assertEqual(
+            self.get_stats("?dependency=celery")["projects"], 2 * MINIMUM_PROJECTS
+        )
+        self.assertEqual(
+            self.get_stats("?dependency=djangorestframework")["projects"],
+            MINIMUM_PROJECTS,
+        )
+        self.assertTrue(self.get_stats("?dependency=sentry-sdk")["withheld"])
 
     def test_chained_keys(self):
         """Every key must be used, so each one narrows the projects further."""
@@ -230,6 +349,7 @@ class StatsTests(TestCase):
                 "distributions": {},
                 "django_python": {},
                 "popular": {},
+                "dependencies": {},
             },
         )
         self.assertEqual(
@@ -295,6 +415,9 @@ class StatsTests(TestCase):
             "?django=5",
             "?django=05.1",
             "?size=huge",
+            "?dependency=Celery",
+            "?dependency=a%20b",
+            "?dependency=celery&dependency=django",
             "?key=a%20b",
             "?key=caches",
             "?key=ACME_FLAG",
@@ -324,6 +447,11 @@ class StatsTests(TestCase):
                     f"{reverse(url)}?size=small&python=&key=CACHES&django=5.1"
                 )
                 self.assertRedirects(response, expected, fetch_redirect_response=False)
+        self.assertRedirects(
+            self.client.get(f"{reverse('stats')}?django=5.1&dependency=celery"),
+            "/stats/?dependency=celery&django=5.1",
+            fetch_redirect_response=False,
+        )
         self.assertRedirects(
             self.client.get(f"{reverse('stats')}?python="),
             "/stats/",
@@ -362,6 +490,12 @@ class StatsTests(TestCase):
             response, '<form action="/stats/" class="stats-search" hidden>'
         )
         self.assertContains(response, 'id="django-python"')
+        self.assertContains(response, "<h2>Most used dependencies</h2>", html=True)
+        self.assertContains(response, 'id="dependencies-tab-django"')
+        self.assertContains(response, 'id="dependencies-tab-other"')
+        self.assertContains(response, 'href="/stats/?dependency=djangorestframework"')
+        self.assertContains(response, 'href="/stats/?dependency=celery"')
+        self.assertNotContains(response, "<code>django</code>")
         self.assertContains(
             response, '<a href="/stats/?django=5.1&amp;python=3.12">10</a>'
         )
@@ -369,6 +503,16 @@ class StatsTests(TestCase):
             self.client.get(f"{reverse('stats')}?django=2.1"),
             "so the results are withheld",
         )
+
+        response = self.client.get(f"{reverse('stats')}?dependency=celery")
+
+        self.assertContains(response, "Depends on <code>celery</code>")
+        self.assertContains(response, 'href="/stats/">(remove)</a>')
+        self.assertContains(
+            response, '<input type="hidden" name="dependency" value="celery">'
+        )
+        self.assertContains(response, 'href="/stats/?dependency=djangorestframework"')
+        self.assertNotContains(response, 'href="/stats/?dependency=celery"')
 
         response = self.client.get(f"{reverse('stats')}?key=CACHES&key=TEMPLATES")
 
@@ -449,3 +593,21 @@ class StatsTests(TestCase):
                     self.assertEqual(response.cookies, {})
                     self.assertNotContains(response, "Sign out")
                     self.assertNotContains(response, "csrfmiddlewaretoken")
+
+
+class EmptyDependenciesTests(TestCase):
+    """A cohort without dependencies still gets an empty list."""
+
+    @classmethod
+    def setUpTestData(cls):
+        submit_projects(MINIMUM_PROJECTS, dependencies={})
+
+    def test_no_dependencies(self):
+        """The section is left out when there are no groups to show."""
+        response = self.client.get(reverse("stats"))
+
+        self.assertNotContains(response, 'id="dependencies"')
+        self.assertEqual(
+            self.client.get(reverse("api-stats")).json()["dependencies"],
+            {"django": [], "other": []},
+        )

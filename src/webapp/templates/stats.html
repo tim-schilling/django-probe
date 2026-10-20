@@ -42,6 +42,25 @@
   {% include "includes/stats_keys_table.html" with keys=summary.popular.usage %}
   <p><a href="{% url 'stats-apis' %}{% stats_query filters %}">Browse all Django APIs</a></p>
 </section>
+
+{% if summary.dependencies.django or summary.dependencies.other %}
+<section id="dependencies">
+  <h2>Most used dependencies</h2>
+  <div class="tabs" data-tab-group="stats-dependencies" data-tab-ephemeral>
+    <div class="tabs__list" role="tablist" aria-label="Dependency breakdown">
+      <button type="button" class="tabs__tab" role="tab" id="dependencies-tab-django" aria-controls="django-packages" aria-selected="true" data-tab-value="django">Django packages</button>
+      <button type="button" class="tabs__tab" role="tab" id="dependencies-tab-other" aria-controls="other-packages" aria-selected="false" tabindex="-1" data-tab-value="other">Other packages</button>
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="django-packages" aria-labelledby="dependencies-tab-django">
+      {% include "includes/stats_dependencies_table.html" with dependencies=summary.dependencies.django %}
+    </div>
+    <div class="tabs__panel" role="tabpanel" id="other-packages" aria-labelledby="dependencies-tab-other" hidden>
+      {% include "includes/stats_dependencies_table.html" with dependencies=summary.dependencies.other %}
+    </div>
+  </div>
+  <p class="muted">Only the ten most used are listed. Packages used by fewer than {{ summary.minimum_projects }} projects are hidden, as are Django and the packages it depends on. Django packages are those with PyPI's Framework :: Django classifier.</p>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block json_url %}{% url 'api-stats' %}{% endblock %}
