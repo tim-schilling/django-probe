@@ -14,7 +14,7 @@ from django_probe import collect, dependencies
 from django_probe.config import DependencyMode
 from django_probe.scan import scan_path
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 2
 
 
 class SubmissionPayload(TypedDict):

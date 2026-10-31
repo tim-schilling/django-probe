@@ -368,11 +368,7 @@ class SubmissionQuerySet(models.QuerySet["Submission"]):
         """Annotate ``django_minor`` and ``python_minor``."""
         return self.annotate(
             django_minor=MinorVersion("django_version"),
-            python_minor=Case(
-                When(schema_version__gte=3, then=MinorVersion("python_version")),
-                default=Value(None),
-                output_field=CharField(),
-            ),
+            python_minor=MinorVersion("python_version"),
         )
 
     def with_size(self) -> Self:

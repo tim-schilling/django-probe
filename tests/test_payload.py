@@ -28,7 +28,7 @@ class PayloadTests(TestCase):
 
         payload = build_payload(self.root)
 
-        self.assertEqual(payload["schema_version"], 3)
+        self.assertEqual(payload["schema_version"], 2)
         self.assertEqual(payload["python_version"], "")
         self.assertEqual(payload["usage_packages"], ["django"])
         self.assertEqual(

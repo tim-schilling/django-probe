@@ -87,7 +87,6 @@ class SubmissionDetailTests(IngestTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "probe:queryset_filter")
-        self.assertContains(response, "unknown", count=1)
 
     def test_project_python_is_displayed(self):
         self.submission.python_version = "3.15"
@@ -100,10 +99,9 @@ class SubmissionDetailTests(IngestTestCase):
 
         self.assertContains(response, "<dt>Python</dt><dd>3.15</dd>", html=True)
 
-    def test_legacy_python_version_is_not_displayed_as_project_python(self):
-        self.submission.schema_version = 2
-        self.submission.python_version = "3.12.3"
-        self.submission.save(update_fields=["schema_version", "python_version"])
+    def test_missing_python_is_unknown(self):
+        self.submission.python_version = ""
+        self.submission.save(update_fields=["python_version"])
         self.client.force_login(self.member)
 
         response = self.client.get(
@@ -111,7 +109,6 @@ class SubmissionDetailTests(IngestTestCase):
         )
 
         self.assertContains(response, "<dt>Python</dt><dd>unknown</dd>", html=True)
-        self.assertNotContains(response, "3.12.3")
 
     def test_package_usage_is_displayed(self):
         self.submission.usage_packages = ["django"]
