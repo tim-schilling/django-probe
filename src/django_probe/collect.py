@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
+import warnings
 from collections.abc import Sequence
 from importlib import metadata
 from pathlib import Path
@@ -94,6 +95,12 @@ def python_version(root: Path, *, override: str | None = None) -> str:
             (root / ".python-version").read_text(encoding="utf-8")
         )
     except (OSError, UnicodeDecodeError, ValueError):
+        warnings.warn(
+            "no valid Python version found, reporting it as unknown. "
+            "Pass --python-version or add a .python-version file.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         return ""
 
 

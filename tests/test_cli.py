@@ -40,6 +40,7 @@ class CliTests(TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
 
     def run_cli(self, argv: list[str]) -> tuple[int, str]:
         buffer = io.StringIO()
@@ -64,6 +65,14 @@ class CliTests(TestCase):
                 )
                 self.assertEqual(code, 0)
                 self.assertEqual(json.loads(output)["python_version"], "3.15.0")
+
+    def test_missing_python_version_warns(self):
+        (self.root / ".python-version").unlink()
+        with self.assertWarnsRegex(RuntimeWarning, "no valid Python version"):
+            code, output = self.run_cli(["scan", str(self.root)])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["python_version"], "")
 
     def test_invalid_python_version_stops_before_scanning(self):
         for command in ("scan", "submit"):
@@ -178,6 +187,7 @@ class InsecureServerUrlCliTests(TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
 
     def run_cli(self, argv: list[str]) -> tuple[int, str]:
         buffer = io.StringIO()

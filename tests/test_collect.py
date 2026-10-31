@@ -124,8 +124,12 @@ class PythonVersionTests(TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
 
+    def assertUnknown(self):
+        with self.assertWarnsRegex(RuntimeWarning, "no valid Python version"):
+            self.assertEqual(python_version(self.root), "")
+
     def test_missing_version(self):
-        self.assertEqual(python_version(self.root), "")
+        self.assertUnknown()
 
     def test_explicit_version_overrides_file(self):
         (self.root / ".python-version").write_text("3.14", encoding="utf-8")
@@ -148,12 +152,12 @@ class PythonVersionTests(TestCase):
         for version in ("system", "/private/python", "3.14\n3.15", ""):
             with self.subTest(version=version):
                 (self.root / ".python-version").write_text(version, encoding="utf-8")
-                self.assertEqual(python_version(self.root), "")
+                self.assertUnknown()
 
     def test_invalid_utf8(self):
         (self.root / ".python-version").write_bytes(b"\xff")
-        self.assertEqual(python_version(self.root), "")
+        self.assertUnknown()
 
     def test_unreadable_version(self):
         with mock.patch.object(Path, "read_text", side_effect=PermissionError):
-            self.assertEqual(python_version(self.root), "")
+            self.assertUnknown()

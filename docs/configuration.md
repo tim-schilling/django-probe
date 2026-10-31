@@ -10,7 +10,7 @@ Probe reports the project's Python version from the first of these that applies:
 1. The `--python-version` argument to `scan` or `submit`, such as
    `--python-version 3.15.0`.
 2. The `.python-version` file in the project root.
-3. The default, which is unknown.
+3. The default, which is unknown. Probe logs a warning when it uses this.
 
 ## Package usage
 

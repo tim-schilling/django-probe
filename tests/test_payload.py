@@ -21,6 +21,7 @@ class PayloadTests(TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
 
     def test_shape(self):
         (self.root / "app").mkdir()
@@ -29,7 +30,7 @@ class PayloadTests(TestCase):
         payload = build_payload(self.root)
 
         self.assertEqual(payload["schema_version"], 2)
-        self.assertEqual(payload["python_version"], "")
+        self.assertEqual(payload["python_version"], "3.15")
         self.assertEqual(payload["usage_packages"], ["django"])
         self.assertEqual(
             payload["usage"],
