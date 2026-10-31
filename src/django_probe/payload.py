@@ -12,6 +12,7 @@ from typing import TypedDict
 
 from django_probe import collect, dependencies
 from django_probe.config import DependencyMode
+from django_probe.python_version import project_python_version
 from django_probe.scan import scan_path
 
 SCHEMA_VERSION = 2
@@ -56,7 +57,7 @@ def build_payload(
     return {
         "schema_version": SCHEMA_VERSION,
         "client_version": collect.client_version(),
-        "python_version": collect.python_version(root, override=python_version),
+        "python_version": project_python_version(root, override=python_version),
         "django_version": django_version,
         "files_scanned": result.files_scanned,
         "probe_sources": collect.probe_sources(),

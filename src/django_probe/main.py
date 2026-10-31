@@ -11,7 +11,6 @@ import urllib.parse
 from collections.abc import Sequence
 from pathlib import Path
 
-from django_probe.collect import parse_python_version
 from django_probe.config import (
     dependency_exclude_patterns,
     dependency_mode,
@@ -22,6 +21,7 @@ from django_probe.init import init
 from django_probe.login import login
 from django_probe.logout import logout
 from django_probe.payload import build_payload
+from django_probe.python_version import parse_python_version
 from django_probe.submit import SubmitError, submit
 
 DEFAULT_SERVER = "https://djangoprobe.org"
