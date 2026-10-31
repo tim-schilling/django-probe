@@ -81,15 +81,14 @@ def probe_sources() -> dict[str, str]:
 
 def parse_python_version(value: str) -> str:
     version = value.strip()
-    if not version or (len(version) <= 128 and PYTHON_VERSION.fullmatch(version)):
+    if PYTHON_VERSION.fullmatch(version):
         return version
     raise ValueError("expected a numeric Python version, such as 3.15 or 3.15.0")
 
 
-def python_version(root: Path, *, override: str = "") -> str:
-    override = parse_python_version(override)
+def python_version(root: Path, *, override: str | None = None) -> str:
     if override:
-        return override
+        return parse_python_version(override)
     try:
         return parse_python_version(
             (root / ".python-version").read_text(encoding="utf-8")

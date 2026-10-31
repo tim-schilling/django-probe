@@ -131,10 +131,6 @@ class PythonVersionTests(TestCase):
         (self.root / ".python-version").write_text("3.14", encoding="utf-8")
         self.assertEqual(python_version(self.root, override="3.15.0"), "3.15.0")
 
-    def test_empty_override_uses_file(self):
-        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
-        self.assertEqual(python_version(self.root, override=""), "3.15")
-
     def test_invalid_override_does_not_fall_back(self):
         (self.root / ".python-version").write_text("3.15", encoding="utf-8")
         with self.assertRaises(ValueError):
@@ -149,13 +145,7 @@ class PythonVersionTests(TestCase):
                 self.assertEqual(python_version(self.root), version)
 
     def test_invalid_version(self):
-        for version in (
-            "system",
-            "/private/python",
-            "3.14\n3.15",
-            "",
-            "3." + "1" * 128,
-        ):
+        for version in ("system", "/private/python", "3.14\n3.15", ""):
             with self.subTest(version=version):
                 (self.root / ".python-version").write_text(version, encoding="utf-8")
                 self.assertEqual(python_version(self.root), "")

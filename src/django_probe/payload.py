@@ -41,7 +41,7 @@ class SubmissionPayload(TypedDict):
 def build_payload(
     root: Path,
     *,
-    python_version: str = "",
+    python_version: str | None = None,
     dependency_mode: DependencyMode = "versions",
     dependency_exclude_patterns: Sequence[str] = (),
 ) -> SubmissionPayload:

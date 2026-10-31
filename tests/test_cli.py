@@ -65,12 +65,6 @@ class CliTests(TestCase):
                 self.assertEqual(code, 0)
                 self.assertEqual(json.loads(output)["python_version"], "3.15.0")
 
-    def test_empty_python_version_uses_file(self):
-        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
-        code, output = self.run_cli(["scan", str(self.root), "--python-version", ""])
-        self.assertEqual(code, 0)
-        self.assertEqual(json.loads(output)["python_version"], "3.15")
-
     def test_invalid_python_version_stops_before_scanning(self):
         for command in ("scan", "submit"):
             for version in ("system", "/private/python", "3.15; echo injected"):
