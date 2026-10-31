@@ -3,25 +3,14 @@
 Django Probe reads project configuration from the `[tool.django_probe]` table in the
 `pyproject.toml` at the project root.
 
-## Python versions
+## Python version
 
-Schema 3 reports the project's Python version. Pass `--python-version 3.15.0` to
-`scan` or `submit` to set it explicitly. Otherwise Probe reads `.python-version`
-in the scanned project root, then reports unknown. It is labelled Python and used
-for public Python statistics. Probe cannot verify the production interpreter.
+Probe reports the project's Python version from the first of these that applies:
 
-For the reusable workflow, set `project-python-version: "3.15.0"` under `with`.
-The existing `python-version` input only selects the scanner's interpreter.
-
-Missing, unreadable, or invalid file values are recorded as empty strings and shown
-as unknown. Invalid explicit versions fail argument validation. An empty override
-uses automatic detection. Paths, aliases such as `system`, and multiple entries
-are not reported.
-Probe does not infer a version from `pyproject.toml` or the scanner's interpreter.
-
-Schemas 1 and 2 recorded the scanner in `python_version`. Those historical values
-remain stored but are shown as unknown configured versions and counted under
-Other in Python statistics. Schema 3 no longer collects the scanner version.
+1. The `--python-version` argument to `scan` or `submit`, such as
+   `--python-version 3.15.0`.
+2. The `.python-version` file in the project root.
+3. The default, which is unknown.
 
 ## Package usage
 
