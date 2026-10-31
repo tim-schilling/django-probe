@@ -17,18 +17,23 @@ permissions: {}
 jobs:
   tests:
     name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version:
-        - '3.9'
-        - '3.10'
         - '3.11'
         - '3.12'
         - '3.13'
         - '3.14'
+        include:
+        # setup-python has no builds of older Pythons for the newest Ubuntu image.
+        - os: ubuntu-24.04
+          python-version: '3.9'
+        - os: ubuntu-24.04
+          python-version: '3.10'
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
