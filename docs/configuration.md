@@ -5,22 +5,21 @@ Django Probe reads project configuration from the `[tool.django_probe]` table in
 
 ## Python version
 
-Probe reports the project's Python version from the first of these that applies:
+The Python version can be specified with the `--python-version` argument or
+detected by inspecting the following files:
 
-1. The `--python-version` argument to `scan` or `submit`, such as
-   `--python-version 3.15.0`.
-2. A file in the project root, checked in this order:
-    - `.python-version`
-    - `.tool-versions`
-    - `runtime.txt`
-    - `Pipfile`
-    - `Dockerfile`
-    - `requires-python` in `pyproject.toml`
-    - `requires-python` in `uv.lock`
-3. The default, which is unknown. Probe logs a warning when it uses this.
+- `.python-version`
+- `.tool-versions`
+- `runtime.txt`
+- `Pipfile`
+- `Dockerfile`
+- `pyproject.toml`
+- `uv.lock`
 
 When a file gives a range, Probe reports the lowest supported version. For example,
 `>=3.12,<3.14` reports `3.12`.
+
+If no version is determined, a warning is logged.
 
 ## Package usage
 
