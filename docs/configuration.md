@@ -9,8 +9,18 @@ Probe reports the project's Python version from the first of these that applies:
 
 1. The `--python-version` argument to `scan` or `submit`, such as
    `--python-version 3.15.0`.
-2. The `.python-version` file in the project root.
+2. A file in the project root, checked in this order:
+    - `.python-version`
+    - `.tool-versions`
+    - `runtime.txt`
+    - `Pipfile`
+    - `Dockerfile`
+    - `requires-python` in `pyproject.toml`
+    - `requires-python` in `uv.lock`
 3. The default, which is unknown. Probe logs a warning when it uses this.
+
+When a file gives a range, Probe reports the lowest supported version. For example,
+`>=3.12,<3.14` reports `3.12`.
 
 ## Package usage
 

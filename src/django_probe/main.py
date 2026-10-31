@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument(
             "--python-version",
             type=parse_python_version,
-            help="Project Python version to report. Defaults to .python-version, then unknown.",
+            help="Project Python version to report. Defaults to the version in the project's files, then unknown.",
         )
     send.add_argument(
         "--dry-run",
