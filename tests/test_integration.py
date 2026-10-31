@@ -19,6 +19,7 @@ class UsageReportIntegrationTests(IngestTestCase):
     def test_cli_usage_is_reported(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / ".python-version").write_text("3.15", encoding="utf-8")
             (root / "usage.py").write_text(
                 textwrap.dedent(
                     """

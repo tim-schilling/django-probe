@@ -40,6 +40,7 @@ class CliTests(TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
 
     def run_cli(self, argv: list[str]) -> tuple[int, str]:
         buffer = io.StringIO()
@@ -54,6 +55,48 @@ class CliTests(TestCase):
 
         self.assertEqual(code, 0)
         self.assertEqual(set(json.loads(output)), PAYLOAD_KEYS)
+
+    def test_explicit_python_version(self):
+        (self.root / ".python-version").write_text("3.14", encoding="utf-8")
+        for command in (["scan"], ["submit", "--dry-run"]):
+            with self.subTest(command=command):
+                code, output = self.run_cli(
+                    [*command, str(self.root), "--python-version", "3.15.0"]
+                )
+                self.assertEqual(code, 0)
+                self.assertEqual(json.loads(output)["python_version"], "3.15.0")
+
+    def test_missing_python_version_warns(self):
+        (self.root / ".python-version").unlink()
+        with self.assertWarnsRegex(RuntimeWarning, "no valid Python version"):
+            code, output = self.run_cli(["scan", str(self.root)])
+
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["python_version"], "")
+
+    def test_invalid_python_version_stops_before_scanning(self):
+        for command in ("scan", "submit"):
+            for version in ("system", "/private/python", "3.15; echo injected"):
+                with (
+                    self.subTest(command=command, version=version),
+                    mock.patch("django_probe.main.build_payload") as build,
+                    redirect_stderr(io.StringIO()),
+                ):
+                    with self.assertRaises(SystemExit) as error:
+                        main([command, str(self.root), "--python-version", version])
+                    self.assertEqual(error.exception.code, 2)
+                    build.assert_not_called()
+
+    def test_submit_sends_explicit_python_version(self):
+        with mock.patch(
+            "django_probe.main.submit", return_value={"status": "ok"}
+        ) as send:
+            code, _ = self.run_cli(
+                ["submit", str(self.root), "--python-version", "3.15.0"]
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(send.call_args.args[0]["python_version"], "3.15.0")
 
     def test_pyproject_disables_dependencies(self):
         (self.root / "pyproject.toml").write_text(
@@ -144,6 +187,7 @@ class InsecureServerUrlCliTests(TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
+        (self.root / ".python-version").write_text("3.15", encoding="utf-8")
 
     def run_cli(self, argv: list[str]) -> tuple[int, str]:
         buffer = io.StringIO()

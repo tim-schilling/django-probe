@@ -58,6 +58,14 @@ class StatsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
+    def test_unknown_python_version(self):
+        """A project without a configured version counts as other."""
+        SubmissionFactory(project=ProjectFactory(), python_version="")
+
+        stats = self.get_stats()
+
+        self.assertEqual(stats["distributions"]["python"]["other"], 2)
+
     def test_counts_latest_submission_per_project(self):
         """Only a project's latest submission counts, and newer versions are listed."""
         project = Submission.objects.filter(django_version="2.1.0").get().project

@@ -41,6 +41,25 @@ class ValidationTests(IngestTestCase):
         self.assertEqual(response.status_code, 201, response.content)
         self.assertEqual(Submission.objects.get().dependencies_source, "poetry")
 
+    def test_project_python_is_stored(self):
+        response = self.post(payload(python_version="3.15"))
+
+        self.assertEqual(response.status_code, 201, response.content)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.python_version, "3.15")
+
+    def test_missing_project_python_is_unknown(self):
+        response = self.post(payload(python_version=""))
+
+        self.assertEqual(response.status_code, 201, response.content)
+        submission = Submission.objects.get()
+        self.assertEqual(submission.python_version, "")
+
+    def test_invalid_python_version(self):
+        for value in (315, [], "3" * 129):
+            with self.subTest(value=value):
+                self.assertRejected(payload(python_version=value))
+
     def test_non_string_dependencies_source(self):
         self.assertRejected(payload(dependencies_source=["uv"]))
 

@@ -88,6 +88,28 @@ class SubmissionDetailTests(IngestTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "probe:queryset_filter")
 
+    def test_project_python_is_displayed(self):
+        self.submission.python_version = "3.15"
+        self.submission.save(update_fields=["python_version"])
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+
+        self.assertContains(response, "<dt>Python</dt><dd>3.15</dd>", html=True)
+
+    def test_missing_python_is_unknown(self):
+        self.submission.python_version = ""
+        self.submission.save(update_fields=["python_version"])
+        self.client.force_login(self.member)
+
+        response = self.client.get(
+            reverse("submission-detail", args=[self.submission.pk])
+        )
+
+        self.assertContains(response, "<dt>Python</dt><dd>unknown</dd>", html=True)
+
     def test_package_usage_is_displayed(self):
         self.submission.usage_packages = ["django"]
         self.submission.usage = {"django.shortcuts.render": 2}
