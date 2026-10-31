@@ -4,7 +4,9 @@
 
 - Bundled setting names for Django 2.2 through 4.1.
 - Reported the project's Python version instead of the scanner's. See
-  [Python version](configuration.md#python-version).
+  [Python version](configuration.md#python-version). If Probe can't find the version
+  in the project, it reports it as unknown. Pass `--python-version` to set it
+  explicitly.
 
 ## 0.4.1
 
