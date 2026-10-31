@@ -1,0 +1,16 @@
+{% load ingest_extras %}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Package</th><th>Projects</th><th>Share</th></tr></thead>
+    <tbody>
+      {% for row in dependencies %}
+      <tr>
+        <td>{% if row.name == filters.dependency %}<code>{{ row.name }}</code>{% else %}<a href="{{ request.path }}{% stats_query filters dependency=row.name %}"><code>{{ row.name }}</code></a>{% endif %}</td>
+        {% include "includes/stats_count_cells.html" with projects=row.projects %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="table__meta">Nothing to show.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
