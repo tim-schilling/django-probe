@@ -21,12 +21,6 @@ on:
           to let uv resolve its own default.
         type: string
         default: ''
-      project-python-version:
-        description: >-
-          Project Python version to report. Leave unset to read .python-version,
-          or report unknown when it is absent.
-        type: string
-        default: ''
     secrets:
       DJANGO_PROBE_TOKEN:
         required: false
@@ -50,8 +44,7 @@ jobs:
       - name: Print the payload that submit would send
         env:
           PROBE_PATH: ${{ inputs.path }}
-          PROBE_PYTHON_VERSION: ${{ inputs.project-python-version }}
-        run: uvx django-probe scan "$PROBE_PATH" --python-version "$PROBE_PYTHON_VERSION"
+        run: uvx django-probe scan "$PROBE_PATH"
 
   submit:
     needs: scan
@@ -71,5 +64,4 @@ jobs:
         env:
           DJANGO_PROBE_TOKEN: ${{ secrets.DJANGO_PROBE_TOKEN }}
           PROBE_PATH: ${{ inputs.path }}
-          PROBE_PYTHON_VERSION: ${{ inputs.project-python-version }}
-        run: uvx django-probe submit "$PROBE_PATH" --python-version "$PROBE_PYTHON_VERSION"
+        run: uvx django-probe submit "$PROBE_PATH"

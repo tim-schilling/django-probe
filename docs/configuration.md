@@ -151,9 +151,8 @@ without a gate.
 
 ## Other workflow inputs
 
-Pass `python-version` to select the scanner's interpreter, `project-python-version`
-to set the project's reported version, and `path` to scan a project that isn't at
-the repository root.
+Pass `python-version` to pin the Python version uv sets up, and `path` to scan a
+project that isn't at the repository root.
 
 See [`django-probe-submit-uv.yml`](https://github.com/tim-schilling/django-probe/blob/main/.github/workflows/django-probe-submit-uv.yml)
 for the full set of inputs.
