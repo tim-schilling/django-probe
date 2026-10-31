@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+## 0.5.0
+
 - Bundled setting names for Django 2.2 through 4.1.
 - Reported the project's Python version instead of the scanner's. See
   [Python version](configuration.md#python-version). If Probe can't find the version

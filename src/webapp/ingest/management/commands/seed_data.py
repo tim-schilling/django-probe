@@ -33,7 +33,7 @@ SUBMISSIONS_PER_PROJECT = 3
 
 PYTHON_VERSIONS = ["3.10.14", "3.11.9", "3.12.6", "3.13.0"]
 DJANGO_VERSIONS = ["4.2.16", "5.0.9", "5.1.2"]
-CLIENT_VERSIONS = ["0.2.0", "0.4.1"]
+CLIENT_VERSIONS = ["0.2.0", "0.5.0"]
 PATTERN_NAMES = [
     "probe:queryset_filter",
     "probe:queryset_exclude",
