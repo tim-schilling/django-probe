@@ -86,7 +86,8 @@ send default personally identifiable information and does not capture request bo
 
 The container writes every request and the application logs to stdout and stderr.
 Coolify shows them on the application's **Logs** tab. Each request line includes the
-`cf-ray` ID, which finds the same request in Cloudflare's logs.
+`cf-ray` ID, which finds the same request in Cloudflare's logs, and the signed-in user's
+ID, or `-` for anonymous requests.
 
 ### Cloudflare set up
 
