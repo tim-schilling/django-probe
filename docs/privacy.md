@@ -70,7 +70,6 @@ view. This view never identifies which project or organization a figure came
 from, and there is no way to filter by date or otherwise reconstruct a history for
 a single source.
 
-
 Any filter combination narrow enough to describe fewer than a set minimum number
 of projects is withheld rather than shown, so a filtered result can't be used to
 single out one project's data.
