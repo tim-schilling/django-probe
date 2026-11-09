@@ -8,9 +8,7 @@ from django.urls import get_resolver, reverse
 from django.utils import timezone
 
 from config.middleware import USER_LOG_KEY
-from ingest import stats as stats_module
 from ingest.models import Submission
-from ingest.package_index import PackageInfo
 from ingest.stats import MINIMUM_PROJECTS, POPULAR_LIMIT, StatsFilterForm
 from ingest.tests.factories import ProjectFactory, SubmissionFactory, UserFactory
 
@@ -199,18 +197,11 @@ class StatsTests(TestCase):
         )
         self.assertEqual(
             stats["dependencies"],
-            {
-                "django": [
-                    {
-                        "name": "djangorestframework",
-                        "projects": MINIMUM_PROJECTS,
-                    },
-                ],
-                "other": [
-                    {"name": "celery", "projects": 2 * MINIMUM_PROJECTS},
-                    {"name": "psycopg", "projects": MINIMUM_PROJECTS},
-                ],
-            },
+            [
+                {"name": "celery", "projects": 2 * MINIMUM_PROJECTS},
+                {"name": "djangorestframework", "projects": MINIMUM_PROJECTS},
+                {"name": "psycopg", "projects": MINIMUM_PROJECTS},
+            ],
         )
         self.assertNotIn("keys", stats)
 
@@ -257,11 +248,7 @@ class StatsTests(TestCase):
             },
         )
 
-        names = {
-            row["name"]
-            for group in self.get_stats()["dependencies"].values()
-            for row in group
-        }
+        names = {row["name"] for row in self.get_stats()["dependencies"]}
 
         self.assertNotIn("alias-package", names)
 
@@ -275,26 +262,7 @@ class StatsTests(TestCase):
 
         self.assertIn(
             {"name": "alias-package", "projects": MINIMUM_PROJECTS},
-            self.get_stats()["dependencies"]["other"],
-        )
-
-    def test_dependencies_replace_unindexed(self):
-        """An unknown name does not take a slot from the ten."""
-        submit_projects(
-            MINIMUM_PROJECTS,
-            dependencies={f"aaa-{letter}": "1.0" for letter in "abcdefghijk"},
-        )
-
-        def lookup(name: str) -> PackageInfo | None:
-            return None if name == "aaa-a" else PackageInfo(is_django=False)
-
-        original = stats_module.package_info
-        self.addCleanup(setattr, stats_module, "package_info", original)
-        stats_module.package_info = lookup
-
-        self.assertEqual(
-            [row["name"] for row in self.get_stats()["dependencies"]["other"]],
-            ["celery", *(f"aaa-{letter}" for letter in "bcdefghij")],
+            self.get_stats()["dependencies"],
         )
 
     def test_dependencies_limit(self):
@@ -306,7 +274,7 @@ class StatsTests(TestCase):
             )
 
         self.assertEqual(
-            [row["name"] for row in self.get_stats()["dependencies"]["other"]],
+            [row["name"] for row in self.get_stats()["dependencies"]],
             [
                 "celery",
                 *(f"package-{number}" for number in range(POPULAR_LIMIT - 1, 0, -1)),
@@ -500,8 +468,6 @@ class StatsTests(TestCase):
         )
         self.assertContains(response, 'id="django-python"')
         self.assertContains(response, "<h2>Most used dependencies</h2>", html=True)
-        self.assertContains(response, 'id="dependencies-tab-django"')
-        self.assertContains(response, 'id="dependencies-tab-other"')
         self.assertContains(response, 'href="/stats/?dependency=djangorestframework"')
         self.assertContains(response, 'href="/stats/?dependency=celery"')
         self.assertNotContains(response, "<code>django</code>")
@@ -626,6 +592,5 @@ class EmptyDependenciesTests(TestCase):
 
         self.assertNotContains(response, 'id="dependencies"')
         self.assertEqual(
-            self.client.get(reverse("api-stats")).json()["dependencies"],
-            {"django": [], "other": []},
+            self.client.get(reverse("api-stats")).json()["dependencies"], []
         )
