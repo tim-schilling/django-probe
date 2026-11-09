@@ -474,7 +474,7 @@ class Cohort:
             rows = cursor.fetchall()
         if not rows:
             return {"django": [], "other": []}
-        # Create a threadpool to concurrently fetch PyPI classifier information 
+        # Create a threadpool to concurrently fetch PyPI classifier information
         with ThreadPoolExecutor(max_workers=min(len(rows), POPULAR_LIMIT)) as pool:
             infos = list(pool.map(package_info, (name for name, _ in rows)))
         ranked = [

@@ -109,6 +109,10 @@ Deleting your account, an organization, or a project (see above) removes the dat
 from the live database immediately. A copy can still exist in a database backup
 until that backup rolls off on the schedules above.
 
+Server logs record each request, including the signed-in user's ID. They're kept
+until about 30MB of newer logs replace them or the next deploy, whichever comes
+first. A copy can remain in a Hetzner server backup for up to 7 days after that.
+
 The service also sits behind a CDN and reports errors to a monitoring provider; see
 [Subprocessors](#subprocessors) for what each of those sees and retains.
 

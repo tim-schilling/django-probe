@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import fnmatch
-import platform
 import re
 from collections.abc import Sequence
 from importlib import metadata
@@ -75,10 +74,6 @@ def probe_sources() -> dict[str, str]:
         for name in PROBE_SOURCE_DISTRIBUTIONS
         if (version := _version_of(name)) is not None
     }
-
-
-def python_version() -> str:
-    return platform.python_version()
 
 
 def django_version() -> str:

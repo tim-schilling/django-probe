@@ -21,6 +21,7 @@ from django_probe.init import init
 from django_probe.login import login
 from django_probe.logout import logout
 from django_probe.payload import build_payload
+from django_probe.python_version import parse_python_version
 from django_probe.submit import SubmitError, submit
 
 DEFAULT_SERVER = "https://djangoprobe.org"
@@ -81,6 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
     send = sub.add_parser("submit", help="Scan, then send the payload to a server.")
     add_path(send)
     add_server(send)
+    for command in (scan, send):
+        command.add_argument(
+            "--python-version",
+            type=parse_python_version,
+            help="Project Python version to report. Defaults to the version in the project's files, then unknown.",
+        )
     send.add_argument(
         "--dry-run",
         action="store_true",
@@ -150,6 +157,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     payload = build_payload(
         root,
+        python_version=args.python_version,
         dependency_mode=dependency_mode(root),
         dependency_exclude_patterns=dependency_exclude_patterns(root),
     )

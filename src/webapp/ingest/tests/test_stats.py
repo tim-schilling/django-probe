@@ -7,6 +7,7 @@ from django.test import Client, TestCase
 from django.urls import get_resolver, reverse
 from django.utils import timezone
 
+from config.middleware import USER_LOG_KEY
 from ingest import stats as stats_module
 from ingest.models import Submission
 from ingest.package_index import PackageInfo
@@ -78,6 +79,14 @@ class StatsTests(TestCase):
         response = self.client.get(f"{reverse(url)}{query}")
         self.assertEqual(response.status_code, 200)
         return response.json()
+
+    def test_unknown_python_version(self):
+        """A project without a configured version counts as other."""
+        SubmissionFactory(project=ProjectFactory(), python_version="")
+
+        stats = self.get_stats()
+
+        self.assertEqual(stats["distributions"]["python"]["other"], 2)
 
     def test_counts_latest_submission_per_project(self):
         """Only a project's latest submission counts, and newer versions are listed."""
@@ -568,7 +577,8 @@ class StatsTests(TestCase):
 
         Covers every URL whose view uses ``stats_cache_control``. Whoever's request
         fills the cache, a first-time visitor or a signed-in user, the response
-        sets no session or CSRF cookie.
+        sets no session or CSRF cookie. Recording the user for the access log
+        must not add ``Vary: Cookie``.
         """
         urls = [
             pattern.name
@@ -576,12 +586,20 @@ class StatsTests(TestCase):
             if getattr(pattern.callback, "publicly_cached", False)
         ]
         self.assertIn("stats", urls)
+        user = UserFactory()
         signed_in = Client()
-        signed_in.force_login(UserFactory())
-        for visitor, client in [("first-time", Client()), ("signed-in", signed_in)]:
+        signed_in.force_login(user)
+        for visitor, client, logged_user in [
+            ("first-time", Client(), None),
+            ("signed-in", signed_in, str(user.pk)),
+        ]:
             for url in urls:
                 with self.subTest(visitor=visitor, url=url):
                     response = client.get(reverse(url))
+
+                    self.assertEqual(
+                        response.wsgi_request.META.get(USER_LOG_KEY), logged_user
+                    )
 
                     self.assertEqual(
                         response["Cache-Control"],

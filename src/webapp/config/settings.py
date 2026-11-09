@@ -77,6 +77,7 @@ MIDDLEWARE = [
     # Only enable whitenoise in production so it doesn't warn about a missing
     # staticfiles manifest; only that collectstatic (see src/webapp/Dockerfile) ever writes one.
     *(["whitenoise.middleware.WhiteNoiseMiddleware"] if IS_PRODUCTION else []),
+    "config.middleware.access_log_user",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

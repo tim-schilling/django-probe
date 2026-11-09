@@ -9,11 +9,11 @@ from django.urls import reverse
 
 VALID: dict[str, Any] = {
     "schema_version": 2,
-    "client_version": "0.4.1",
+    "client_version": "0.5.0",
     "python_version": "3.12.3",
     "django_version": "5.1.2",
     "files_scanned": 12,
-    "probe_sources": {"django-probe": "0.4.1"},
+    "probe_sources": {"django-probe": "0.5.0"},
     "patterns": {"probe:queryset_filter": 3},
     "usage_packages": [],
     "usage": {},
