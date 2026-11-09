@@ -457,7 +457,7 @@ class Cohort:
                 [
                     *params,
                     _NORMALIZED_PACKAGE_NAME_PATTERN,
-                    sorted(DJANGO_DEPENDENCIES),
+                    list(DJANGO_DEPENDENCIES),
                     MINIMUM_PROJECTS,
                     POPULAR_LIMIT,
                 ],
