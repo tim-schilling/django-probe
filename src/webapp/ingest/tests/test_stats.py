@@ -603,7 +603,7 @@ class EmptyDependenciesTests(TestCase):
         submit_projects(MINIMUM_PROJECTS, dependencies={})
 
     def test_no_dependencies(self):
-        """The section is left out when there are no groups to show."""
+        """The dependencies section is left out when there is a lack of data."""
         response = self.client.get(reverse("stats"))
 
         self.assertNotContains(response, 'id="dependencies"')

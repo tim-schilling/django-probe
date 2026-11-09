@@ -24,7 +24,7 @@ POPULAR_LIMIT = 10
 DEPENDENCY_CANDIDATE_LIMIT = POPULAR_LIMIT * 2
 MAX_KEYS = 10
 
-# Django and its requirements across every series in DJANGO_VERSIONS. pytz until 4.0 and tzdata only on Windows. Names normalized like the payload.
+# Django and its requirements across every series in DJANGO_VERSIONS.
 DJANGO_DEPENDENCIES = frozenset(
     {"asgiref", "backports-zoneinfo", "django", "pytz", "sqlparse", "tzdata"}
 )
@@ -474,6 +474,7 @@ class Cohort:
             rows = cursor.fetchall()
         if not rows:
             return {"django": [], "other": []}
+        # Create a threadpool to concurrently fetch PyPI classifier information 
         with ThreadPoolExecutor(max_workers=min(len(rows), POPULAR_LIMIT)) as pool:
             infos = list(pool.map(package_info, (name for name, _ in rows)))
         ranked = [
