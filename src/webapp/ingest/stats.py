@@ -24,7 +24,7 @@ MAX_KEYS = 10
 DJANGO_DEPENDENCIES = frozenset(
     {"asgiref", "backports-zoneinfo", "django", "pytz", "sqlparse", "tzdata"}
 )
-_NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+_NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z\d]([a-z\d-]*[a-z\d])?$"
 # Alphabetical to match Cloudflare query string sorting
 FILTER_FIELDS = ("dependency", "django", "key", "python", "size")
 
