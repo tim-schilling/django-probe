@@ -5,7 +5,7 @@
     <tbody>
       {% for row in keys %}
       <tr>
-        <td>{% if row.projects is not None and row.key not in chosen_keys %}<a href="{{ request.path }}{% stats_query filters add_key=row.key %}"><code>{{ row.key }}</code></a>{% else %}<code>{{ row.key }}</code>{% endif %}</td>
+        <td>{% if row.projects is not None and row.key not in chosen_keys %}<a href="{{ request.path }}{% stats_query filters add_key=row.key %}"><code>{{ row.name }}</code></a>{% else %}<code>{{ row.name }}</code>{% endif %}</td>
         {% if row.projects is None %}
         <td colspan="2" class="table__meta">Too few projects</td>
         {% else %}

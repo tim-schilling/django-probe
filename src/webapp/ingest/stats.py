@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from enum import StrEnum
@@ -11,6 +12,8 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.db import connection
+from django.db.models import BooleanField, Q
+from django.db.models.expressions import RawSQL
 
 from django_probe.settings import DJANGO_SETTING_NAMES
 from ingest.django_api import is_django_api_name
@@ -25,8 +28,10 @@ DJANGO_DEPENDENCIES = frozenset(
     {"asgiref", "backports-zoneinfo", "django", "pytz", "sqlparse", "tzdata"}
 )
 _NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z\d]([a-z\d-]*[a-z\d])?$"
+# The PEP 503 normalized form of a stored dependency name ``key``.
+_NORMALIZED_PACKAGE_NAME_SQL = "regexp_replace(lower(key), '[-_.]+', '-', 'g')"
 # Alphabetical to match Cloudflare query string sorting
-FILTER_FIELDS = ("dependency", "django", "key", "python", "size")
+FILTER_FIELDS = ("django", "key", "python", "size")
 
 # Older versions are grouped into ``other``, and newer ones appear as soon as a project reports them.
 DJANGO_VERSIONS = (
@@ -49,22 +54,29 @@ _MINOR_VERSION_PATTERN = r"^[1-9]\d?\.(0|[1-9]\d{0,2})$"
 
 
 class KeySource(StrEnum):
-    """Where a key comes from: a setting name or a ``django.`` usage name."""
+    """Where a key comes from: a setting name, a ``django.`` usage name or a
+    normalized dependency name.
+
+    A key is its source and name joined by a colon, like ``setting:CACHES``.
+    """
 
     SETTING = "setting"
     USAGE = "usage"
+    DEPENDENCY = "dependency"
 
-    @classmethod
-    def of(cls, key: str) -> KeySource:
-        return cls.USAGE if "." in key else cls.SETTING
+    def key(self, name: str) -> str:
+        return f"{self}:{name}"
 
     @property
-    def field(self) -> str:
-        """The ``Submission`` field holding this source's keys."""
-        return _KEY_FIELDS[self]
+    def label(self) -> str:
+        return _KEY_LABELS[self]
 
 
-_KEY_FIELDS = {KeySource.SETTING: "django_settings", KeySource.USAGE: "usage"}
+_KEY_LABELS = {
+    KeySource.SETTING: "settings",
+    KeySource.USAGE: "Django APIs",
+    KeySource.DEPENDENCY: "dependencies",
+}
 
 # ``key`` is a list, since a project must use every key to match; the rest are
 # strings.
@@ -99,13 +111,9 @@ class Matrix(TypedDict):
 
 class KeyCount(TypedDict):
     key: str
+    name: str
     source: KeySource
     projects: int | None
-
-
-class DependencyCount(TypedDict):
-    name: str
-    projects: int
 
 
 class Summary(TypedDict):
@@ -119,35 +127,58 @@ class Overview(Summary):
     distributions: dict[str, Distribution]
     django_python: Matrix | dict[str, Never]
     popular: dict[KeySource, list[KeyCount]]
-    dependencies: list[DependencyCount] | dict[str, Never]
 
 
 class KeysSummary(Summary):
     keys: list[KeyCount]
 
 
+def parse_key(key: str) -> tuple[KeySource, str]:
+    """The source and name of a valid key."""
+    source, _, name = key.partition(":")
+    return KeySource(source), name
+
+
+def is_key(key: str) -> bool:
+    """Whether ``key`` names a Django setting or API, or a published package."""
+    source, _, name = key.partition(":")
+    if source == KeySource.SETTING:
+        return name in DJANGO_SETTING_NAMES
+    if source == KeySource.USAGE:
+        return name.startswith("django.") and is_django_api_name(name)
+    if source == KeySource.DEPENDENCY:
+        return (
+            re.fullmatch(_NORMALIZED_PACKAGE_NAME_PATTERN, name) is not None
+            and name not in DJANGO_DEPENDENCIES
+        )
+    return False
+
+
+def _with_source(key: str) -> str:
+    """``key``, prefixing the bare setting and API names used before prefixes.
+
+    Links with bare names then redirect to their prefixed form.
+    """
+    if ":" in key:
+        return key
+    return (KeySource.USAGE if "." in key else KeySource.SETTING).key(key)
+
+
 class KeysField(forms.Field):
-    """Known Django setting or API names, deduplicated and sorted."""
+    """Known keys, deduplicated and sorted."""
 
     widget = forms.MultipleHiddenInput
 
     def clean(self, value: list[str] | None) -> list[str]:
-        keys = sorted(set(value or []))
+        keys = sorted({_with_source(key) for key in value or []})
         if len(keys) > MAX_KEYS:
             raise forms.ValidationError(f"At most {MAX_KEYS} keys.")
-        if not all(
-            key in DJANGO_SETTING_NAMES
-            or (key.startswith("django.") and is_django_api_name(key))
-            for key in keys
-        ):
+        if not all(is_key(key) for key in keys):
             raise forms.ValidationError("Invalid key.")
         return keys
 
 
 class StatsFilterForm(forms.Form):
-    dependency = forms.RegexField(
-        regex=_NORMALIZED_PACKAGE_NAME_PATTERN, required=False
-    )
     django = forms.RegexField(regex=_MINOR_VERSION_PATTERN, required=False)
     python = forms.RegexField(regex=_MINOR_VERSION_PATTERN, required=False)
     size = forms.ChoiceField(
@@ -179,7 +210,27 @@ def query_string(filters: Mapping[str, str | list[str] | None]) -> str:
             pairs.extend((name, key) for key in sorted(set(value)))
         elif value:
             pairs.append((name, value))
-    return urlencode(pairs)
+    return urlencode(pairs, safe=":")
+
+
+def _uses(key: str) -> Q | RawSQL:
+    """A condition matching the submissions that use ``key``.
+
+    Stored dependency names may be spelled in any way that normalizes to ``key``.
+    """
+    source, name = parse_key(key)
+    if source == KeySource.DEPENDENCY:
+        return RawSQL(
+            f"""EXISTS (
+                SELECT 1
+                FROM jsonb_object_keys("{Submission._meta.db_table}"."dependencies") AS key
+                WHERE {_NORMALIZED_PACKAGE_NAME_SQL} = %s
+            )""",
+            [name],
+            output_field=BooleanField(),
+        )
+    field = "django_settings" if source == KeySource.SETTING else "usage"
+    return Q(**{f"{field}__has_key": name})
 
 
 def _version_sort_key(value: str) -> tuple[int, ...]:
@@ -210,8 +261,6 @@ class Cohort:
         queryset = (
             Submission.objects.latest_per_project().with_minor_versions().with_size()
         )
-        if "dependency" in self.filters:
-            queryset = queryset.filter(dependencies__has_key=self.filters["dependency"])
         if "django" in self.filters:
             queryset = queryset.filter(django_minor=self.filters["django"])
         if "python" in self.filters:
@@ -219,7 +268,7 @@ class Cohort:
         if "size" in self.filters:
             queryset = queryset.filter(size=self.filters["size"])
         for key in filter_keys(self.filters):
-            queryset = queryset.filter(**{f"{KeySource.of(key).field}__has_key": key})
+            queryset = queryset.filter(_uses(key))
         return queryset
 
     @cached_property
@@ -237,7 +286,6 @@ class Cohort:
                 "distributions": {},
                 "django_python": {},
                 "popular": {},
-                "dependencies": {},
             }
         return {
             **self._summary(),
@@ -248,11 +296,10 @@ class Cohort:
             },
             "django_python": self._version_matrix(),
             "popular": self._popular_keys(),
-            "dependencies": self._popular_dependencies(),
         }
 
     def keys(self, source: KeySource | None = None) -> KeysSummary:
-        """Every setting and usage key in the cohort, for browsing.
+        """Every key in the cohort, for browsing.
 
         ``source`` limits them to one kind.
         """
@@ -339,18 +386,16 @@ class Cohort:
         }
 
     def _key_counts(self, source: KeySource | None = None) -> list[KeyCount]:
-        """Setting names and ``django.`` usage keys with their project counts.
+        """Every key with its project count.
 
-        The count is None for a key used by fewer than ``MINIMUM_PROJECTS`` projects.
+        Settings and APIs below ``MINIMUM_PROJECTS`` get a count of None.
+        Dependencies below it are left out, since a package name may be private.
 
-        Stored payloads are untrusted. The only SQL interpolated here is the cohort
-        query Django compiled; every value, including the filters, is a bound
-        parameter. Stored keys are only ever read as data. Only names in
-        ``DJANGO_SETTING_NAMES`` and the vendored Django API vocabulary are
-        returned, since anything else is untrusted or may be private to a project.
+        Stored payloads are untrusted, so every value is a bound parameter and
+        only known names or valid package names are returned.
         """
         cohort_sql, params = (
-            self.queryset.values("django_settings", "usage")
+            self.queryset.values("id", "django_settings", "usage", "dependencies")
             .order_by()
             .query.sql_with_params()
         )
@@ -358,7 +403,8 @@ class Cohort:
             SELECT
                 found.key,
                 found.source,
-                CASE WHEN COUNT(*) >= %s THEN COUNT(*) END
+                CASE WHEN COUNT(DISTINCT cohort.id) >= %s
+                THEN COUNT(DISTINCT cohort.id) END
             FROM ({cohort_sql}) AS cohort
             CROSS JOIN LATERAL (
                 SELECT key, %s::text AS source
@@ -368,9 +414,17 @@ class Cohort:
                 SELECT key, %s::text AS source
                 FROM jsonb_object_keys(cohort.usage) AS key
                 WHERE key LIKE 'django.%%'
+                UNION ALL
+                SELECT name, %s::text AS source
+                FROM (
+                    SELECT {_NORMALIZED_PACKAGE_NAME_SQL} AS name
+                    FROM jsonb_object_keys(cohort.dependencies) AS key
+                ) AS dependency
+                WHERE name ~ %s AND NOT (name = ANY(%s))
             ) AS found
             WHERE %s::text IS NULL OR found.source = %s
             GROUP BY found.key, found.source
+            HAVING found.source <> %s OR COUNT(DISTINCT cohort.id) >= %s
         """
         with connection.cursor() as cursor:
             cursor.execute(
@@ -381,22 +435,32 @@ class Cohort:
                     KeySource.SETTING,
                     sorted(DJANGO_SETTING_NAMES),
                     KeySource.USAGE,
+                    KeySource.DEPENDENCY,
+                    _NORMALIZED_PACKAGE_NAME_PATTERN,
+                    sorted(DJANGO_DEPENDENCIES),
                     source,
                     source,
+                    KeySource.DEPENDENCY,
+                    MINIMUM_PROJECTS,
                 ],
             )
-            rows = [
-                {"key": key, "source": KeySource(found), "projects": projects}
-                for key, found, projects in cursor.fetchall()
+            rows: list[KeyCount] = [
+                {
+                    "key": KeySource(found).key(name),
+                    "name": name,
+                    "source": KeySource(found),
+                    "projects": projects,
+                }
+                for name, found, projects in cursor.fetchall()
             ]
         return [
             row
             for row in rows
-            if row["source"] == KeySource.SETTING or is_django_api_name(row["key"])
+            if row["source"] != KeySource.USAGE or is_django_api_name(row["name"])
         ]
 
     def _all_keys(self, source: KeySource | None = None) -> list[KeyCount]:
-        """Every setting and usage key in the cohort.
+        """Every key in the cohort.
 
         Sorted by source, then counted keys ahead of those with too few projects,
         then name. Every setting name the client recognizes is listed, including
@@ -404,9 +468,14 @@ class Cohort:
         """
         keys = self._key_counts(source)
         if source in (None, KeySource.SETTING):
-            used = {row["key"] for row in keys if row["source"] == KeySource.SETTING}
+            used = {row["name"] for row in keys if row["source"] == KeySource.SETTING}
             keys += [
-                {"key": name, "source": KeySource.SETTING, "projects": None}
+                {
+                    "key": KeySource.SETTING.key(name),
+                    "name": name,
+                    "source": KeySource.SETTING,
+                    "projects": None,
+                }
                 for name in DJANGO_SETTING_NAMES - used
             ]
         return sorted(
@@ -414,8 +483,8 @@ class Cohort:
             key=lambda row: (
                 row["source"],
                 row["projects"] is None,
-                row["key"].lower(),
-                row["key"],
+                row["name"].lower(),
+                row["name"],
             ),
         )
 
@@ -423,46 +492,9 @@ class Cohort:
         """The most used names of each source, for the overview page."""
         ranked = sorted(
             (row for row in self._key_counts() if row["projects"] is not None),
-            key=lambda row: (-(row["projects"] or 0), row["key"]),
+            key=lambda row: (-(row["projects"] or 0), row["name"]),
         )
         return {
             source: [row for row in ranked if row["source"] == source][:POPULAR_LIMIT]
             for source in KeySource
         }
-
-    def _popular_dependencies(self) -> list[DependencyCount]:
-        """The ten most used dependencies, excluding Django and its own."""
-        cohort_sql, params = (
-            self.queryset.values("id", "dependencies")
-            .order_by()
-            .query.sql_with_params()
-        )
-        sql = f"""
-            SELECT found.name, COUNT(DISTINCT cohort.id)
-            FROM ({cohort_sql}) AS cohort
-            CROSS JOIN LATERAL (
-                SELECT regexp_replace(lower(key), '[-_.]+', '-', 'g') AS name
-                FROM jsonb_object_keys(cohort.dependencies) AS key
-            ) AS found
-            WHERE found.name ~ %s
-            AND NOT (found.name = ANY(%s))
-            GROUP BY found.name
-            HAVING COUNT(DISTINCT cohort.id) >= %s
-            ORDER BY COUNT(DISTINCT cohort.id) DESC, found.name
-            LIMIT %s
-        """
-        with connection.cursor() as cursor:
-            cursor.execute(
-                sql,
-                [
-                    *params,
-                    _NORMALIZED_PACKAGE_NAME_PATTERN,
-                    list(DJANGO_DEPENDENCIES),
-                    MINIMUM_PROJECTS,
-                    POPULAR_LIMIT,
-                ],
-            )
-            return [
-                {"name": name, "projects": projects}
-                for name, projects in cursor.fetchall()
-            ]

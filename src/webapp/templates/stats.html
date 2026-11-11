@@ -43,11 +43,12 @@
   <p><a href="{% url 'stats-apis' %}{% stats_query filters %}">Browse all Django APIs</a></p>
 </section>
 
-{% if summary.dependencies %}
+{% if summary.popular.dependency %}
 <section id="dependencies">
   <h2>Most used dependencies</h2>
-  {% include "includes/stats_dependencies_table.html" with dependencies=summary.dependencies %}
-  <p class="muted">Only the ten most used are listed. Packages used by fewer than {{ summary.minimum_projects }} projects are hidden, as are Django and the packages it depends on.</p>
+  {% include "includes/stats_keys_table.html" with keys=summary.popular.dependency %}
+  <p class="muted">Django and the packages it depends on are excluded from this list.</p>
+  <p><a href="{% url 'stats-dependencies' %}{% stats_query filters %}">Browse all dependencies</a></p>
 </section>
 {% endif %}
 {% endblock %}

@@ -1,3 +1,5 @@
+const SOURCE_LABELS = { setting: "Setting", usage: "API", dependency: "Dependency" };
+
 document.querySelectorAll("[data-stats-search]").forEach((input) => {
   if (typeof TomSelect === "undefined") return;
 
@@ -10,17 +12,17 @@ document.querySelectorAll("[data-stats-search]").forEach((input) => {
 
   const picker = new TomSelect(input, {
     valueField: "key",
-    labelField: "key",
-    searchField: ["key"],
+    labelField: "name",
+    searchField: ["name"],
     // Exact names first, then those starting with the query (or whose last dotted
     // part does, like "atomic"), then anything containing it.
     score(search) {
       const query = search.toLowerCase();
       return (item) => {
-        const key = item.key.toLowerCase();
-        if (key === query) return 3;
-        if (key.startsWith(query) || key.split(".").pop().startsWith(query)) return 2;
-        return key.includes(query) ? 1 : 0;
+        const name = item.name.toLowerCase();
+        if (name === query) return 3;
+        if (name.startsWith(query) || name.split(".").pop().startsWith(query)) return 2;
+        return name.includes(query) ? 1 : 0;
       };
     },
     sortField: [
@@ -33,8 +35,8 @@ document.querySelectorAll("[data-stats-search]").forEach((input) => {
     render: {
       option: (item, escape) => `
         <div class="stats-option">
-          <code>${escape(item.key)}</code>
-          <span class="stats-option__meta">${item.source === "setting" ? "Setting" : "API"} · ${escape(item.projects)} projects</span>
+          <code>${escape(item.name)}</code>
+          <span class="stats-option__meta">${escape(SOURCE_LABELS[item.source])} · ${escape(item.projects)} projects</span>
         </div>`,
       no_results: () => '<div class="no-results">No matches used by enough projects</div>',
     },
@@ -42,7 +44,8 @@ document.querySelectorAll("[data-stats-search]").forEach((input) => {
       // Each picked name narrows to the projects also using it.
       const params = new URLSearchParams(new FormData(form));
       params.append("key", value);
-      window.location.assign(`${form.action}?${params}`);
+      // Unescaped like the server's canonical URLs, to skip a redirect.
+      window.location.assign(`${form.action}?${params.toString().replaceAll("%3A", ":")}`);
     },
   });
 

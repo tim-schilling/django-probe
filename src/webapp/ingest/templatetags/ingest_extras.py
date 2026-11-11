@@ -4,7 +4,7 @@ import json
 
 from django import template
 
-from ingest.stats import filter_keys, query_string
+from ingest.stats import filter_keys, parse_key, query_string
 
 register = template.Library()
 
@@ -12,6 +12,11 @@ register = template.Library()
 @register.filter
 def pretty_json(value):
     return json.dumps(value, indent=2, sort_keys=True)
+
+
+@register.filter
+def key_name(key: str) -> str:
+    return parse_key(key)[1]
 
 
 @register.simple_tag
