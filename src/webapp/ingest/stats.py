@@ -395,7 +395,7 @@ class Cohort:
         only known names or valid package names are returned.
         """
         cohort_sql, params = (
-            self.queryset.values("id", "django_settings", "usage", "dependencies")
+            self.queryset.values("django_settings", "usage", "dependencies")
             .order_by()
             .query.sql_with_params()
         )
@@ -403,8 +403,7 @@ class Cohort:
             SELECT
                 found.key,
                 found.source,
-                CASE WHEN COUNT(DISTINCT cohort.id) >= %s
-                THEN COUNT(DISTINCT cohort.id) END
+                CASE WHEN COUNT(*) >= %s THEN COUNT(*) END
             FROM ({cohort_sql}) AS cohort
             CROSS JOIN LATERAL (
                 SELECT key, %s::text AS source
@@ -415,7 +414,7 @@ class Cohort:
                 FROM jsonb_object_keys(cohort.usage) AS key
                 WHERE key LIKE 'django.%%'
                 UNION ALL
-                SELECT name, %s::text AS source
+                SELECT DISTINCT name, %s::text AS source
                 FROM (
                     SELECT {_NORMALIZED_PACKAGE_NAME_SQL} AS name
                     FROM jsonb_object_keys(cohort.dependencies) AS key
@@ -424,7 +423,7 @@ class Cohort:
             ) AS found
             WHERE %s::text IS NULL OR found.source = %s
             GROUP BY found.key, found.source
-            HAVING found.source <> %s OR COUNT(DISTINCT cohort.id) >= %s
+            HAVING found.source <> %s OR COUNT(*) >= %s
         """
         with connection.cursor() as cursor:
             cursor.execute(
