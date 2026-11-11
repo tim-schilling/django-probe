@@ -176,32 +176,47 @@ class StatsTests(TestCase):
             {
                 "setting": [
                     {
-                        "key": "CACHES",
+                        "key": "setting:CACHES",
+                        "name": "CACHES",
                         "source": "setting",
                         "projects": 2 * MINIMUM_PROJECTS,
                     },
                     {
-                        "key": "TEMPLATES",
+                        "key": "setting:TEMPLATES",
+                        "name": "TEMPLATES",
                         "source": "setting",
                         "projects": MINIMUM_PROJECTS,
                     },
                 ],
                 "usage": [
                     {
-                        "key": "django.db.models.F",
+                        "key": "usage:django.db.models.F",
+                        "name": "django.db.models.F",
                         "source": "usage",
                         "projects": MINIMUM_PROJECTS,
                     },
                 ],
+                "dependency": [
+                    {
+                        "key": "dependency:celery",
+                        "name": "celery",
+                        "source": "dependency",
+                        "projects": 2 * MINIMUM_PROJECTS,
+                    },
+                    {
+                        "key": "dependency:djangorestframework",
+                        "name": "djangorestframework",
+                        "source": "dependency",
+                        "projects": MINIMUM_PROJECTS,
+                    },
+                    {
+                        "key": "dependency:psycopg",
+                        "name": "psycopg",
+                        "source": "dependency",
+                        "projects": MINIMUM_PROJECTS,
+                    },
+                ],
             },
-        )
-        self.assertEqual(
-            stats["dependencies"],
-            [
-                {"name": "celery", "projects": 2 * MINIMUM_PROJECTS},
-                {"name": "djangorestframework", "projects": MINIMUM_PROJECTS},
-                {"name": "psycopg", "projects": MINIMUM_PROJECTS},
-            ],
         )
         self.assertNotIn("keys", stats)
 
@@ -248,12 +263,12 @@ class StatsTests(TestCase):
             },
         )
 
-        names = {row["name"] for row in self.get_stats()["dependencies"]}
+        names = {row["name"] for row in self.get_stats()["popular"]["dependency"]}
 
         self.assertNotIn("alias-package", names)
 
     def test_dependencies_normalize_names(self):
-        """Spellings of one package are counted together."""
+        """Spellings of one package are counted and filtered together."""
         for spelling in ["alias-package"] * 5 + ["Alias.Package"] * 5:
             submit_projects(
                 1,
@@ -261,8 +276,17 @@ class StatsTests(TestCase):
             )
 
         self.assertIn(
-            {"name": "alias-package", "projects": MINIMUM_PROJECTS},
-            self.get_stats()["dependencies"],
+            {
+                "key": "dependency:alias-package",
+                "name": "alias-package",
+                "source": "dependency",
+                "projects": MINIMUM_PROJECTS,
+            },
+            self.get_stats()["popular"]["dependency"],
+        )
+        self.assertEqual(
+            self.get_stats("?key=dependency:alias-package")["projects"],
+            MINIMUM_PROJECTS,
         )
 
     def test_dependencies_limit(self):
@@ -274,7 +298,7 @@ class StatsTests(TestCase):
             )
 
         self.assertEqual(
-            [row["name"] for row in self.get_stats()["dependencies"]],
+            [row["name"] for row in self.get_stats()["popular"]["dependency"]],
             [
                 "celery",
                 *(f"package-{number}" for number in range(POPULAR_LIMIT - 1, 0, -1)),
@@ -287,31 +311,48 @@ class StatsTests(TestCase):
             self.get_stats("?python=3.12&size=large")["projects"], MINIMUM_PROJECTS
         )
         self.assertEqual(
-            self.get_stats("?key=CACHES")["projects"], 2 * MINIMUM_PROJECTS
+            self.get_stats("?key=setting:CACHES")["projects"], 2 * MINIMUM_PROJECTS
         )
         self.assertEqual(
-            self.get_stats("?key=django.db.models.F")["projects"], MINIMUM_PROJECTS
-        )
-        self.assertEqual(
-            self.get_stats("?dependency=celery")["projects"], 2 * MINIMUM_PROJECTS
-        )
-        self.assertEqual(
-            self.get_stats("?dependency=djangorestframework")["projects"],
+            self.get_stats("?key=usage:django.db.models.F")["projects"],
             MINIMUM_PROJECTS,
         )
-        self.assertTrue(self.get_stats("?dependency=sentry-sdk")["withheld"])
+        self.assertEqual(
+            self.get_stats("?key=dependency:celery")["projects"], 2 * MINIMUM_PROJECTS
+        )
+        self.assertEqual(
+            self.get_stats("?key=dependency:djangorestframework")["projects"],
+            MINIMUM_PROJECTS,
+        )
+        self.assertTrue(self.get_stats("?key=dependency:sentry-sdk")["withheld"])
 
     def test_chained_keys(self):
         """Every key must be used, so each one narrows the projects further."""
         self.assertEqual(
-            self.get_stats("?key=CACHES&key=TEMPLATES")["projects"], MINIMUM_PROJECTS
+            self.get_stats("?key=setting:CACHES&key=setting:TEMPLATES")["projects"],
+            MINIMUM_PROJECTS,
         )
         self.assertEqual(
-            self.get_stats("?key=CACHES&key=django.db.models.F")["projects"],
+            self.get_stats("?key=setting:CACHES&key=usage:django.db.models.F")[
+                "projects"
+            ],
+            MINIMUM_PROJECTS,
+        )
+        self.assertEqual(
+            self.get_stats("?key=dependency:djangorestframework&key=setting:CACHES")[
+                "projects"
+            ],
             MINIMUM_PROJECTS,
         )
         self.assertTrue(
-            self.get_stats("?key=TEMPLATES&key=django.db.models.F")["withheld"]
+            self.get_stats("?key=setting:TEMPLATES&key=usage:django.db.models.F")[
+                "withheld"
+            ]
+        )
+        self.assertTrue(
+            self.get_stats(
+                "?key=dependency:djangorestframework&key=dependency:psycopg"
+            )["withheld"]
         )
 
     def test_withheld(self):
@@ -326,7 +367,6 @@ class StatsTests(TestCase):
                 "distributions": {},
                 "django_python": {},
                 "popular": {},
-                "dependencies": {},
             },
         )
         self.assertEqual(
@@ -344,19 +384,19 @@ class StatsTests(TestCase):
     def test_keys(self):
         """Every name, counted only at the minimum.
 
-        Settings come first, then counted names ahead of the rest, then alphabetical.
+        Sorted by source, then counted names ahead of the rest, then alphabetical.
         """
         keys = self.get_stats(url="api-stats-keys")["keys"]
         counts = {row["key"]: row["projects"] for row in keys}
 
-        self.assertEqual(counts["CACHES"], 2 * MINIMUM_PROJECTS)
-        self.assertEqual(counts["TEMPLATES"], MINIMUM_PROJECTS)
-        self.assertIsNone(counts["CACHE_MIDDLEWARE_SECONDS"])
-        self.assertIsNone(counts["USE_TZ"])
-        self.assertEqual(counts["django.db.models.F"], MINIMUM_PROJECTS)
-        self.assertNotIn("acme.billing.charge", counts)
-        self.assertNotIn("django.my_random.offensive_statement", counts)
-        self.assertNotIn("ACME_FLAG", counts)
+        self.assertEqual(counts["setting:CACHES"], 2 * MINIMUM_PROJECTS)
+        self.assertEqual(counts["setting:TEMPLATES"], MINIMUM_PROJECTS)
+        self.assertIsNone(counts["setting:CACHE_MIDDLEWARE_SECONDS"])
+        self.assertIsNone(counts["setting:USE_TZ"])
+        self.assertEqual(counts["usage:django.db.models.F"], MINIMUM_PROJECTS)
+        self.assertNotIn("usage:acme.billing.charge", counts)
+        self.assertNotIn("usage:django.my_random.offensive_statement", counts)
+        self.assertNotIn("setting:ACME_FLAG", counts)
         self.assertEqual(
             [key for key in counts if not StatsFilterForm({"key": [key]}).is_valid()],
             [],
@@ -367,23 +407,56 @@ class StatsTests(TestCase):
         )
         settings = [row for row in keys if row["source"] == "setting"]
         self.assertEqual(
-            [row["key"] for row in settings[:3]],
+            [row["name"] for row in settings[:3]],
             ["CACHES", "TEMPLATES", "ABSOLUTE_URL_OVERRIDES"],
         )
         self.assertEqual(
             settings,
             sorted(
                 settings,
-                key=lambda row: (row["projects"] is None, row["key"].lower()),
+                key=lambda row: (row["projects"] is None, row["name"].lower()),
             ),
         )
         filtered = self.get_stats("?django=4.2", url="api-stats-keys")["keys"]
         self.assertIn(
-            {"key": "CACHE_MIDDLEWARE_SECONDS", "source": "setting", "projects": None},
+            {
+                "key": "setting:CACHE_MIDDLEWARE_SECONDS",
+                "name": "CACHE_MIDDLEWARE_SECONDS",
+                "source": "setting",
+                "projects": None,
+            },
             filtered,
         )
-        self.assertNotIn("django.db.models.F", {row["key"] for row in filtered})
+        self.assertNotIn("usage:django.db.models.F", {row["key"] for row in filtered})
         self.assertTrue(self.get_stats("?django=2.1", url="api-stats-keys")["withheld"])
+
+    def test_all_dependencies(self):
+        """Every dependency used by the minimum is listed, beyond the popular ten.
+
+        Django, its own dependencies and those used by too few projects are left out.
+        """
+        for number in range(POPULAR_LIMIT):
+            submit_projects(
+                MINIMUM_PROJECTS,
+                dependencies={"django": "5.1.2", f"package-{number}": "1.0"},
+            )
+
+        keys = self.get_stats(url="api-stats-keys")["keys"]
+
+        names = [row["name"] for row in keys if row["source"] == "dependency"]
+        self.assertGreater(len(names), POPULAR_LIMIT)
+        self.assertIn("package-0", names)
+        self.assertNotIn("django", names)
+        self.assertNotIn("asgiref", names)
+        self.assertNotIn("sentry-sdk", names)
+        response = self.client.get(reverse("stats-dependencies"))
+        for name in names:
+            self.assertContains(
+                response, f'href="/stats/dependencies/?key=dependency:{name}"'
+            )
+        self.assertNotContains(response, "<code>django</code>")
+        self.assertNotContains(response, "sentry-sdk")
+        self.assertNotContains(response, "<code>CACHES</code>")
 
     def test_invalid_queries(self):
         for query in [
@@ -392,11 +465,14 @@ class StatsTests(TestCase):
             "?django=5",
             "?django=05.1",
             "?size=huge",
-            "?dependency=Celery",
-            "?dependency=a%20b",
-            "?dependency=celery&dependency=django",
-            "?key=a%20b",
+            "?dependency=celery",
             "?key=caches",
+            "?key=setting:caches",
+            "?key=other:CACHES",
+            "?key=dependency:Celery",
+            "?key=dependency:celery%0A",
+            "?key=dependency:django",
+            "?key=a%20b",
             "?key=ACME_FLAG",
             "?key=acme.billing.charge",
             "?q=cache",
@@ -416,8 +492,8 @@ class StatsTests(TestCase):
         Any other order would redirect to itself forever behind it.
         """
         for url, expected in [
-            ("stats", "/stats/?django=5.1&key=CACHES&size=small"),
-            ("api-stats", "/api/stats/?django=5.1&key=CACHES&size=small"),
+            ("stats", "/stats/?django=5.1&key=setting:CACHES&size=small"),
+            ("api-stats", "/api/stats/?django=5.1&key=setting:CACHES&size=small"),
         ]:
             with self.subTest(url=url):
                 response = self.client.get(
@@ -425,8 +501,8 @@ class StatsTests(TestCase):
                 )
                 self.assertRedirects(response, expected, fetch_redirect_response=False)
         self.assertRedirects(
-            self.client.get(f"{reverse('stats')}?django=5.1&dependency=celery"),
-            "/stats/?dependency=celery&django=5.1",
+            self.client.get(f"{reverse('stats')}?key=dependency:celery&django=5.1"),
+            "/stats/?django=5.1&key=dependency:celery",
             fetch_redirect_response=False,
         )
         self.assertRedirects(
@@ -436,7 +512,7 @@ class StatsTests(TestCase):
         )
         self.assertRedirects(
             self.client.get(f"{reverse('stats')}?key=TEMPLATES&key=CACHES&key=CACHES"),
-            "/stats/?key=CACHES&key=TEMPLATES",
+            "/stats/?key=setting:CACHES&key=setting:TEMPLATES",
             fetch_redirect_response=False,
         )
 
@@ -449,10 +525,11 @@ class StatsTests(TestCase):
             '<span class="stat">21</span> projects</p>',
             html=True,
         )
-        self.assertContains(response, 'href="/stats/?key=CACHES"')
+        self.assertContains(response, 'href="/stats/?key=setting:CACHES"')
         self.assertContains(response, 'href="/stats/?django=5.1"')
         self.assertNotContains(response, 'href="/stats/?django=6.1"')
         self.assertContains(response, 'href="/stats/settings/"')
+        self.assertContains(response, 'href="/stats/dependencies/"')
         self.assertContains(
             response,
             '<tr><td class="table__meta">Older or unrecognized</td>'
@@ -468,8 +545,10 @@ class StatsTests(TestCase):
         )
         self.assertContains(response, 'id="django-python"')
         self.assertContains(response, "<h2>Most used dependencies</h2>", html=True)
-        self.assertContains(response, 'href="/stats/?dependency=djangorestframework"')
-        self.assertContains(response, 'href="/stats/?dependency=celery"')
+        self.assertContains(
+            response, 'href="/stats/?key=dependency:djangorestframework"'
+        )
+        self.assertContains(response, 'href="/stats/?key=dependency:celery"')
         self.assertNotContains(response, "<code>django</code>")
         self.assertContains(
             response, '<a href="/stats/?django=5.1&amp;python=3.12">10</a>'
@@ -479,32 +558,43 @@ class StatsTests(TestCase):
             "so the results are withheld",
         )
 
-        response = self.client.get(f"{reverse('stats')}?dependency=celery")
+        response = self.client.get(f"{reverse('stats')}?key=dependency:celery")
 
-        self.assertContains(response, "Depends on <code>celery</code>")
+        self.assertContains(response, "Uses <code>celery</code>")
         self.assertContains(response, 'href="/stats/">(remove)</a>')
         self.assertContains(
-            response, '<input type="hidden" name="dependency" value="celery">'
+            response, '<input type="hidden" name="key" value="dependency:celery">'
         )
-        self.assertContains(response, 'href="/stats/?dependency=djangorestframework"')
-        self.assertNotContains(response, 'href="/stats/?dependency=celery"')
-
-        response = self.client.get(f"{reverse('stats')}?key=CACHES&key=TEMPLATES")
-
-        self.assertContains(response, 'href="/stats/?key=TEMPLATES">(remove)</a>')
-        self.assertContains(response, 'href="/stats/?key=CACHES">(remove)</a>')
         self.assertContains(
             response,
-            'data-stats-search="/api/stats/keys/?key=CACHES&amp;key=TEMPLATES"',
+            'href="/stats/?key=dependency:celery&amp;key=dependency:djangorestframework"',
+        )
+        self.assertNotContains(response, 'href="/stats/?key=dependency:celery"')
+
+        response = self.client.get(
+            f"{reverse('stats')}?key=setting:CACHES&key=setting:TEMPLATES"
+        )
+
+        self.assertContains(
+            response, 'href="/stats/?key=setting:TEMPLATES">(remove)</a>'
+        )
+        self.assertContains(response, 'href="/stats/?key=setting:CACHES">(remove)</a>')
+        self.assertContains(
+            response,
+            'data-stats-search="/api/stats/keys/?key=setting:CACHES&amp;key=setting:TEMPLATES"',
         )
         self.assertContains(
-            response, '<input type="hidden" name="key" value="TEMPLATES">'
+            response, '<input type="hidden" name="key" value="setting:TEMPLATES">'
         )
-        self.assertNotContains(response, 'href="/stats/?key=CACHES&amp;key=TEMPLATES"')
+        self.assertNotContains(
+            response, 'href="/stats/?key=setting:CACHES&amp;key=setting:TEMPLATES"'
+        )
 
-        response = self.client.get(f"{reverse('stats')}?key=CACHES")
+        response = self.client.get(f"{reverse('stats')}?key=setting:CACHES")
 
-        self.assertContains(response, 'href="/stats/?key=CACHES&amp;key=TEMPLATES"')
+        self.assertContains(
+            response, 'href="/stats/?key=setting:CACHES&amp;key=setting:TEMPLATES"'
+        )
 
     def test_browse(self):
         """Names link to the same page, narrowed to the projects using them.
@@ -517,7 +607,7 @@ class StatsTests(TestCase):
         self.assertContains(response, "All Django APIs")
         self.assertContains(response, '<span class="stat">10</span>', html=True)
         self.assertContains(
-            response, 'href="/stats/apis/?django=5.1&amp;key=django.db.models.F"'
+            response, 'href="/stats/apis/?django=5.1&amp;key=usage:django.db.models.F"'
         )
         self.assertContains(
             response, '<li><a href="/stats/?django=5.1">Stats</a></li>', html=True
@@ -527,9 +617,21 @@ class StatsTests(TestCase):
         )
         self.assertNotContains(response, "TEMPLATES")
 
+        response = self.client.get(f"{reverse('stats-dependencies')}?django=5.1")
+
+        self.assertContains(response, "All dependencies")
+        self.assertContains(
+            response, 'href="/stats/dependencies/?django=5.1&amp;key=dependency:celery"'
+        )
+        self.assertContains(
+            response,
+            '<form action="/stats/dependencies/" class="stats-search" hidden>',
+        )
+        self.assertNotContains(response, "djangorestframework")
+
         response = self.client.get(reverse("stats-settings"))
 
-        self.assertContains(response, 'href="/stats/settings/?key=TEMPLATES"')
+        self.assertContains(response, 'href="/stats/settings/?key=setting:TEMPLATES"')
         for name in ["CACHE_MIDDLEWARE_SECONDS", "USE_TZ"]:
             self.assertContains(
                 response,
@@ -592,5 +694,5 @@ class EmptyDependenciesTests(TestCase):
 
         self.assertNotContains(response, 'id="dependencies"')
         self.assertEqual(
-            self.client.get(reverse("api-stats")).json()["dependencies"], []
+            self.client.get(reverse("api-stats")).json()["popular"]["dependency"], []
         )

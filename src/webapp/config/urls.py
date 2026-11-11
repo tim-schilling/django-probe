@@ -21,6 +21,12 @@ urlpatterns = [
         {"source": KeySource.USAGE},
         name="stats-apis",
     ),
+    path(
+        "stats/dependencies/",
+        views.stats_keys,
+        {"source": KeySource.DEPENDENCY},
+        name="stats-dependencies",
+    ),
     path("api/submissions/", views.submissions, name="submissions"),
     path("api/stats/", views.api_stats, name="api-stats"),
     path("api/stats/keys/", views.api_stats_keys, name="api-stats-keys"),
