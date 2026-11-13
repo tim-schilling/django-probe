@@ -32,6 +32,11 @@ test-all` runs the full [tox](https://tox.wiki/) matrix.
 
 ## Deployment
 
+Two resources will need to be created. One for the web process and the other for the
+worker process.
+
+### Web resource
+
 `src/webapp/Dockerfile` builds `src/webapp` only. On start, the
 container's `src/webapp/docker/entrypoint.sh` serves via gunicorn. Coolify is configured to collectstatic
 and migrate the database on the pre-deployment step.
@@ -81,6 +86,18 @@ resource:
 
 Sentry never initializes without `SENTRY_DSN`. When enabled, the integration does not
 send default personally identifiable information and does not capture request bodies.
+
+### Worker resource
+
+This largely matches the web process. However, the networking ports should be removed,
+there should be no domain.
+
+The following additional environment variables will need to be set:
+
+| Variable | Required | Purpose                                                                               |
+|---|---|---------------------------------------------------------------------------------------|
+| `DJANGO_PROBE_PROCESS` | yes | Set to `worker` so that the worker process runs, otherwise it'll run the web process. |
+
 
 ### Logs
 

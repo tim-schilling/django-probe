@@ -6,6 +6,15 @@ if [ "$#" -gt 0 ]; then
     exec "$@"
 fi
 
+case "${DJANGO_PROBE_PROCESS:-web}" in
+    web) ;;
+    worker) exec python src/webapp/manage.py crontask ;;
+    *)
+        echo "Unknown DJANGO_PROBE_PROCESS: ${DJANGO_PROBE_PROCESS}" >&2
+        exit 1
+        ;;
+esac
+
 exec gunicorn config.wsgi:application \
     --chdir src/webapp \
     --bind "0.0.0.0:${PORT:-8000}" \
