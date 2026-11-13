@@ -12,12 +12,17 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.db import connection
-from django.db.models import BooleanField, Q
-from django.db.models.expressions import RawSQL
+from django.db.models import Exists, OuterRef, Q
 
 from django_probe.settings import DJANGO_SETTING_NAMES
 from ingest.django_api import is_django_api_name
-from ingest.models import SIZE_BUCKETS, Submission, SubmissionQuerySet
+from ingest.models import (
+    NORMALIZED_PACKAGE_NAME_PATTERN,
+    SIZE_BUCKETS,
+    PyPIPackage,
+    Submission,
+    SubmissionQuerySet,
+)
 
 MINIMUM_PROJECTS = 10
 POPULAR_LIMIT = 10
@@ -27,9 +32,6 @@ MAX_KEYS = 10
 DJANGO_DEPENDENCIES = frozenset(
     {"asgiref", "backports-zoneinfo", "django", "pytz", "sqlparse", "tzdata"}
 )
-_NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z\d]([a-z\d-]*[a-z\d])?$"
-# The PEP 503 normalized form of a stored dependency name ``key``.
-_NORMALIZED_PACKAGE_NAME_SQL = "regexp_replace(lower(key), '[-_.]+', '-', 'g')"
 # Alphabetical to match Cloudflare query string sorting
 FILTER_FIELDS = ("django", "key", "python", "size")
 
@@ -140,7 +142,7 @@ def parse_key(key: str) -> tuple[KeySource, str]:
 
 
 def is_key(key: str) -> bool:
-    """Whether ``key`` names a Django setting or API, or a published package."""
+    """Whether ``key`` names a Django setting or API, or a valid package name."""
     source, _, name = key.partition(":")
     if source == KeySource.SETTING:
         return name in DJANGO_SETTING_NAMES
@@ -148,7 +150,7 @@ def is_key(key: str) -> bool:
         return name.startswith("django.") and is_django_api_name(name)
     if source == KeySource.DEPENDENCY:
         return (
-            re.fullmatch(_NORMALIZED_PACKAGE_NAME_PATTERN, name) is not None
+            re.fullmatch(NORMALIZED_PACKAGE_NAME_PATTERN, name) is not None
             and name not in DJANGO_DEPENDENCIES
         )
     return False
@@ -165,7 +167,10 @@ def _with_source(key: str) -> str:
 
 
 class KeysField(forms.Field):
-    """Known keys, deduplicated and sorted."""
+    """Known keys, deduplicated and sorted.
+
+    Dependencies must be published on PyPI.
+    """
 
     widget = forms.MultipleHiddenInput
 
@@ -175,6 +180,15 @@ class KeysField(forms.Field):
             raise forms.ValidationError(f"At most {MAX_KEYS} keys.")
         if not all(is_key(key) for key in keys):
             raise forms.ValidationError("Invalid key.")
+        dependencies = [
+            name
+            for source, name in map(parse_key, keys)
+            if source == KeySource.DEPENDENCY
+        ]
+        if dependencies and PyPIPackage.objects.published().filter(
+            name__in=dependencies
+        ).count() != len(dependencies):
+            raise forms.ValidationError("Dependency not found.")
         return keys
 
 
@@ -213,21 +227,14 @@ def query_string(filters: Mapping[str, str | list[str] | None]) -> str:
     return urlencode(pairs, safe=":")
 
 
-def _uses(key: str) -> Q | RawSQL:
-    """A condition matching the submissions that use ``key``.
-
-    Stored dependency names may be spelled in any way that normalizes to ``key``.
-    """
+def _uses(key: str) -> Q | Exists:
+    """A condition matching the submissions that use ``key``."""
     source, name = parse_key(key)
     if source == KeySource.DEPENDENCY:
-        return RawSQL(
-            f"""EXISTS (
-                SELECT 1
-                FROM jsonb_object_keys("{Submission._meta.db_table}"."dependencies") AS key
-                WHERE {_NORMALIZED_PACKAGE_NAME_SQL} = %s
-            )""",
-            [name],
-            output_field=BooleanField(),
+        return Exists(
+            Submission.packages.through.objects.filter(
+                submission=OuterRef("pk"), pypipackage__name=name
+            )
         )
     field = "django_settings" if source == KeySource.SETTING else "usage"
     return Q(**{f"{field}__has_key": name})
@@ -388,14 +395,13 @@ class Cohort:
     def _key_counts(self, source: KeySource | None = None) -> list[KeyCount]:
         """Every key with its project count.
 
-        Settings and APIs below ``MINIMUM_PROJECTS`` get a count of None.
-        Dependencies below it are left out, since a package name may be private.
+        Keys with fewer than ``MINIMUM_PROJECTS`` get a count of None.
 
         Stored payloads are untrusted, so every value is a bound parameter and
         only known names or valid package names are returned.
         """
         cohort_sql, params = (
-            self.queryset.values("django_settings", "usage", "dependencies")
+            self.queryset.values("id", "django_settings", "usage")
             .order_by()
             .query.sql_with_params()
         )
@@ -414,12 +420,13 @@ class Cohort:
                 FROM jsonb_object_keys(cohort.usage) AS key
                 WHERE key LIKE 'django.%%'
                 UNION ALL
-                SELECT DISTINCT name, %s::text AS source
-                FROM (
-                    SELECT {_NORMALIZED_PACKAGE_NAME_SQL} AS name
-                    FROM jsonb_object_keys(cohort.dependencies) AS key
-                ) AS dependency
-                WHERE name ~ %s AND NOT (name = ANY(%s))
+                SELECT package.name, %s::text AS source
+                FROM {Submission.packages.through._meta.db_table} AS link
+                JOIN {PyPIPackage._meta.db_table} AS package
+                    ON package.id = link.pypipackage_id
+                WHERE link.submission_id = cohort.id
+                    AND package.status = %s
+                    AND NOT (package.name = ANY(%s))
             ) AS found
             WHERE %s::text IS NULL OR found.source = %s
             GROUP BY found.key, found.source
@@ -435,7 +442,7 @@ class Cohort:
                     sorted(DJANGO_SETTING_NAMES),
                     KeySource.USAGE,
                     KeySource.DEPENDENCY,
-                    _NORMALIZED_PACKAGE_NAME_PATTERN,
+                    PyPIPackage.Status.PUBLISHED,
                     sorted(DJANGO_DEPENDENCIES),
                     source,
                     source,

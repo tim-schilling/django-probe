@@ -8,7 +8,7 @@ from django.urls import get_resolver, reverse
 from django.utils import timezone
 
 from config.middleware import USER_LOG_KEY
-from ingest.models import Submission
+from ingest.models import PyPIPackage, Submission
 from ingest.stats import MINIMUM_PROJECTS, POPULAR_LIMIT, StatsFilterForm
 from ingest.tests.factories import ProjectFactory, SubmissionFactory, UserFactory
 
@@ -16,6 +16,15 @@ from ingest.tests.factories import ProjectFactory, SubmissionFactory, UserFactor
 def submit_projects(count: int, **fields) -> None:
     for _ in range(count):
         SubmissionFactory(project=ProjectFactory(), **fields)
+
+
+def publish(*names: str) -> None:
+    PyPIPackage.objects.bulk_create(
+        [PyPIPackage(name=name, status=PyPIPackage.Status.PUBLISHED) for name in names],
+        update_conflicts=True,
+        unique_fields=["name"],
+        update_fields=["status"],
+    )
 
 
 class StatsTests(TestCase):
@@ -43,6 +52,8 @@ class StatsTests(TestCase):
                 "tzdata": "2024.1",
                 "celery": "5.4.0",
                 "psycopg": "3.2.0",
+                # Never confirmed on PyPI, so it may be private.
+                "acme-internal": "1.0",
                 # Not a package name, so it is never published.
                 "not a package name": "1.0",
             },
@@ -72,6 +83,14 @@ class StatsTests(TestCase):
         )
         # Anonymous submissions can't be deduplicated, so they're never counted.
         SubmissionFactory.create_batch(MINIMUM_PROJECTS, django_version="6.0")
+        publish(
+            "alias-package",
+            "celery",
+            "djangorestframework",
+            "psycopg",
+            "sentry-sdk",
+            *(f"package-{number}" for number in range(POPULAR_LIMIT)),
+        )
 
     def get_stats(self, query: str = "", url: str = "api-stats") -> dict:
         response = self.client.get(f"{reverse(url)}{query}")
@@ -449,6 +468,7 @@ class StatsTests(TestCase):
         self.assertNotIn("django", names)
         self.assertNotIn("asgiref", names)
         self.assertNotIn("sentry-sdk", names)
+        self.assertNotIn("acme-internal", names)
         response = self.client.get(reverse("stats-dependencies"))
         for name in names:
             self.assertContains(
@@ -472,6 +492,7 @@ class StatsTests(TestCase):
             "?key=dependency:Celery",
             "?key=dependency:celery%0A",
             "?key=dependency:django",
+            "?key=dependency:acme-internal",
             "?key=a%20b",
             "?key=ACME_FLAG",
             "?key=acme.billing.charge",

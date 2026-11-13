@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -15,11 +16,18 @@ from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.text import slugify
 
+NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z\d]([a-z\d-]*[a-z\d])?$"
+
 CLI_AUTH_REQUEST_TTL = timedelta(minutes=10)
 # How long an issued CLI credential stays valid. A credential is a bearer token on
 # a developer's laptop, so it expires on its own rather than living until someone
 # remembers to revoke it.
 CLI_CREDENTIAL_TTL = timedelta(days=90)
+
+
+def normalize_package_name(name: str) -> str:
+    """The PEP 503 normalized form of ``name``."""
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 def hash_cli_token(token: str) -> str:
@@ -437,6 +445,10 @@ class Submission(models.Model):
     dependencies_source = models.CharField(max_length=128, blank=True)
     django_settings = models.JSONField(default=dict)
     django_settings_scanned = models.BooleanField(default=False)
+    # The normalized package names from ``dependencies``.
+    packages = models.ManyToManyField(
+        "PyPIPackage", related_name="submissions", blank=True
+    )
 
     objects = SubmissionQuerySet.as_manager()
 
@@ -459,3 +471,69 @@ class Submission(models.Model):
     @property
     def total_occurrences(self) -> int:
         return sum(self.patterns.values()) + sum(self.usage.values())
+
+    def link_packages(self) -> None:
+        """Link the packages named in ``dependencies``, creating any new ones."""
+        names = {
+            name
+            for name in map(normalize_package_name, self.dependencies)
+            if re.fullmatch(NORMALIZED_PACKAGE_NAME_PATTERN, name)
+        }
+        PyPIPackage.objects.bulk_create(
+            [PyPIPackage(name=name) for name in names], ignore_conflicts=True
+        )
+        self.packages.set(PyPIPackage.objects.filter(name__in=names))
+
+
+class PyPIPackageQuerySet(models.QuerySet["PyPIPackage"]):
+    def published(self) -> Self:
+        return self.filter(status=PyPIPackage.Status.PUBLISHED)
+
+    def due(self, retry_after: timedelta) -> Self:
+        """Pending packages never checked, or last checked ``retry_after`` ago."""
+        return self.filter(
+            Q(checked_at__isnull=True)
+            | Q(checked_at__lte=timezone.now() - retry_after),
+            status=PyPIPackage.Status.PENDING,
+        )
+
+    def used_by(self, minimum: int) -> Self:
+        """Packages in the latest submission of at least ``minimum`` projects."""
+        return self.annotate(
+            projects=Count(
+                "submissions",
+                filter=Q(submissions__in=Submission.objects.latest_per_project()),
+            )
+        ).filter(projects__gte=minimum)
+
+
+class PyPIPackage(models.Model):
+    """A normalized dependency name, and whether it's confirmed on PyPI.
+
+    The stats only show dependencies that are ``PUBLISHED``.
+    """
+
+    class Status(models.TextChoices):
+        """``MISSING`` packages weren't found after the most attempts allowed, and
+        ``EXCLUDED`` ones are never checked.
+        """
+
+        PENDING = "pending", "Pending"
+        PUBLISHED = "published", "Published"
+        MISSING = "missing", "Missing"
+        EXCLUDED = "excluded", "Excluded"
+
+    name = models.CharField(max_length=200, unique=True)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
+    attempts = models.PositiveSmallIntegerField(default=0)
+    checked_at = models.DateTimeField(null=True, blank=True)
+
+    objects = PyPIPackageQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name

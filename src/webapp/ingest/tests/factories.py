@@ -82,6 +82,7 @@ def issue_cli_credential(**kwargs) -> tuple[CliCredential, str]:
 class SubmissionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Submission
+        skip_postgeneration_save = True
 
     project = None
     schema_version = 1
@@ -96,3 +97,8 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
     dependencies = {"django": "5.1.2"}
     django_settings = {}
     django_settings_scanned = False
+
+    @factory.post_generation
+    def packages(self, create, extracted, **kwargs):
+        if create:
+            self.link_packages()

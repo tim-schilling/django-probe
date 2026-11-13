@@ -129,6 +129,19 @@ feature series, plus `main`, and writes the names found in each one:
 Afterwards, update the expected versions and counts in the tests and commit them
 with the catalogs.
 
+### Scheduled tasks
+
+The scheduler runs the webapp's [tasks](https://docs.djangoproject.com/en/stable/topics/tasks/)
+on their schedules via [django-crontask](https://github.com/codingjoe/django-crontask):
+
+```console
+$ just worker
+```
+
+| Task | Schedule | Purpose |
+|---|---|---|
+| `ingest.tasks.check_pypi_packages` | daily | Checks which dependency names are on PyPI. The stats only show those that are. |
+
 ### Scheduled maintenance
 
 CLI login requests and credentials accumulate as rows nothing can use. Run this
