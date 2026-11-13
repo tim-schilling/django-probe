@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# A command, such as the crontask scheduler, runs in place of the web server.
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
+
 exec gunicorn config.wsgi:application \
     --chdir src/webapp \
     --bind "0.0.0.0:${PORT:-8000}" \

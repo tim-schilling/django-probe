@@ -65,6 +65,10 @@ createsuperuser:
 seed-data:
     uv run python src/webapp/manage.py seed_data
 
+# Run the scheduler for the webapp's recurring tasks
+worker:
+    uv run python src/webapp/manage.py crontask
+
 # Print the payload that `submit` would send, without sending it
 scan path=".":
     uv run django-probe scan {{path}}
