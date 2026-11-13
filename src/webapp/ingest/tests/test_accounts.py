@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from allauth.socialaccount.models import SocialAccount
 from django.test import SimpleTestCase, TestCase
@@ -271,7 +271,7 @@ class AccountExportTests(TestCase):
 
         self.assertEqual(
             response["Content-Disposition"],
-            f'attachment; filename="django-probe-owner-{date.today():%Y-%m-%d}.json"',
+            f'attachment; filename="django-probe-owner-{datetime.now(timezone.utc):%Y-%m-%d}.json"',
         )
 
     def test_includes_the_account_and_its_github_identity(self):
