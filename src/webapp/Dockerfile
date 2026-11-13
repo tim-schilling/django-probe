@@ -2,7 +2,7 @@
 
 # Runs the src/webapp server. The django-probe client package (src/django_probe) is
 # copied in because the webapp reads its __version__ to flag outdated clients.
-FROM ghcr.io/astral-sh/uv:0.9.30-python3.14-bookworm-slim
+FROM ghcr.io/astral-sh/uv:0.13.8-python3.14-trixie-slim
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
