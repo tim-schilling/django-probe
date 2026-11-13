@@ -71,7 +71,7 @@ class DjangoAPICatalogTests(TestCase):
         )
 
         self.assertEqual(names, expected)
-        self.assertEqual(len(names), 47819)
+        self.assertEqual(len(names), 47901)
         self.assertTrue(is_django_api_name("django.shortcuts.render"))
         # Removed in Django 4.0, but still used by projects on older releases.
         self.assertTrue(is_django_api_name("django.conf.urls.url"))
@@ -102,9 +102,9 @@ class DjangoAPICatalogTests(TestCase):
                 "4.2": 38325,
                 "5.0": 38978,
                 "5.1": 39413,
-                "5.2": 40552,
-                "6.0": 41326,
-                "6.1": 42166,
-                "6.2": 42272,
+                "5.2": 40603,
+                "6.0": 41376,
+                "6.1": 42221,
+                "6.2": 42084,
             },
         )
