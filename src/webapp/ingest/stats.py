@@ -17,10 +17,16 @@ from ingest.django_api import is_django_api_name
 from ingest.models import SIZE_BUCKETS, Submission, SubmissionQuerySet
 
 MINIMUM_PROJECTS = 10
-POPULAR_KEYS_LIMIT = 10
+POPULAR_LIMIT = 10
 MAX_KEYS = 10
+
+# Django and its requirements across every series in DJANGO_VERSIONS.
+DJANGO_DEPENDENCIES = frozenset(
+    {"asgiref", "backports-zoneinfo", "django", "pytz", "sqlparse", "tzdata"}
+)
+_NORMALIZED_PACKAGE_NAME_PATTERN = r"^[a-z\d]([a-z\d-]*[a-z\d])?$"
 # Alphabetical to match Cloudflare query string sorting
-FILTER_FIELDS = ("django", "key", "python", "size")
+FILTER_FIELDS = ("dependency", "django", "key", "python", "size")
 
 # Older versions are grouped into ``other``, and newer ones appear as soon as a project reports them.
 DJANGO_VERSIONS = (
@@ -97,6 +103,11 @@ class KeyCount(TypedDict):
     projects: int | None
 
 
+class DependencyCount(TypedDict):
+    name: str
+    projects: int
+
+
 class Summary(TypedDict):
     minimum_projects: int
     filters: Filters
@@ -108,6 +119,7 @@ class Overview(Summary):
     distributions: dict[str, Distribution]
     django_python: Matrix | dict[str, Never]
     popular: dict[KeySource, list[KeyCount]]
+    dependencies: list[DependencyCount] | dict[str, Never]
 
 
 class KeysSummary(Summary):
@@ -133,6 +145,9 @@ class KeysField(forms.Field):
 
 
 class StatsFilterForm(forms.Form):
+    dependency = forms.RegexField(
+        regex=_NORMALIZED_PACKAGE_NAME_PATTERN, required=False
+    )
     django = forms.RegexField(regex=_MINOR_VERSION_PATTERN, required=False)
     python = forms.RegexField(regex=_MINOR_VERSION_PATTERN, required=False)
     size = forms.ChoiceField(
@@ -195,6 +210,8 @@ class Cohort:
         queryset = (
             Submission.objects.latest_per_project().with_minor_versions().with_size()
         )
+        if "dependency" in self.filters:
+            queryset = queryset.filter(dependencies__has_key=self.filters["dependency"])
         if "django" in self.filters:
             queryset = queryset.filter(django_minor=self.filters["django"])
         if "python" in self.filters:
@@ -220,6 +237,7 @@ class Cohort:
                 "distributions": {},
                 "django_python": {},
                 "popular": {},
+                "dependencies": {},
             }
         return {
             **self._summary(),
@@ -230,6 +248,7 @@ class Cohort:
             },
             "django_python": self._version_matrix(),
             "popular": self._popular_keys(),
+            "dependencies": self._popular_dependencies(),
         }
 
     def keys(self, source: KeySource | None = None) -> KeysSummary:
@@ -407,8 +426,43 @@ class Cohort:
             key=lambda row: (-(row["projects"] or 0), row["key"]),
         )
         return {
-            source: [row for row in ranked if row["source"] == source][
-                :POPULAR_KEYS_LIMIT
-            ]
+            source: [row for row in ranked if row["source"] == source][:POPULAR_LIMIT]
             for source in KeySource
         }
+
+    def _popular_dependencies(self) -> list[DependencyCount]:
+        """The ten most used dependencies, excluding Django and its own."""
+        cohort_sql, params = (
+            self.queryset.values("id", "dependencies")
+            .order_by()
+            .query.sql_with_params()
+        )
+        sql = f"""
+            SELECT found.name, COUNT(DISTINCT cohort.id)
+            FROM ({cohort_sql}) AS cohort
+            CROSS JOIN LATERAL (
+                SELECT regexp_replace(lower(key), '[-_.]+', '-', 'g') AS name
+                FROM jsonb_object_keys(cohort.dependencies) AS key
+            ) AS found
+            WHERE found.name ~ %s
+            AND NOT (found.name = ANY(%s))
+            GROUP BY found.name
+            HAVING COUNT(DISTINCT cohort.id) >= %s
+            ORDER BY COUNT(DISTINCT cohort.id) DESC, found.name
+            LIMIT %s
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql,
+                [
+                    *params,
+                    _NORMALIZED_PACKAGE_NAME_PATTERN,
+                    list(DJANGO_DEPENDENCIES),
+                    MINIMUM_PROJECTS,
+                    POPULAR_LIMIT,
+                ],
+            )
+            return [
+                {"name": name, "projects": projects}
+                for name, projects in cursor.fetchall()
+            ]

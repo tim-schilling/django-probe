@@ -5,6 +5,7 @@ dist/
 build/
 *.egg-info/
 .pytest_cache/
+.coverage
 .ruff_cache/
 .tox/
 db.sqlite3

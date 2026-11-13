@@ -18,7 +18,7 @@
     {% else %}
       <span class="stat">{{ summary.projects }}</span> project{{ summary.projects|pluralize }}
     {% endif %}
-    {% if filters.key or filters.django or filters.python or filters.size %}match these filters{% endif %}
+    {% if filters.key or filters.dependency or filters.django or filters.python or filters.size %}match these filters{% endif %}
   </p>
   <p class="lede">
     Each project counts once, using its latest submission. Results for fewer than
@@ -29,6 +29,7 @@
 
 {# Only usable with JavaScript, which reveals it; the browse pages link every name. #}
 <form action="{{ request.path }}" class="stats-search" hidden>
+  {% if filters.dependency %}<input type="hidden" name="dependency" value="{{ filters.dependency }}">{% endif %}
   {% if filters.django %}<input type="hidden" name="django" value="{{ filters.django }}">{% endif %}
   {% if filters.python %}<input type="hidden" name="python" value="{{ filters.python }}">{% endif %}
   {% if filters.size %}<input type="hidden" name="size" value="{{ filters.size }}">{% endif %}
@@ -39,10 +40,11 @@
   </p>
 </form>
 
-{% if filters.django or filters.python or filters.size or filters.key %}
+{% if filters.dependency or filters.django or filters.python or filters.size or filters.key %}
 <div class="panel panel--subtle">
   <strong>Filters</strong><br />
   <ul class="stats-filters">
+    {% if filters.dependency %}<li>Depends on <code>{{ filters.dependency }}</code> <a href="{{ request.path }}{% stats_query filters dependency='' %}">(remove)</a></li>{% endif %}
     {% if filters.django %}<li>Django {{ filters.django }} <a href="{{ request.path }}{% stats_query filters django='' %}">(remove)</a></li>{% endif %}
     {% if filters.python %}<li>Python {{ filters.python }} <a href="{{ request.path }}{% stats_query filters python='' %}">(remove)</a></li>{% endif %}
     {% if filters.size %}<li>{% for bucket in size_buckets %}{% if bucket.value == filters.size %}{{ bucket.label }}{% endif %}{% endfor %} <a href="{{ request.path }}{% stats_query filters size='' %}">(remove)</a></li>{% endif %}

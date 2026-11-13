@@ -65,8 +65,7 @@ If you want to see the code, please see [`payload.py`](https://github.com/tim-sc
 
 ## Public aggregate data
 
-Submissions inform aggregated, filterable statistics (e.g. by Django version,
-Python version, or the settings and Django APIs a project uses) that anyone can
+Submissions are used to generate aggregated, filterable statistics (e.g. the settings and Django APIs a project uses) that anyone can
 view. This view never identifies which project or organization a figure came
 from, and there is no way to filter by date or otherwise reconstruct a history for
 a single source.
