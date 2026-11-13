@@ -15,8 +15,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Installing dependencies before the rest of the source keeps this layer cached
-# across code-only changes.
+# across code-only changes. hatchling reads the dynamic version from __init__.py while
+# preparing project metadata, so that file is needed here.
 COPY pyproject.toml uv.lock ./
+COPY src/django_probe/__init__.py ./src/django_probe/__init__.py
 RUN uv sync --locked --no-dev --no-install-project --group webapp
 
 COPY src/django_probe ./src/django_probe
