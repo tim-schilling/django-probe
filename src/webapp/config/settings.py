@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.github",
+    "crontask",
     "ingest",
 ]
 
@@ -150,6 +151,9 @@ STORAGES = {
     },
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# `manage.py crontask` enqueues each scheduled task and this backend runs it there,
+# in the scheduler's process.
+TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
 USE_TZ = True
 
 # Containers log to stderr, where the host collects them.

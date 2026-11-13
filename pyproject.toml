@@ -46,7 +46,10 @@ urls.Repository = "https://github.com/tim-schilling/django-probe"
 # Groups rather than extras: they stay out of the published wheel's metadata, so
 # installing django-probe pulls in neither Django nor pytest.
 webapp = [
-  "django>=4.2",
+  # django-crontask uses APScheduler 3's API, and prerelease = "allow" would pick 4's alphas.
+  "apscheduler>=3.11,<4",
+  "django>=6.0; python_version>='3.12'",
+  "django-crontask>=2.2; python_version>='3.14'",
   "django-allauth[socialaccount]>=65",
   "dj-database-url>=2.3",
   "gunicorn>=23",
@@ -97,6 +100,10 @@ conflicts = [
     { group = "django61" },
     { group = "djangomain" },
   ],
+  # The webapp needs Django 6.0+ for its task framework.
+  [ { group = "webapp" }, { group = "django42" } ],
+  [ { group = "webapp" }, { group = "django50" } ],
+  [ { group = "webapp" }, { group = "django52" } ],
 ]
 
 [tool.hatch.version]
