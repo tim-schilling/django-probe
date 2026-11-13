@@ -203,6 +203,23 @@ class CliCredentialQuerySet(models.QuerySet):
             token_expires_at__gt=timezone.now(),
         )
 
+    def unusable_before(self, cutoff: datetime):
+        """Rows that stopped being usable before ``cutoff``.
+
+        A row is aged from the moment it stopped being usable rather than from
+        ``created_at``: a credential that runs its full term is already months old
+        on the day it dies.
+        """
+        return self.filter(
+            # No digest means the credential was never collected, so the row is a
+            # pending, expired or denied request that can never become one. Those
+            # are aged from creation, which puts the ten minute request TTL far out
+            # of reach of the cutoff.
+            Q(token_digest__isnull=True, created_at__lt=cutoff)
+            | Q(revoked_at__lt=cutoff)
+            | Q(token_expires_at__lt=cutoff)
+        )
+
 
 class CliCredential(models.Model):
     """A CLI device-login request and, once approved, the resulting credential.

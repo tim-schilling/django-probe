@@ -12,7 +12,7 @@ from django.tasks import task
 from django.utils import timezone
 
 from django_probe import __version__
-from ingest.models import PyPIPackage
+from ingest.models import CliCredential, PyPIPackage
 from ingest.stats import DJANGO_DEPENDENCIES, MINIMUM_PROJECTS
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,9 @@ PYPI_SIMPLE_URL = "https://pypi.org/simple/{name}/"
 PYPI_TIMEOUT = 10
 MAX_ATTEMPTS = 4
 RETRY_AFTER = timedelta(days=7)
+# Keeping unusable CLI credentials for a while lets the account page show someone
+# that the laptop they lost last week no longer has access.
+CLI_CREDENTIAL_RETENTION = timedelta(days=7)
 
 
 def is_published(name: str) -> bool:
@@ -81,3 +84,12 @@ def check_pypi_packages() -> None:
         update_fields=["status", "attempts", "checked_at"],
     )
     logger.info("Checked %d packages on PyPI", len(checked))
+
+
+@cron("30 3 * * *")
+@task
+def purge_cli_credentials() -> None:
+    """Delete CLI device-login rows unusable for longer than the retention."""
+    cutoff = timezone.now() - CLI_CREDENTIAL_RETENTION
+    deleted, _ = CliCredential.objects.unusable_before(cutoff).delete()
+    logger.info("Deleted %d unusable CLI credentials", deleted)

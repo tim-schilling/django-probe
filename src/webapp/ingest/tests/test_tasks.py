@@ -9,17 +9,22 @@ from urllib.error import HTTPError
 from django.test import TestCase
 from django.utils import timezone
 
-from ingest.models import PyPIPackage
+from ingest.models import CliCredential, PyPIPackage
 from ingest.stats import MINIMUM_PROJECTS
 from ingest.tasks import (
     MAX_ATTEMPTS,
     RETRY_AFTER,
     check_pypi_packages,
     is_published,
+    purge_cli_credentials,
 )
 from ingest.tests.factories import (
+    CliCredentialFactory,
+    OrganizationFactory,
     ProjectFactory,
     SubmissionFactory,
+    UserFactory,
+    issue_cli_credential,
 )
 
 Status = PyPIPackage.Status
@@ -117,3 +122,98 @@ class CheckPyPIPackagesTests(TestCase):
                 "sentry-sdk": (Status.PUBLISHED, 2),
             },
         )
+
+
+def _aged(credential: CliCredential, days: int) -> CliCredential:
+    """Backdate `created_at`, which is auto_now_add and so can't be set on create."""
+    return _backdate(credential, created_at=days)
+
+
+def _backdate(credential: CliCredential, **fields: int) -> CliCredential:
+    """Set each named timestamp to the given number of days ago."""
+    now = timezone.now()
+    CliCredential.objects.filter(pk=credential.pk).update(
+        **{name: now - timedelta(days=days) for name, days in fields.items()}
+    )
+    return credential
+
+
+class PurgeCliCredentialsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(username="owner")
+        cls.organization = OrganizationFactory(name="Django team", owner=cls.user)
+
+    def credential(self) -> tuple[CliCredential, str]:
+        return issue_cli_credential(organization=self.organization, user=self.user)
+
+    def purge(self) -> None:
+        with self.assertLogs("ingest.tasks", "INFO"):
+            purge_cli_credentials.call()
+
+    def test_deletes_requests_older_than_the_retention_window(self):
+        stale = _aged(CliCredentialFactory(), days=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=stale.pk).exists())
+
+    def test_keeps_recent_requests(self):
+        recent = _aged(CliCredentialFactory(), days=1)
+
+        self.purge()
+
+        self.assertTrue(CliCredential.objects.filter(pk=recent.pk).exists())
+
+    def test_keeps_pending_requests(self):
+        pending = CliCredentialFactory()
+
+        self.purge()
+
+        self.assertTrue(CliCredential.objects.filter(pk=pending.pk).exists())
+
+    def test_never_deletes_an_active_credential(self):
+        """A credential still within its lifetime stays however old the row is;
+        deleting one would silently break a working CLI install."""
+        credential, _ = self.credential()
+        _aged(credential, days=365)
+
+        self.purge()
+
+        self.assertTrue(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_deletes_long_expired_credentials(self):
+        credential, _ = self.credential()
+        _backdate(credential, created_at=120, token_expires_at=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_deletes_long_revoked_credentials(self):
+        credential, _ = self.credential()
+        _backdate(credential, created_at=30, revoked_at=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=credential.pk).exists())
+
+    def test_keeps_recently_dead_credentials(self):
+        """The account page shows expired and revoked devices, so a window's worth
+        of them stays around for someone auditing a lost laptop."""
+        expired, _ = self.credential()
+        _backdate(expired, created_at=90, token_expires_at=1)
+        revoked, _ = self.credential()
+        _backdate(revoked, created_at=30, revoked_at=1)
+
+        self.purge()
+
+        self.assertTrue(CliCredential.objects.filter(pk=expired.pk).exists())
+        self.assertTrue(CliCredential.objects.filter(pk=revoked.pk).exists())
+
+    def test_deletes_denied_requests(self):
+        denied = _aged(CliCredentialFactory(denied_at=timezone.now()), days=30)
+
+        self.purge()
+
+        self.assertFalse(CliCredential.objects.filter(pk=denied.pk).exists())
