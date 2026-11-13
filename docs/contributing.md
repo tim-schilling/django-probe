@@ -141,15 +141,4 @@ $ just worker
 | Task | Schedule | Purpose |
 |---|---|---|
 | `ingest.tasks.check_pypi_packages` | daily | Checks which dependency names are on PyPI. The stats only show those that are. |
-
-### Scheduled maintenance
-
-CLI login requests and credentials accumulate as rows nothing can use. Run this
-daily, alongside the pre-deployment steps:
-
-```console
-$ python src/webapp/manage.py purge_cli_credentials
-```
-
-It deletes rows unusable for more than seven days (`--days` to change,
-`--dry-run` to preview). Active credentials are never touched.
+| `ingest.tasks.purge_cli_credentials` | daily | Deletes CLI login requests and credentials unusable for more than seven days. |
