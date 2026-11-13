@@ -60,7 +60,7 @@ class UsageReportIntegrationTests(IngestTestCase):
         response = self.client.get(reverse("api-stats-keys"))
         self.assertEqual(response.status_code, 200)
         reported = {
-            row["key"]: row["projects"]
+            row["name"]: row["projects"]
             for row in response.json()["keys"]
             if row["source"] == "usage"
         }
