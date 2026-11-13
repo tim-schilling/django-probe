@@ -1,5 +1,5 @@
 {
-  "django_version": "6.0.9",
+  "django_version": "6.0.10",
   "names": [
     "ABSOLUTE_URL_OVERRIDES",
     "ADMINS",
