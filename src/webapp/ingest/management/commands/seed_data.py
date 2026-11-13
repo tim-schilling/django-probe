@@ -16,7 +16,7 @@ from django.views import generic
 
 from config import environment
 from django_probe.settings import DJANGO_SETTING_NAMES, DJANGO_SETTING_NAMES_BY_VERSION
-from ingest.models import User
+from ingest.models import PyPIPackage, User
 from ingest.tests.factories import (
     OrganizationFactory,
     OrganizationMembershipFactory,
@@ -243,6 +243,10 @@ class Command(BaseCommand):
                         usage=_adopted(USAGE_RATES, (1, 40)),
                     )
                     total_submissions += 1
+
+        PyPIPackage.objects.filter(name__in=DEPENDENCY_NAMES).update(
+            status=PyPIPackage.Status.PUBLISHED
+        )
 
         self.stdout.write(
             self.style.SUCCESS(

@@ -12,6 +12,7 @@ from ingest.models import (
     Organization,
     OrganizationMembership,
     Project,
+    PyPIPackage,
     Submission,
     User,
 )
@@ -124,3 +125,28 @@ class SubmissionAdmin(admin.ModelAdmin):
     def has_add_permission(self, request) -> bool:
         # Submissions arrive over the API; hand-authoring them would pollute the data.
         return False
+
+
+@admin.register(PyPIPackage)
+class PyPIPackageAdmin(admin.ModelAdmin):
+    """Adding a package as excluded keeps it from ever being checked on PyPI."""
+
+    list_display = ("name", "status", "attempts", "checked_at")
+    list_filter = ("status",)
+    search_fields = ("name",)
+    fields = ("name", "status", "attempts", "checked_at")
+    readonly_fields = ("attempts", "checked_at")
+    actions = ["exclude_from_checks", "check_again"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return self.readonly_fields
+        return ("name", *self.readonly_fields)
+
+    @admin.action(description="Exclude from PyPI checks")
+    def exclude_from_checks(self, request, queryset) -> None:
+        queryset.update(status=PyPIPackage.Status.EXCLUDED)
+
+    @admin.action(description="Check on PyPI again")
+    def check_again(self, request, queryset) -> None:
+        queryset.update(status=PyPIPackage.Status.PENDING, attempts=0, checked_at=None)

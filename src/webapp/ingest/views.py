@@ -162,10 +162,9 @@ def submissions(request) -> JsonResponse:
     except ValidationError as exc:
         return _error(str(exc), 400)
 
-    Submission.objects.create(
-        project=project,
-        **cleaned,
-    )
+    with transaction.atomic():
+        submission = Submission.objects.create(project=project, **cleaned)
+        submission.link_packages()
     return JsonResponse({"status": "ok"}, status=201)
 
 

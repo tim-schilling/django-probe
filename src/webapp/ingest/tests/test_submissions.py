@@ -24,6 +24,20 @@ class AnonymousSubmissionTests(IngestTestCase):
         self.assertEqual(submission.django_settings, {})
         self.assertEqual(submission.files_scanned, 12)
 
+    def test_packages(self):
+        """Valid dependency names are linked to packages, normalized."""
+        self.post(
+            payload(
+                dependencies={"Django": "5.1.2", "Zope.Interface": "7.0", "a b": "1"}
+            )
+        )
+
+        self.assertQuerySetEqual(
+            Submission.objects.get().packages.values_list("name", flat=True),
+            ["django", "zope-interface"],
+            ordered=False,
+        )
+
     def test_body_token_field_is_ignored(self):
         """Only the Authorization header can attribute a submission to a project."""
         owner = UserFactory(username="owner")
