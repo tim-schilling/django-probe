@@ -20,11 +20,6 @@
     {% endif %}
     {% if filters.key or filters.django or filters.python or filters.size %}match these filters{% endif %}
   </p>
-  <p class="lede">
-    Each project counts once, using its latest submission. Results for fewer than
-    {{ summary.minimum_projects }} projects are withheld.
-    {% block lede %}{% endblock %}
-  </p>
 </header>
 
 {# Only usable with JavaScript, which reveals it; the browse pages link every name. #}

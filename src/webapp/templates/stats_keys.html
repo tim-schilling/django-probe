@@ -13,8 +13,6 @@
 
 {% block heading %}All {{ source.label }}{% endblock %}
 
-{% block lede %}{% if source == "setting" %}Every setting Django Probe recognizes is listed, even when no project defines it.{% elif source == "dependency" %}Packages used by fewer than {{ summary.minimum_projects }} projects are hidden, as are Django and the packages it depends on.{% endif %}{% endblock %}
-
 {% block results %}
 <section id="{% if source == "usage" %}apis{% else %}{{ source.label }}{% endif %}">
   {% include "includes/stats_keys_table.html" with keys=summary.keys empty_message="Nothing matches." %}
