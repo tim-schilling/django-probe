@@ -117,12 +117,10 @@ class Organization(models.Model):
 
 class OrganizationMembership(models.Model):
     class Role(models.TextChoices):
-        """Descriptive only: nothing is authorized on it.
+        """Only the roster is authorized on it.
 
-        Every action an organization has - creating projects, regenerating tokens,
-        adding and removing people - is available to any member. The distinction is
-        recorded so it is there to build on once there is enough adoption to need
-        it, but do not read it as a permission boundary today.
+        Owners change roles and remove people. Members can add people, but only as
+        members.
         """
 
         OWNER = "owner", "Owner"
@@ -156,6 +154,10 @@ class OrganizationMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} in {self.organization} ({self.get_role_display()})"
+
+    @property
+    def is_owner(self) -> bool:
+        return self.role == self.Role.OWNER
 
 
 class Project(models.Model):

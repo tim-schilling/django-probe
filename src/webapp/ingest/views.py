@@ -5,6 +5,7 @@ import secrets
 import uuid
 from collections.abc import Callable
 from datetime import timedelta
+from functools import wraps
 from typing import TypedDict
 
 from django.contrib import messages
@@ -121,6 +122,25 @@ def _membership_or_404(request, organization_id: uuid.UUID) -> OrganizationMembe
         organization_id=organization_id,
         user=request.user,
     )
+
+
+def owner_required(
+    view: Callable[..., HttpResponse],
+) -> Callable[..., HttpResponse]:
+    """Pass the requesting owner's membership to the view in place of the id.
+
+    Nonmembers get a 404 so the organization stays hidden from them; members who
+    are not owners get a 403.
+    """
+
+    @wraps(view)
+    def wrapper(request, organization_id: uuid.UUID, *args, **kwargs) -> HttpResponse:
+        membership = _membership_or_404(request, organization_id)
+        if not membership.is_owner:
+            raise PermissionDenied
+        return view(request, membership, *args, **kwargs)
+
+    return wrapper
 
 
 def _paginate_submissions(request, project: Project):
@@ -822,7 +842,7 @@ def organization_members(request, organization_id: uuid.UUID) -> HttpResponse:
         request,
         "organization_members.html",
         {
-            "add_form": MembershipAddForm(),
+            "add_form": MembershipAddForm(membership=membership),
             "membership": membership,
             "memberships": membership.organization.memberships.select_related("user"),
             "organization": membership.organization,
@@ -835,7 +855,7 @@ def organization_members(request, organization_id: uuid.UUID) -> HttpResponse:
 @require_POST
 def organization_member_add(request, organization_id: uuid.UUID) -> HttpResponse:
     membership = _membership_or_404(request, organization_id)
-    form = MembershipAddForm(request.POST)
+    form = MembershipAddForm(request.POST, membership=membership)
     if form.is_valid():
         user_model = get_user_model()
         user = user_model.objects.get(username=form.cleaned_data["username"])
@@ -866,10 +886,10 @@ def organization_member_add(request, organization_id: uuid.UUID) -> HttpResponse
 
 @login_required
 @require_POST
+@owner_required
 def organization_member_role(
-    request, organization_id: uuid.UUID, membership_id: int
+    request, membership: OrganizationMembership, membership_id: int
 ) -> HttpResponse:
-    membership = _membership_or_404(request, organization_id)
     target = get_object_or_404(
         OrganizationMembership,
         pk=membership_id,
@@ -887,10 +907,10 @@ def organization_member_role(
 
 @login_required
 @require_POST
+@owner_required
 def organization_member_remove(
-    request, organization_id: uuid.UUID, membership_id: int
+    request, membership: OrganizationMembership, membership_id: int
 ) -> HttpResponse:
-    membership = _membership_or_404(request, organization_id)
     target = get_object_or_404(
         OrganizationMembership,
         pk=membership_id,

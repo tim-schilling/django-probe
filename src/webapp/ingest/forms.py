@@ -106,6 +106,16 @@ class MembershipAddForm(forms.Form):
     username = forms.CharField(max_length=150)
     role = forms.ChoiceField(choices=OrganizationMembership.Role.choices)
 
+    def __init__(self, *args, membership: OrganizationMembership, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not membership.is_owner:
+            del self.fields["role"]
+
+    def clean(self) -> dict:
+        cleaned_data = super().clean()
+        cleaned_data.setdefault("role", OrganizationMembership.Role.MEMBER)
+        return cleaned_data
+
     def clean_username(self) -> str:
         username = self.cleaned_data["username"]
         user_model = get_user_model()

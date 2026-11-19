@@ -4,7 +4,7 @@
 {% block content %}
 <header class="page-header">
   <h1>Manage members</h1>
-  <p class="lede">Add existing users by username. Everyone in an organization can manage its projects and its people; the role is a label.</p>
+  <p class="lede">Add existing users by username. Only owners can add owners, change roles, or remove people.</p>
 </header>
 
 <div class="panel panel--subtle auth-panel">
@@ -21,6 +21,7 @@
   {% for item in memberships %}
     <li>
       <span class="item-list__title">{{ item.user.get_username }}{% if item.user == user %} (you){% endif %}</span>
+      {% if membership.is_owner %}
       <div class="membership-actions">
         <form class="inline-form" method="post" action="{% url 'organization-member-role' organization_id=organization.pk membership_id=item.pk %}">
           {% csrf_token %}
@@ -35,6 +36,9 @@
           <button class="button--secondary" type="submit">Remove {{ item.user.get_username }}</button>
         </form>
       </div>
+      {% else %}
+      <span>{{ item.get_role_display }}</span>
+      {% endif %}
     </li>
   {% endfor %}
 </ul>

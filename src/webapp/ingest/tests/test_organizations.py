@@ -205,13 +205,15 @@ class OrganizationAccessTests(TestCase):
         self.project.refresh_from_db()
         self.assertEqual(self.project.organization, destination)
 
-    def test_members_can_do_everything_the_organization_offers(self):
-        """Membership is the only thing authorization asks about.
-
-        `role` is recorded but not enforced, so a member manages people and projects
-        exactly as the creator does. Revisit this test first when roles start
-        meaning something.
-        """
+    def test_member_permissions(self):
+        """Members manage projects and add members, but only owners manage roles."""
+        newcomer = UserFactory(username="newcomer")
+        owner_membership = self.owner.organization_memberships.get(
+            organization=self.organization
+        )
+        member_membership = self.member.organization_memberships.get(
+            organization=self.organization
+        )
         self.client.force_login(self.member)
 
         members_response = self.client.get(
@@ -227,13 +229,44 @@ class OrganizationAccessTests(TestCase):
                 args=[self.organization.pk, self.project.pk],
             )
         )
+        add_response = self.client.post(
+            reverse("organization-member-add", args=[self.organization.pk]),
+            {"username": newcomer.username, "role": "owner"},
+        )
+        promote_response = self.client.post(
+            reverse(
+                "organization-member-role",
+                args=[self.organization.pk, member_membership.pk],
+            ),
+            {"role": "owner"},
+        )
+        remove_response = self.client.post(
+            reverse(
+                "organization-member-remove",
+                args=[self.organization.pk, owner_membership.pk],
+            )
+        )
 
         self.assertEqual(members_response.status_code, 200)
+        self.assertNotContains(members_response, "Update role")
+        self.assertNotContains(members_response, 'name="role"')
         self.assertEqual(project_response.status_code, 302)
         self.assertEqual(regenerate_response.status_code, 302)
+        self.assertEqual(add_response.status_code, 302)
+        self.assertEqual(
+            newcomer.organization_memberships.get(organization=self.organization).role,
+            OrganizationMembership.Role.MEMBER,
+        )
+        self.assertEqual(promote_response.status_code, 403)
+        self.assertEqual(remove_response.status_code, 403)
+        member_membership.refresh_from_db()
+        self.assertEqual(member_membership.role, OrganizationMembership.Role.MEMBER)
+        self.assertTrue(
+            OrganizationMembership.objects.filter(pk=owner_membership.pk).exists()
+        )
 
     def test_a_non_member_is_still_shut_out(self):
-        """The boundary that does exist: belonging to the organization at all."""
+        """Nonmembers cannot reach any organization page."""
         self.client.force_login(self.outsider)
 
         for name, args in [
