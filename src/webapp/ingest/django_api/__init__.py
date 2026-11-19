@@ -33,4 +33,4 @@ def is_django_api_name(name: str) -> bool:
 
     This includes members reached through a subclass, such as `User.save`.
     """
-    return django_api().fold(name) == name
+    return django_api().defines(name)

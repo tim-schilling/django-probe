@@ -56,22 +56,30 @@ class PackageUsageTests(TestCase):
         )
 
     def test_keeps_package_boundaries(self):
+        """Packages without an API catalog report attributes the project adds."""
         result = usage(
             """
             import django_extensions
             import django
             import ninja
+            from ninja import Schema
 
             django.setup()
             django_extensions.configure()
             ninja.Router()
+            Schema.private_validator()
             """,
             packages=("django", "ninja"),
         )
 
-        self.assertNotIn("django_extensions", result)
-        self.assertEqual(result["django.setup"], 1)
-        self.assertEqual(result["ninja.Router"], 1)
+        self.assertEqual(
+            result,
+            {
+                "django.setup": 1,
+                "ninja.Router": 1,
+                "ninja.Schema.private_validator": 1,
+            },
+        )
 
     def test_stops_at_function_return_values(self):
         result = usage(
@@ -174,6 +182,72 @@ class PackageUsageTests(TestCase):
                 "django.db.models.Model": 1,
                 "django.db.models.CharField": 1,
                 "django.utils.functional.cached_property": 1,
+            },
+        )
+
+    def test_monkeypatched_attributes(self):
+        """Attributes the application adds to Django classes aren't reported."""
+        result = usage(
+            """
+            from django.db import models
+            from django.db.models import QuerySet
+
+            QuerySet.private_bulk_archive = archive
+            models.QuerySet.private_counter += 1
+            del QuerySet.private_bulk_archive
+            QuerySet.private_bulk_archive(queryset)
+            QuerySet.delete = safe_delete
+            """
+        )
+
+        self.assertEqual(result, {"django.db.models.QuerySet.delete": 1})
+
+    def test_patched_bases(self):
+        """Members of application classes patched into a Django class's bases.
+
+        Only the Django class's own members are reported.
+        """
+        result = usage(
+            """
+            from django.views.generic import View
+
+            class AuditMixin:
+                def private_audit(self):
+                    pass
+
+            View.__bases__ = (AuditMixin, *View.__bases__)
+            View.private_audit(view)
+            View.as_view()
+            """
+        )
+
+        self.assertEqual(result, {"django.views.generic.View.as_view": 1})
+
+    def test_inherited_members(self):
+        """Members inherited or added by a metaclass resolve through subclasses.
+
+        A reverse relation defined by the application isn't reported.
+        """
+        result = usage(
+            """
+            from django.contrib.auth.models import User
+            from django.views.generic import TemplateView
+
+            User.objects.filter(is_active=True)
+            User.is_authenticated
+            User.DoesNotExist
+            User.private_profile
+            TemplateView.as_view()
+            """
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "django.contrib.auth.models.User.DoesNotExist": 1,
+                "django.contrib.auth.models.User.is_authenticated": 1,
+                "django.contrib.auth.models.User.objects.filter": 1,
+                "django.views.generic.TemplateView.as_view": 1,
             },
         )
 
@@ -291,15 +365,15 @@ class PackageUsageTests(TestCase):
         result = usage(
             """
             try:
-                from django.utils.foo import x
+                from django.urls import re_path
             except ImportError:
-                from django.utils.bar import x
+                from django.conf.urls import url as re_path
 
-            x()
+            re_path("^$", home)
             """
         )
 
-        self.assertEqual(result, {"django.utils.foo.x": 1, "django.utils.bar.x": 1})
+        self.assertEqual(result, {"django.urls.re_path": 1, "django.conf.urls.url": 1})
 
     def test_module_imports_sharing_a_name(self):
         """Imports binding the same name are used together.

@@ -29,9 +29,13 @@ django_settings = false  # Don't include names of the defined Django settings
 packages = []  # Don't include detailed package API usage
 ```
 
-Package usage contains only statically resolved dotted names and integer occurrence
-counts. The scanner does not report attributes called on values returned by package
-functions, because those attributes may be defined by the application.
+Package usage contains only statically resolved dotted member names and counts. The
+Django members are sanitized against a known catalog. The data is sanitized again
+during ingestion and when reporting data.
+
+Collecting other packages besides `"django"` to `packages` will include attributes
+the application adds to them, such as monkey-patched methods. Future development
+should address this.
 
 ## Verify it yourself
 

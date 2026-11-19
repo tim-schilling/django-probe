@@ -70,6 +70,9 @@ class DjangoAPI:
             class_path = self.class_of(member)
         return path
 
+    def defines(self, name: str) -> bool:
+        return self.fold(name) == name
+
 
 @cache
 def django_api() -> DjangoAPI:

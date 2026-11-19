@@ -39,6 +39,15 @@ but does not follow attributes through function return values. Thus it records
 returned model instance. Reads from `django.conf.settings` include a setting name
 only when Django 2.2 through the current development version defines it.
 
+Since 0.6.0, the scanner sanitizes the data on the CLI side to remove any non-Django
+members such as reverse relations or custom attributes.
+
+### Adding extra packages
+
+Adding a package other than `"django"` to `packages` will record all members,
+including custom attributes and monkey-patched members. This is because the scanner
+lacks the ability to sanitize the data properly at this time.
+
 ## Django settings
 
 The probe shares the names of the Django settings used in the project by default.

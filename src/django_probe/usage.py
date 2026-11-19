@@ -7,6 +7,8 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from django_probe.django_api import django_api
+
 SETTINGS_PATH = "django.conf.settings"
 SETTINGS_PREFIX = f"{SETTINGS_PATH}."
 
@@ -63,9 +65,25 @@ class PackageUsageVisitor(ast.NodeVisitor):
             return f"{SETTINGS_PREFIX}{setting}"
         return SETTINGS_PATH
 
+    def public_name(self, name: str) -> str | None:
+        """Return the name to report, or None when Django doesn't define it.
+
+        Attributes after an import may be defined by the application, such as a
+        monkeypatched method or a reverse relation. Other packages have no API
+        catalog, so their names are reported as resolved.
+        """
+        if name == SETTINGS_PATH or name.startswith(SETTINGS_PREFIX):
+            return self.fold_django_setting(name)
+        if name == "django" or name.startswith("django."):
+            return name if django_api().defines(name) else None
+        return name
+
     def add(self, name: str) -> None:
-        if self.selected(name):
-            self.usage[self.fold_django_setting(name)] += 1
+        if not self.selected(name):
+            return
+        public_name = self.public_name(name)
+        if public_name:
+            self.usage[public_name] += 1
 
     def bind(self, local: str, target: str, imported: str) -> None:
         binding = self.imports.get(local)
