@@ -97,6 +97,8 @@ class SubmissionFactory(factory.django.DjangoModelFactory):
     dependencies = {"django": "5.1.2"}
     django_settings = {}
     django_settings_scanned = False
+    monkeypatches = {}
+    monkeypatches_scanned = False
 
     @factory.post_generation
     def packages(self, create, extracted, **kwargs):

@@ -40,6 +40,8 @@ class PayloadTests(TestCase):
         )
         self.assertEqual(payload["django_settings"], {})
         self.assertTrue(payload["django_settings_scanned"])
+        self.assertEqual(payload["monkeypatches"], {})
+        self.assertTrue(payload["monkeypatches_scanned"])
         self.assertEqual(payload["files_scanned"], 1)
         self.assertEqual(
             payload["patterns"],
@@ -157,6 +159,40 @@ class PayloadTests(TestCase):
 
         self.assertEqual(payload["django_settings"], {})
         self.assertFalse(payload["django_settings_scanned"])
+
+    def test_monkeypatches(self):
+        """Patches of Django members can be collected without package usage.
+
+        Attributes the application adds are left out. Disabling package usage
+        disables monkeypatches unless they're configured.
+        """
+        (self.root / "m.py").write_text(
+            "from django.db.models import QuerySet\n"
+            "QuerySet.delete = safe_delete\n"
+            "QuerySet.private_archive = archive\n",
+            encoding="utf-8",
+        )
+        pyproject = self.root / "pyproject.toml"
+        pyproject.write_text(
+            '[tool.django_probe]\npackages = []\nmonkeypatches = ["django"]\n',
+            encoding="utf-8",
+        )
+
+        payload = build_payload(self.root)
+
+        self.assertEqual(payload["usage"], {})
+        self.assertEqual(
+            payload["monkeypatches"], {"django.db.models.QuerySet.delete": 1}
+        )
+        self.assertTrue(payload["monkeypatches_scanned"])
+        self.assertNotIn("private_archive", json.dumps(payload))
+
+        pyproject.write_text("[tool.django_probe]\npackages = []\n", encoding="utf-8")
+
+        payload = build_payload(self.root)
+
+        self.assertEqual(payload["monkeypatches"], {})
+        self.assertFalse(payload["monkeypatches_scanned"])
 
     def test_pattern_keys_namespaced(self):
         (self.root / "m.py").write_text(SOURCE, encoding="utf-8")

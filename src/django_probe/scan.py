@@ -11,7 +11,7 @@ from pathlib import Path
 
 import django_probe.probes  # noqa: F401  -- importing registers the probes
 from django_probe.ast_probe import count_patterns
-from django_probe.config import django_settings_enabled, packages
+from django_probe.config import django_settings_enabled, monkeypatch_packages, packages
 from django_probe.settings import DJANGO_SETTING_NAMES, configured_django_settings
 from django_probe.usage import count_package_usage
 
@@ -54,6 +54,8 @@ class ScanResult:
         usage_packages: tuple[str, ...],
         django_settings: Counter[str],
         django_settings_scanned: bool,
+        monkeypatches: Counter[str],
+        monkeypatches_scanned: bool,
     ) -> None:
         self.patterns = patterns
         self.files_scanned = files_scanned
@@ -62,6 +64,8 @@ class ScanResult:
         self.usage_packages = usage_packages
         self.django_settings = django_settings
         self.django_settings_scanned = django_settings_scanned
+        self.monkeypatches = monkeypatches
+        self.monkeypatches_scanned = monkeypatches_scanned
 
 
 def iter_python_files(root: Path) -> Iterator[Path]:
@@ -77,7 +81,9 @@ def iter_python_files(root: Path) -> Iterator[Path]:
 def scan_path(root: Path) -> ScanResult:
     patterns: Counter[str] = Counter()
     usage: Counter[str] = Counter()
+    monkeypatches: Counter[str] = Counter()
     usage_packages = packages(root)
+    monkeypatches_scanned = "django" in monkeypatch_packages(root, usage_packages)
     settings_files: list[ast.Module] = []
     scanned = skipped = 0
 
@@ -97,13 +103,11 @@ def scan_path(root: Path) -> ScanResult:
         # Relative path only. Filename heuristics need it, and it never leaves here.
         rel = str(path.relative_to(root)) if path.is_relative_to(root) else path.name
         patterns.update(count_patterns(tree, rel))
-        usage.update(
-            count_package_usage(
-                tree,
-                usage_packages,
-                django_vocabulary,
-            )
+        visitor = count_package_usage(
+            tree, usage_packages, django_vocabulary, monkeypatches_scanned
         )
+        usage.update(visitor.usage)
+        monkeypatches.update(visitor.monkeypatches)
         if "settings" in rel.lower():
             settings_files.append(tree)
         scanned += 1
@@ -119,4 +123,6 @@ def scan_path(root: Path) -> ScanResult:
         usage_packages,
         django_settings,
         django_settings_scanned,
+        monkeypatches,
+        monkeypatches_scanned,
     )

@@ -35,6 +35,8 @@ class SubmissionPayload(TypedDict):
     usage: dict[str, int]
     django_settings: dict[str, int]
     django_settings_scanned: bool
+    monkeypatches: dict[str, int]
+    monkeypatches_scanned: bool
     dependencies: dict[str, str]
     dependencies_source: str
 
@@ -66,6 +68,8 @@ def build_payload(
         "usage": dict(sorted(result.usage.items())),
         "django_settings": dict(sorted(result.django_settings.items())),
         "django_settings_scanned": result.django_settings_scanned,
+        "monkeypatches": dict(sorted(result.monkeypatches.items())),
+        "monkeypatches_scanned": result.monkeypatches_scanned,
         "dependencies": resolved.packages,
         "dependencies_source": resolved.source,
     }

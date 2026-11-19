@@ -6,6 +6,7 @@ import keyword
 import os
 import sys
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -75,6 +76,37 @@ def resolve_token(root: Path) -> str | None:
 def django_settings_enabled(root: Path) -> bool:
     """Return whether the Django settings inventory is enabled (on by default)."""
     return read_config(root).get("django_settings") is not False
+
+
+MONKEYPATCH_PACKAGES = frozenset({"django"})
+
+
+def monkeypatch_packages(root: Path, usage_packages: Sequence[str]) -> tuple[str, ...]:
+    """Return the packages whose monkeypatched members are collected.
+
+    Defaults to the supported entries of ``usage_packages``, so disabling package
+    usage also disables monkeypatches. Only Django has a catalog that separates its
+    members from attributes the application adds, so other packages that are
+    configured explicitly are dropped with a warning.
+    """
+    value = read_config(root).get("monkeypatches")
+    if value is None:
+        return tuple(name for name in usage_packages if name in MONKEYPATCH_PACKAGES)
+    if not isinstance(value, list) or any(not isinstance(p, str) for p in value):
+        warnings.warn(
+            "monkeypatches must be a list of package names; monkeypatches omitted.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return ()
+    unsupported = [name for name in value if name not in MONKEYPATCH_PACKAGES]
+    if unsupported:
+        warnings.warn(
+            f"monkeypatches only supports 'django'; ignoring {', '.join(unsupported)}.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    return tuple(name for name in dict.fromkeys(value) if name in MONKEYPATCH_PACKAGES)
 
 
 def packages(root: Path) -> tuple[str, ...]:

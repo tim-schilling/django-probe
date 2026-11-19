@@ -152,6 +152,8 @@ def _submission(submission: Submission) -> dict[str, Any]:
         "dependencies_source": submission.dependencies_source,
         "django_settings": submission.django_settings,
         "django_settings_scanned": submission.django_settings_scanned,
+        "monkeypatches": submission.monkeypatches,
+        "monkeypatches_scanned": submission.monkeypatches_scanned,
     }
 
 
