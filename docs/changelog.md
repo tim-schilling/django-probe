@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0
+
 - Stopped reporting Django usage names that Django doesn't define, such as
   a reverse relation on `User` attributes. The scanner now sanitizes all data
   against a catalog of Django APIs. The web application also sanitizes the

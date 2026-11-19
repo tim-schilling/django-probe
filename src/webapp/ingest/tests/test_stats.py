@@ -48,7 +48,7 @@ class StatsTests(TestCase):
                 "asgiref": "3.8.1",
                 "backports-zoneinfo": "0.2.1",
                 "pytz": "2024.1",
-                "sqlparse": "0.5.0",
+                "sqlparse": "0.6.0",
                 "tzdata": "2024.1",
                 "celery": "5.4.0",
                 "psycopg": "3.2.0",
