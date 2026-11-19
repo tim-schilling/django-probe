@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import cast
 
 from django_probe.django_api import django_api
+from django_probe.settings import DJANGO_SETTING_NAMES
+from django_probe.usage import SETTINGS_PREFIX
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -34,3 +36,19 @@ def is_django_api_name(name: str) -> bool:
     This includes members reached through a subclass, such as `User.save`.
     """
     return django_api().defines(name)
+
+
+def drop_undefined_django_names(usage: dict[str, int]) -> dict[str, int]:
+    """Drop Django usage names that no supported Django version defines.
+
+    Older clients sent attributes the application added, such as monkeypatched
+    methods. Reads of known settings are kept. Other packages have no catalog, so
+    their names are kept as submitted.
+    """
+    return {
+        name: count
+        for name, count in usage.items()
+        if not name.startswith("django.")
+        or is_django_api_name(name)
+        or name.removeprefix(SETTINGS_PREFIX) in DJANGO_SETTING_NAMES
+    }

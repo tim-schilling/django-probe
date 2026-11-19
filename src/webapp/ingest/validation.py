@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import keyword
 
+from ingest.django_api import drop_undefined_django_names
+
 SCHEMA_VERSION = 2
 # Clients upgrade on their own schedule, so every published shape stays acceptable.
 SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
@@ -120,7 +122,7 @@ def _usage(value: object, packages: list[str]) -> dict[str, int]:
             raise ValidationError(
                 f"usage key {name!r} does not match a configured package"
             )
-    return usage
+    return drop_undefined_django_names(usage)
 
 
 def validate_payload(payload: object) -> dict:

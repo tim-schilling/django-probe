@@ -126,14 +126,21 @@ class ValidationTests(IngestTestCase):
         self.assertEqual(submission.usage_packages, ["django"])
         self.assertEqual(submission.usage, {"django.shortcuts.render": 2})
 
-    def test_usage_is_stored_unchanged(self):
+    def test_undefined_django_usage_is_dropped(self):
+        """Older clients sent attributes the application added to Django names.
+
+        Other packages have no catalog, so their names are stored unchanged.
+        """
         response = self.post(
             payload(
                 usage_packages=["django", "rest_framework"],
                 usage={
                     "django.shortcuts.render": 2,
+                    "django.contrib.auth.models.User.objects.filter": 1,
+                    "django.conf.settings.DEBUG": 1,
                     "django.my_random.offensive_statement": 4,
-                    "rest_framework.views.APIView": 3,
+                    "django.db.models.QuerySet.private_archive": 1,
+                    "rest_framework.views.APIView.private_hook": 3,
                 },
             )
         )
@@ -143,8 +150,9 @@ class ValidationTests(IngestTestCase):
             Submission.objects.get().usage,
             {
                 "django.shortcuts.render": 2,
-                "django.my_random.offensive_statement": 4,
-                "rest_framework.views.APIView": 3,
+                "django.contrib.auth.models.User.objects.filter": 1,
+                "django.conf.settings.DEBUG": 1,
+                "rest_framework.views.APIView.private_hook": 3,
             },
         )
 
