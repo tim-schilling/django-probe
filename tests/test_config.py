@@ -10,6 +10,7 @@ from django_probe.config import (
     dependency_exclude_patterns,
     dependency_mode,
     django_settings_enabled,
+    monkeypatch_packages,
     packages,
     read_token,
     resolve_token,
@@ -80,6 +81,42 @@ class DjangoSettingsEnabledTests(TestCase):
             encoding="utf-8",
         )
         self.assertFalse(django_settings_enabled(self.root))
+
+
+class MonkeypatchesTests(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+
+    def write(self, value: str) -> None:
+        (self.root / "pyproject.toml").write_text(
+            f"[tool.django_probe]\nmonkeypatches = {value}\n", encoding="utf-8"
+        )
+
+    def test_defaults_to_supported_usage_packages(self):
+        """Unsupported usage packages are dropped without a warning."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(
+                monkeypatch_packages(self.root, ("django", "ninja")), ("django",)
+            )
+            self.assertEqual(monkeypatch_packages(self.root, ("ninja",)), ())
+            self.assertEqual(monkeypatch_packages(self.root, ()), ())
+
+    def test_empty_list_disables(self):
+        self.write("[]")
+        self.assertEqual(monkeypatch_packages(self.root, ("django",)), ())
+
+    def test_warns_and_ignores_other_packages(self):
+        self.write('["django", "ninja"]')
+        with self.assertWarnsRegex(RuntimeWarning, "only supports 'django'.*ninja"):
+            self.assertEqual(monkeypatch_packages(self.root, ("django",)), ("django",))
+
+    def test_invalid_value_fails_closed(self):
+        self.write('"django"')
+        with self.assertWarnsRegex(RuntimeWarning, "must be a list"):
+            self.assertEqual(monkeypatch_packages(self.root, ("django",)), ())
 
 
 class DependencyModeTests(TestCase):

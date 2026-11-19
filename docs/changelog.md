@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Collected the Django members a project monkeypatches, such as
+  `QuerySet.delete = safe_delete`, under `monkeypatches`. See
+  [Monkeypatches](configuration.md#monkeypatches).
+
 ## 0.6.0
 
 - Stopped reporting Django usage names that Django doesn't define, such as

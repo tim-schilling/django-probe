@@ -23,6 +23,8 @@ PAYLOAD_KEYS = {
     "dependencies_source",
     "django_settings",
     "django_settings_scanned",
+    "monkeypatches",
+    "monkeypatches_scanned",
 }
 
 

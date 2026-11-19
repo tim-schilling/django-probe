@@ -1,4 +1,4 @@
-"""Count statically resolved API usage for configured package namespaces."""
+"""Count statically resolved API usage and Monkeypatches."""
 
 from __future__ import annotations
 
@@ -31,18 +31,32 @@ class PackageUsageVisitor(ast.NodeVisitor):
         self,
         packages: Iterable[str],
         django_setting_names: frozenset[str] = frozenset(),
+        collect_monkeypatches: bool = False,
     ) -> None:
         self.packages = frozenset(packages)
         self.django_setting_names = django_setting_names
+        self.collect_monkeypatches = collect_monkeypatches
+        # Imports are resolved for Django even when its usage isn't counted, so
+        # monkeypatches of Django members can still be found.
+        self.tracked_packages = (
+            self.packages | {"django"} if collect_monkeypatches else self.packages
+        )
         self.imports: dict[str, ImportBinding] = {}
         self.bindings: list[ImportBinding] = []
         self.usage: Counter[str] = Counter()
+        self.monkeypatches: Counter[str] = Counter()
+
+    @staticmethod
+    def _within(name: str, packages: frozenset[str]) -> bool:
+        return any(
+            name == package or name.startswith(f"{package}.") for package in packages
+        )
 
     def selected(self, name: str) -> bool:
-        return any(
-            name == package or name.startswith(f"{package}.")
-            for package in self.packages
-        )
+        return self._within(name, self.packages)
+
+    def tracked(self, name: str) -> bool:
+        return self._within(name, self.tracked_packages)
 
     def resolve_name(self, node: ast.AST) -> str | None:
         if isinstance(node, ast.Name):
@@ -85,6 +99,28 @@ class PackageUsageVisitor(ast.NodeVisitor):
         if public_name:
             self.usage[public_name] += 1
 
+    def add_monkeypatch(self, name: str | None) -> None:
+        """Count an assignment to a member Django defines.
+
+        Attributes the application adds to Django objects aren't reported.
+        """
+        if (
+            self.collect_monkeypatches
+            and name
+            and name.startswith("django.")
+            and django_api().defines(name)
+        ):
+            self.monkeypatches[name] += 1
+
+    def _record_monkeypatch(self, target: ast.AST) -> None:
+        if isinstance(target, ast.Attribute):
+            self.add_monkeypatch(self.resolve_name(target))
+        elif isinstance(target, (ast.List, ast.Tuple)):
+            for element in target.elts:
+                self._record_monkeypatch(element)
+        elif isinstance(target, ast.Starred):
+            self._record_monkeypatch(target.value)
+
     def bind(self, local: str, target: str, imported: str) -> None:
         binding = self.imports.get(local)
         if binding is None or binding.target != target:
@@ -102,14 +138,14 @@ class PackageUsageVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
-            if not self.selected(alias.name):
+            if not self.tracked(alias.name):
                 continue
             local = alias.asname or alias.name.partition(".")[0]
             target = alias.name if alias.asname else local
             self.bind(local, target, alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.level or not node.module or not self.selected(node.module):
+        if node.level or not node.module or not self.tracked(node.module):
             return
         for alias in node.names:
             if alias.name == "*":
@@ -140,15 +176,31 @@ class PackageUsageVisitor(ast.NodeVisitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         self.generic_visit(node)
         for target in node.targets:
+            self._record_monkeypatch(target)
             self._forget_target(target)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self.generic_visit(node)
+        self._record_monkeypatch(node.target)
         self._forget_target(node.target)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self.generic_visit(node)
+        self._record_monkeypatch(node.target)
         self._forget_target(node.target)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        self.generic_visit(node)
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "setattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and isinstance(node.args[1].value, str)
+        ):
+            owner = self.resolve_name(node.args[0])
+            if owner:
+                self.add_monkeypatch(f"{owner}.{node.args[1].value}")
 
     def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
         self.visit(node.value)
@@ -281,7 +333,9 @@ def count_package_usage(
     tree: ast.Module,
     packages: Iterable[str],
     django_setting_names: frozenset[str] = frozenset(),
-) -> Counter[str]:
-    visitor = PackageUsageVisitor(packages, django_setting_names)
+    collect_monkeypatches: bool = False,
+) -> PackageUsageVisitor:
+    """Return the visitor after it walks ``tree``, holding both of its counters."""
+    visitor = PackageUsageVisitor(packages, django_setting_names, collect_monkeypatches)
     visitor.visit(tree)
-    return visitor.usage
+    return visitor

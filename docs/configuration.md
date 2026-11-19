@@ -59,6 +59,25 @@ It only shares that the setting was defined; the value is not shared. Set
 django_settings = false
 ```
 
+## Monkeypatches
+
+The probe shares the names of the Django members the project replaces, such as
+`QuerySet.delete = safe_delete` or `setattr(QuerySet, "delete", safe_delete)`.
+Attributes the project adds to Django objects aren't shared.
+
+`monkeypatches` defaults to the value of `packages`, so it's enabled for Django by
+default and disabled when `packages` is empty. Set it to collect monkeypatches
+separately:
+
+```toml
+[tool.django_probe]
+packages = []
+monkeypatches = ["django"]
+```
+
+Only `"django"` is supported. Other packages in `monkeypatches` are ignored with a
+warning.
+
 ## Dependencies
 
 Dependency names and versions are captured by default. Set dependencies to "names"

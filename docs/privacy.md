@@ -1,12 +1,13 @@
 # Privacy
 
 No source code, file paths, or repository names leave your machine. By default a
-payload contains dependency names, version strings, curated pattern counts, and the
-names of the Django settings your project defines. It also contains statically
+payload contains dependency names, version strings, curated pattern counts, the
+names of the Django settings your project defines, and the names of the Django
+members your project monkeypatches. It also contains statically
 resolved Django API usage because `packages` defaults to `["django"]`.
 
-You can control dependency detail and opt out of the inventory of defined Django
-settings through [Django Probe's configuration](configuration.md). If you want to
+You can control dependency detail and opt out of the Django settings and
+monkeypatch inventories through [Django Probe's configuration](configuration.md). If you want to
 keep scheduled submissions but review each payload before it's shared, see the
 [GitHub Actions approval gate](configuration.md#github-actions-approval-gate).
 
@@ -26,6 +27,7 @@ sharing some information with the community.
 dependencies = "none"  # Don't include dependencies
 dependencies_exclude = []  # e.g. ["mycompany-*"]
 django_settings = false  # Don't include names of the defined Django settings
+monkeypatches = []  # Don't include names of monkeypatched Django members
 packages = []  # Don't include detailed package API usage
 ```
 

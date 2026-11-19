@@ -13,7 +13,13 @@ def usage(
     settings: frozenset[str] = frozenset({"DEBUG", "LOGGING"}),
 ) -> dict[str, int]:
     tree = ast.parse(textwrap.dedent(source))
-    return dict(count_package_usage(tree, packages, settings))
+    return dict(count_package_usage(tree, packages, settings).usage)
+
+
+def monkeypatches(source: str, packages: tuple[str, ...] = ()) -> dict[str, int]:
+    tree = ast.parse(textwrap.dedent(source))
+    visitor = count_package_usage(tree, packages, collect_monkeypatches=True)
+    return dict(visitor.monkeypatches)
 
 
 class PackageUsageTests(TestCase):
@@ -186,9 +192,11 @@ class PackageUsageTests(TestCase):
         )
 
     def test_monkeypatched_attributes(self):
-        """Attributes the application adds to Django classes aren't reported."""
-        result = usage(
-            """
+        """Attributes the application adds to Django classes aren't reported.
+
+        Monkeypatches are only collected when enabled.
+        """
+        source = """
             from django.db import models
             from django.db.models import QuerySet
 
@@ -198,9 +206,52 @@ class PackageUsageTests(TestCase):
             QuerySet.private_bulk_archive(queryset)
             QuerySet.delete = safe_delete
             """
+
+        self.assertEqual(usage(source), {"django.db.models.QuerySet.delete": 1})
+        self.assertEqual(monkeypatches(source), {"django.db.models.QuerySet.delete": 1})
+        disabled = count_package_usage(ast.parse(textwrap.dedent(source)), ())
+        self.assertEqual(disabled.monkeypatches, {})
+
+    def test_monkeypatches(self):
+        """Assignments to Django members count regardless of configured packages.
+
+        Patches made in functions, via ``setattr``, through subclasses, and by
+        augmented or tuple assignment are found. Reads, settings changes, and
+        attributes the application adds aren't reported.
+        """
+        result = monkeypatches(
+            """
+            from django.contrib.auth.models import User
+            from django.db import models
+            from django.utils import timezone
+            from django.conf import settings
+            import django.forms
+
+            def ready():
+                timezone.now = fake_now
+                setattr(models.QuerySet, "update", safe_update)
+                setattr(models.QuerySet, "private_archive", archive)
+                setattr(models.QuerySet, name, archive)
+
+            User.save = audited_save
+            models.Field.empty_values += ["n/a"]
+            django.forms.Form.clean, models.Model.private = clean, None
+            settings.DEBUG = True
+            timezone.now()
+            local.delete = safe_delete
+            """
         )
 
-        self.assertEqual(result, {"django.db.models.QuerySet.delete": 1})
+        self.assertEqual(
+            result,
+            {
+                "django.utils.timezone.now": 1,
+                "django.db.models.QuerySet.update": 1,
+                "django.contrib.auth.models.User.save": 1,
+                "django.db.models.Field.empty_values": 1,
+                "django.forms.Form.clean": 1,
+            },
+        )
 
     def test_patched_bases(self):
         """Members of application classes patched into a Django class's bases.
