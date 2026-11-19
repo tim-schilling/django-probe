@@ -104,6 +104,10 @@ class PackageUsageTests(TestCase):
             with transaction.atomic():
                 save_book()
             transaction.on_commit(notify)
+
+            async def save_book_async():
+                async with transaction.atomic():
+                    await save_book()
             """
         )
 
@@ -114,8 +118,62 @@ class PackageUsageTests(TestCase):
                 "django.core.cache.cache.get": 1,
                 "django.core.cache.cache.set": 1,
                 "django.db.connection.cursor": 1,
-                "django.db.transaction.atomic": 1,
+                "django.db.transaction.atomic": 2,
                 "django.db.transaction.on_commit": 1,
+            },
+        )
+
+    def test_decorators(self):
+        """Decorators count on classes, with arguments, and as arguments."""
+        result = usage(
+            """
+            from django.contrib.auth.decorators import login_required
+            from django.utils.decorators import method_decorator
+            from django.views.decorators.cache import cache_page
+
+            @method_decorator(login_required, name="dispatch")
+            class BookView:
+                @method_decorator(cache_page(60))
+                def get(self, request):
+                    pass
+            """
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "django.contrib.auth.decorators.login_required": 1,
+                "django.utils.decorators.method_decorator": 2,
+                "django.views.decorators.cache.cache_page": 1,
+            },
+        )
+
+    def test_descriptors(self):
+        """Model fields and cached_property in a class body count."""
+        result = usage(
+            """
+            from django.db import models
+            from django.utils.functional import cached_property
+
+            class Book(models.Model):
+                title = models.CharField(max_length=100)
+
+                @cached_property
+                def slug(self):
+                    pass
+
+                @property
+                def label(self):
+                    pass
+            """
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "django.db.models.Model": 1,
+                "django.db.models.CharField": 1,
+                "django.utils.functional.cached_property": 1,
             },
         )
 
