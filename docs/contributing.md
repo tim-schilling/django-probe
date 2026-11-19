@@ -137,11 +137,11 @@ When Django or Python ships a new feature release:
 `just vendor-django-vocabularies` installs the latest patch release of each Django
 feature series, plus `main`, and writes the names found in each one:
 
-| Path | Contents |
-|---|---|
-| `src/django_probe/_vendor/django_settings/<version>.json` | Setting names. Ships with the CLI. |
-| `src/webapp/ingest/django_api/<version>.json.gz` | Public API names. |
-| `src/webapp/ingest/django_api/all.json.gz` | API names from every version. The stats pages only show and accept keys in this list. |
+| Path | Contents                                                                                                                                                 |
+|---|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `src/django_probe/_vendor/django_settings/<version>.json` | Setting names. Ships with the CLI.                                                                                                                       |
+| `src/webapp/ingest/django_api/<version>.json.gz` | Public API names.                                                                |
+| `src/django_probe/_vendor/django_api/all.json.gz` |  API names from every version. The stats pages only show and accept keys in this list. |
 
 Afterwards, update the expected versions and counts in the tests and commit them
 with the catalogs.

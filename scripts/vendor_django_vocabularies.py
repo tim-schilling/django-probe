@@ -21,6 +21,29 @@ _DELEGATED_API_CLASSES = {
     "django.db.connection": "django.db.backends.base.base.BaseDatabaseWrapper",
 }
 
+# ModelBase adds these to every concrete model at runtime.
+_MODEL = "django.db.models.base.Model"
+_MODEL_RUNTIME_MEMBERS = {
+    "DoesNotExist": None,
+    "MultipleObjectsReturned": None,
+    "objects": "django.db.models.manager.Manager",
+}
+
+
+@dataclass
+class ApiCatalog:
+    """Public API names plus what's needed to resolve inherited members.
+
+    `bases` maps each class to its base classes. `types` maps a class attribute
+    to the class of the instance assigned to it. `aliases` maps a public path to
+    the class it re-exports.
+    """
+
+    names: frozenset[str]
+    bases: dict[str, list[str]]
+    types: dict[str, str]
+    aliases: dict[str, str]
+
 
 @dataclass
 class Module:
@@ -79,19 +102,55 @@ def _expression_path(node: ast.AST, module: Module) -> str | None:
     return None
 
 
-def _class_members(node: ast.ClassDef) -> set[str]:
-    """Collect the public members declared directly on a class."""
+def _class_members(
+    node: ast.ClassDef,
+    module: Module,
+    class_path: str,
+    member_types: dict[str, str],
+) -> set[str]:
+    """Collect the public members declared directly on a class.
+
+    Members assigned an instance, such as `objects = UserManager()`, record the
+    instance's class so its members resolve too.
+    """
     members: set[str] = set()
     for item in node.body:
         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             if _public(item.name):
                 members.add(item.name)
         elif isinstance(item, ast.Assign):
-            for target in item.targets:
-                members.update(name for name in _targets(target) if _public(name))
+            names = {
+                name
+                for target in item.targets
+                for name in _targets(target)
+                if _public(name)
+            }
+            members.update(names)
+            if isinstance(item.value, ast.Call):
+                instance_class = _expression_path(item.value.func, module)
+                if instance_class:
+                    for name in names:
+                        member_types[f"{class_path}.{name}"] = instance_class
         elif isinstance(item, ast.AnnAssign):
             members.update(name for name in _targets(item.target) if _public(name))
     return members
+
+
+def _class_bases(node: ast.ClassDef, module: Module) -> list[str]:
+    """Resolve a class's bases, including `Base.from_queryset(QuerySet)`."""
+    bases: list[str | None] = []
+    for base in node.bases:
+        if (
+            isinstance(base, ast.Call)
+            and isinstance(base.func, ast.Attribute)
+            and base.func.attr == "from_queryset"
+            and base.args
+        ):
+            bases.append(_expression_path(base.func.value, module))
+            bases.append(_expression_path(base.args[0], module))
+        else:
+            bases.append(_expression_path(base, module))
+    return [base for base in bases if base]
 
 
 def _module_name(root: Path, path: Path) -> tuple[str, str] | None:
@@ -112,6 +171,8 @@ def _parse_module(
     root: Path,
     path: Path,
     class_members: dict[str, set[str]],
+    class_bases: dict[str, list[str]],
+    member_types: dict[str, str],
 ) -> Module | None:
     """Parse one module into bindings, star imports, and class members."""
     identity = _module_name(root, path)
@@ -160,7 +221,10 @@ def _parse_module(
                 continue
             class_path = f"{name}.{node.name}"
             module.bindings[node.name] = class_path
-            class_members[class_path] = _class_members(node)
+            class_members[class_path] = _class_members(
+                node, module, class_path, member_types
+            )
+            class_bases[class_path] = _class_bases(node, module)
         elif isinstance(node, ast.Assign):
             # Assignments can expose constants, aliases, or instances whose class
             # members should also be available from the assigned public path.
@@ -194,12 +258,14 @@ def _resolve_alias(path: str, aliases: dict[str, str | None]) -> str:
     return path
 
 
-def build_api_vocabulary(root: Path) -> frozenset[str]:
+def build_api_vocabulary(root: Path) -> ApiCatalog:
     """Build every public API path exposed by a Django source tree."""
     modules: dict[str, Module] = {}
     class_members: dict[str, set[str]] = {}
+    class_bases: dict[str, list[str]] = {}
+    member_types: dict[str, str] = {}
     for path in sorted(root.rglob("*.py")):
-        module = _parse_module(root, path, class_members)
+        module = _parse_module(root, path, class_members, class_bases, member_types)
         if module is not None:
             modules[module.name] = module
 
@@ -242,7 +308,34 @@ def build_api_vocabulary(root: Path) -> frozenset[str]:
         names.update(
             f"{public_path}.{member}" for member in class_members.get(class_path, set())
         )
-    return frozenset(names)
+    if _MODEL in class_members:
+        for member, member_type in _MODEL_RUNTIME_MEMBERS.items():
+            names.add(f"{_MODEL}.{member}")
+            if member_type:
+                member_types[f"{_MODEL}.{member}"] = member_type
+
+    def resolve_class(path: str) -> str | None:
+        resolved = _resolve_alias(path, aliases)
+        return resolved if resolved in class_members else None
+
+    bases: dict[str, list[str]] = {}
+    for class_path in class_members:
+        resolved_bases = map(resolve_class, class_bases.get(class_path, []))
+        bases[class_path] = [base for base in resolved_bases if base]
+    types: dict[str, str] = {}
+    for member, instance_class in member_types.items():
+        instance_class_path = resolve_class(instance_class)
+        if member in names and instance_class_path:
+            types[member] = instance_class_path
+    class_aliases: dict[str, str] = {}
+    for alias, target in aliases.items():
+        target_class = resolve_class(target) if target else None
+        if target_class and target_class != alias:
+            class_aliases[alias] = target_class
+    for public_path, class_path in _DELEGATED_API_CLASSES.items():
+        if class_path in class_members:
+            class_aliases[public_path] = class_path
+    return ApiCatalog(frozenset(names), bases, types, class_aliases)
 
 
 def _referenced_settings(root: Path) -> set[str]:
@@ -322,20 +415,49 @@ def _write_compressed_json(path: Path, payload: dict[str, object]) -> None:
     path.write_bytes(buffer.getvalue())
 
 
-def _write_combined_api_vocabulary(output_dir: Path) -> int:
-    """Combine the versioned API catalogs into one sorted vocabulary."""
+def _write_combined_api_vocabulary(output_dir: Path, destination: Path) -> int:
+    """Combine the versioned API catalogs into one vocabulary.
+
+    A class's bases are merged across versions, so a member inherited in any
+    version resolves.
+    """
     names: set[str] = set()
     versions: dict[str, str] = {}
-    for path in sorted(output_dir.glob("[0-9]*.json.gz")):
+    bases: dict[str, dict[str, None]] = {}
+    types: dict[str, str] = {}
+    aliases: dict[str, str] = {}
+    for path in sorted(
+        output_dir.glob("[0-9]*.json.gz"),
+        key=lambda path: _version_key(path.name.removesuffix(".json.gz")),
+    ):
         payload = json.loads(gzip.decompress(path.read_bytes()))
         version = path.name.removesuffix(".json.gz")
         versions[version] = payload["django_version"]
         names.update(payload["names"])
+        # Catalogs not yet regenerated by this run of the recipe lack class data.
+        for class_path, class_bases in payload.get("bases", {}).items():
+            bases.setdefault(class_path, {}).update(dict.fromkeys(class_bases))
+        types.update(payload.get("types", {}))
+        aliases.update(payload.get("aliases", {}))
+    destination.parent.mkdir(parents=True, exist_ok=True)
     _write_compressed_json(
-        output_dir / "all.json.gz",
-        {"django_versions": versions, "names": sorted(names)},
+        destination,
+        {
+            "django_versions": versions,
+            "names": sorted(names),
+            "bases": {
+                class_path: list(class_bases)
+                for class_path, class_bases in sorted(bases.items())
+            },
+            "types": dict(sorted(types.items())),
+            "aliases": dict(sorted(aliases.items())),
+        },
     )
     return len(names)
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
 
 
 def main() -> None:
@@ -347,6 +469,16 @@ def main() -> None:
         "--api-output-dir",
         type=Path,
         default=Path(__file__).parents[1] / "src" / "webapp" / "ingest" / "django_api",
+    )
+    parser.add_argument(
+        "--combined-api-output",
+        type=Path,
+        default=Path(__file__).parents[1]
+        / "src"
+        / "django_probe"
+        / "_vendor"
+        / "django_api"
+        / "all.json.gz",
     )
     parser.add_argument(
         "--settings-output-dir",
@@ -362,7 +494,7 @@ def main() -> None:
     version = ".".join(str(part) for part in django.VERSION[:2])
     distribution_version = metadata.version("Django")
     root = Path(django.__path__[0])
-    api_names = build_api_vocabulary(root)
+    api = build_api_vocabulary(root)
     settings_names = build_settings_vocabulary(root)
 
     # API catalogs are large, while settings catalogs stay plain for readable
@@ -371,9 +503,17 @@ def main() -> None:
     api_destination = args.api_output_dir / f"{version}.json.gz"
     _write_compressed_json(
         api_destination,
-        {"django_version": distribution_version, "names": sorted(api_names)},
+        {
+            "django_version": distribution_version,
+            "names": sorted(api.names),
+            "bases": dict(sorted(api.bases.items())),
+            "types": dict(sorted(api.types.items())),
+            "aliases": dict(sorted(api.aliases.items())),
+        },
     )
-    combined_api_count = _write_combined_api_vocabulary(args.api_output_dir)
+    combined_api_count = _write_combined_api_vocabulary(
+        args.api_output_dir, args.combined_api_output
+    )
     args.settings_output_dir.mkdir(parents=True, exist_ok=True)
     settings_destination = args.settings_output_dir / f"{version}.json"
     settings_destination.write_text(
@@ -388,7 +528,7 @@ def main() -> None:
         encoding="utf-8",
     )
     print(
-        f"Vendored {len(api_names)} API and {len(settings_names)} setting names "
+        f"Vendored {len(api.names)} API and {len(settings_names)} setting names "
         f"from Django {distribution_version}; the combined API vocabulary contains "
         f"{combined_api_count} names."
     )

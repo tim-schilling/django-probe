@@ -1,0 +1,1 @@
+"""Vendored Django API vocabulary."""

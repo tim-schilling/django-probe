@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Stopped counting imports as package usage.
+- Fixed issue where some inherited members such as `User.save` were not
+  reported.
 
 ## 0.5.0
 
