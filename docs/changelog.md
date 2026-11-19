@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Stopped counting imports as package usage.
 
 ## 0.5.0
 

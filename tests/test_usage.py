@@ -18,28 +18,42 @@ def usage(
 
 class PackageUsageTests(TestCase):
     def test_resolves_imports_aliases_calls_and_class_bases(self):
+        """Each reference counts once, regardless of how the name was imported."""
         result = usage(
             """
             import django
             import django.db.models as models
+            from django.db.models import F
             from django.shortcuts import render as render_page
+            from django.views.decorators.http import require_POST
             from django.views.generic import TemplateView
 
             django.setup()
             field = models.CharField()
+            models.F("a")
+            F("b")
             render_page(None, "home.html")
+
+            @require_POST
+            def submit(request):
+                pass
 
             class HomeView(TemplateView):
                 pass
             """
         )
 
-        self.assertEqual(result["django"], 1)
-        self.assertEqual(result["django.setup"], 1)
-        self.assertEqual(result["django.db.models"], 1)
-        self.assertEqual(result["django.db.models.CharField"], 1)
-        self.assertEqual(result["django.shortcuts.render"], 2)
-        self.assertEqual(result["django.views.generic.TemplateView"], 2)
+        self.assertEqual(
+            result,
+            {
+                "django.setup": 1,
+                "django.db.models.CharField": 1,
+                "django.db.models.F": 2,
+                "django.shortcuts.render": 1,
+                "django.views.decorators.http.require_POST": 1,
+                "django.views.generic.TemplateView": 1,
+            },
+        )
 
     def test_keeps_package_boundaries(self):
         result = usage(
@@ -70,8 +84,7 @@ class PackageUsageTests(TestCase):
             """
         )
 
-        self.assertEqual(result["django.shortcuts.get_object_or_404"], 2)
-        self.assertEqual(result["django.utils.timezone"], 1)
+        self.assertEqual(result["django.shortcuts.get_object_or_404"], 1)
         self.assertEqual(result["django.utils.timezone.now"], 1)
         self.assertNotIn("private_recalculate", " ".join(result))
         self.assertNotIn("strftime", " ".join(result))
@@ -97,14 +110,10 @@ class PackageUsageTests(TestCase):
         self.assertEqual(
             result,
             {
-                "django.contrib.admin": 1,
                 "django.contrib.admin.site.register": 1,
-                "django.core.cache.cache": 1,
                 "django.core.cache.cache.get": 1,
                 "django.core.cache.cache.set": 1,
-                "django.db.connection": 1,
                 "django.db.connection.cursor": 1,
-                "django.db.transaction": 1,
                 "django.db.transaction.atomic": 1,
                 "django.db.transaction.on_commit": 1,
             },
@@ -121,7 +130,7 @@ class PackageUsageTests(TestCase):
             """
         )
 
-        self.assertEqual(result["django.conf.settings"], 2)
+        self.assertEqual(result["django.conf.settings"], 1)
         self.assertEqual(result["django.conf.settings.DEBUG"], 1)
         self.assertEqual(result["django.conf.settings.LOGGING"], 1)
         self.assertNotIn("INTERNAL_BILLING_REGION", result)
@@ -143,7 +152,7 @@ class PackageUsageTests(TestCase):
             """
         )
 
-        self.assertEqual(result, {"django.forms": 1, "django.shortcuts": 1})
+        self.assertEqual(result, {})
 
     def test_relative_and_wildcard_imports_do_not_invent_names(self):
         result = usage(

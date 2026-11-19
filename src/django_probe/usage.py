@@ -54,7 +54,6 @@ class PackageUsageVisitor(ast.NodeVisitor):
                 continue
             local = alias.asname or alias.name.partition(".")[0]
             self.imports[local] = alias.name if alias.asname else local
-            self.add(alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.level or not node.module or not self.selected(node.module):
@@ -64,7 +63,6 @@ class PackageUsageVisitor(ast.NodeVisitor):
                 continue
             full_name = f"{node.module}.{alias.name}"
             self.imports[alias.asname or alias.name] = full_name
-            self.add(full_name)
 
     def visit_Name(self, node: ast.Name) -> None:
         if isinstance(node.ctx, ast.Load):

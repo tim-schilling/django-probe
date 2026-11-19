@@ -79,8 +79,6 @@ class ScanPathTests(TestCase):
         self.assertEqual(
             result.usage,
             {
-                "django.db.migrations": 1,
-                "django.db.models": 1,
                 "django.db.migrations.Migration": 1,
                 "django.db.migrations.CreateModel": 1,
                 "django.db.models.AutoField": 1,
@@ -256,10 +254,10 @@ class ScanPathTests(TestCase):
         result = scan_path(self.root)
 
         self.assertEqual(result.usage_packages, ("django",))
-        self.assertEqual(result.usage, {"django.shortcuts.render": 2})
+        self.assertEqual(result.usage, {"django.shortcuts.render": 1})
 
     def test_package_usage_defaults_to_django(self):
-        self.write("app/views.py", "from django.shortcuts import render\n")
+        self.write("app/views.py", "from django.shortcuts import render\nrender()\n")
 
         result = scan_path(self.root)
 
@@ -271,7 +269,7 @@ class ScanPathTests(TestCase):
             "[tool.django_probe]\npackages = []\n",
             encoding="utf-8",
         )
-        self.write("app/views.py", "from django.shortcuts import render\n")
+        self.write("app/views.py", "from django.shortcuts import render\nrender()\n")
 
         result = scan_path(self.root)
 

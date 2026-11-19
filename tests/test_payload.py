@@ -35,7 +35,6 @@ class PayloadTests(TestCase):
         self.assertEqual(
             payload["usage"],
             {
-                "django.db.transaction": 1,
                 "django.db.transaction.atomic": 1,
             },
         )
@@ -183,7 +182,7 @@ class PayloadTests(TestCase):
         payload = build_payload(self.root)
 
         self.assertEqual(payload["usage_packages"], ["django"])
-        self.assertEqual(payload["usage"], {"django.shortcuts.render": 2})
+        self.assertEqual(payload["usage"], {"django.shortcuts.render": 1})
 
     def test_package_usage_does_not_serialize_application_method_names(self):
         (self.root / "pyproject.toml").write_text(
