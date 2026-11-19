@@ -5,9 +5,23 @@ from __future__ import annotations
 import ast
 from collections import Counter
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 
 SETTINGS_PATH = "django.conf.settings"
 SETTINGS_PREFIX = f"{SETTINGS_PATH}."
+
+
+@dataclass
+class ImportBinding:
+    """A local name bound by one or more imports.
+
+    `import django.db` and `import django.utils` both bind `django`, so the
+    binding keeps every imported name to report when it's never referenced.
+    """
+
+    target: str
+    imported: set[str] = field(default_factory=set)
+    used: bool = False
 
 
 class PackageUsageVisitor(ast.NodeVisitor):
@@ -18,7 +32,8 @@ class PackageUsageVisitor(ast.NodeVisitor):
     ) -> None:
         self.packages = frozenset(packages)
         self.django_setting_names = django_setting_names
-        self.imports: dict[str, str] = {}
+        self.imports: dict[str, ImportBinding] = {}
+        self.bindings: list[ImportBinding] = []
         self.usage: Counter[str] = Counter()
 
     def selected(self, name: str) -> bool:
@@ -29,7 +44,11 @@ class PackageUsageVisitor(ast.NodeVisitor):
 
     def resolve_name(self, node: ast.AST) -> str | None:
         if isinstance(node, ast.Name):
-            return self.imports.get(node.id)
+            binding = self.imports.get(node.id)
+            if binding is None:
+                return None
+            binding.used = True
+            return binding.target
         if isinstance(node, ast.Attribute):
             parent = self.resolve_name(node.value)
             if parent:
@@ -48,12 +67,28 @@ class PackageUsageVisitor(ast.NodeVisitor):
         if self.selected(name):
             self.usage[self.fold_django_setting(name)] += 1
 
+    def bind(self, local: str, target: str, imported: str) -> None:
+        binding = self.imports.get(local)
+        if binding is None or binding.target != target:
+            binding = ImportBinding(target)
+            self.bindings.append(binding)
+            self.imports[local] = binding
+        binding.imported.add(imported)
+
+    def visit_Module(self, node: ast.Module) -> None:
+        self.generic_visit(node)
+        for binding in self.bindings:
+            if not binding.used:
+                for name in binding.imported:
+                    self.add(name)
+
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             if not self.selected(alias.name):
                 continue
             local = alias.asname or alias.name.partition(".")[0]
-            self.imports[local] = alias.name if alias.asname else local
+            target = alias.name if alias.asname else local
+            self.bind(local, target, alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.level or not node.module or not self.selected(node.module):
@@ -62,7 +97,7 @@ class PackageUsageVisitor(ast.NodeVisitor):
             if alias.name == "*":
                 continue
             full_name = f"{node.module}.{alias.name}"
-            self.imports[alias.asname or alias.name] = full_name
+            self.bind(alias.asname or alias.name, full_name, full_name)
 
     def visit_Name(self, node: ast.Name) -> None:
         if isinstance(node.ctx, ast.Load):

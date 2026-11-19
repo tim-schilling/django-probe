@@ -23,7 +23,7 @@ class PackageUsageTests(TestCase):
             """
             import django
             import django.db.models as models
-            from django.db.models import F
+            from django.db.models import F, Q
             from django.shortcuts import render as render_page
             from django.views.decorators.http import require_POST
             from django.views.generic import TemplateView
@@ -31,12 +31,11 @@ class PackageUsageTests(TestCase):
             django.setup()
             field = models.CharField()
             models.F("a")
-            F("b")
             render_page(None, "home.html")
 
             @require_POST
             def submit(request):
-                pass
+                F("b")
 
             class HomeView(TemplateView):
                 pass
@@ -49,6 +48,7 @@ class PackageUsageTests(TestCase):
                 "django.setup": 1,
                 "django.db.models.CharField": 1,
                 "django.db.models.F": 2,
+                "django.db.models.Q": 1,
                 "django.shortcuts.render": 1,
                 "django.views.decorators.http.require_POST": 1,
                 "django.views.generic.TemplateView": 1,
@@ -152,7 +152,112 @@ class PackageUsageTests(TestCase):
             """
         )
 
-        self.assertEqual(result, {})
+        self.assertEqual(result, {"django.forms": 1, "django.shortcuts": 1})
+
+    def test_duplicate_unreferenced_import(self):
+        """Importing the same unreferenced name twice counts it once."""
+        result = usage(
+            """
+            from django.db.models import Q
+            from django.db.models import Q
+            """
+        )
+
+        self.assertEqual(result, {"django.db.models.Q": 1})
+
+    def test_reference_above_import(self):
+        """A function defined above the import isn't resolved.
+
+        The import then counts once as unreferenced.
+        """
+        result = usage(
+            """
+            def annotate():
+                return F("a")
+
+            from django.db.models import F
+            """
+        )
+
+        self.assertEqual(result, {"django.db.models.F": 1})
+
+    def test_string_annotation(self):
+        """A name only used in a string annotation counts once as unreferenced."""
+        result = usage(
+            """
+            from typing import TYPE_CHECKING
+
+            if TYPE_CHECKING:
+                from django.db.models import QuerySet
+
+            def books(queryset: "QuerySet"):
+                pass
+            """
+        )
+
+        self.assertEqual(result, {"django.db.models.QuerySet": 1})
+
+    def test_except_clauses(self):
+        """Exception classes in except clauses count as references."""
+        result = usage(
+            """
+            from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+            from django.db import IntegrityError
+            from django import forms
+
+            try:
+                save()
+            except ObjectDoesNotExist:
+                pass
+            except (PermissionDenied, IntegrityError) as exc:
+                pass
+            except forms.ValidationError:
+                pass
+            except Book.DoesNotExist:
+                pass
+            """
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "django.core.exceptions.ObjectDoesNotExist": 1,
+                "django.core.exceptions.PermissionDenied": 1,
+                "django.db.IntegrityError": 1,
+                "django.forms.ValidationError": 1,
+            },
+        )
+
+    def test_fallback_import(self):
+        """The import replaced by the except branch counts once as unreferenced."""
+        result = usage(
+            """
+            try:
+                from django.utils.foo import x
+            except ImportError:
+                from django.utils.bar import x
+
+            x()
+            """
+        )
+
+        self.assertEqual(result, {"django.utils.foo.x": 1, "django.utils.bar.x": 1})
+
+    def test_module_imports_sharing_a_name(self):
+        """Imports binding the same name are used together.
+
+        `django.utils` isn't reported because the shared `django` name is used.
+        """
+        result = usage(
+            """
+            import django.db.models
+            import django.utils
+
+            django.db.models.F("a")
+            """
+        )
+
+        self.assertEqual(result, {"django.db.models.F": 1})
 
     def test_relative_and_wildcard_imports_do_not_invent_names(self):
         result = usage(
