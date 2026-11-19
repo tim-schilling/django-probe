@@ -469,6 +469,9 @@ class Submission(models.Model):
     dependencies_source = models.CharField(max_length=128, blank=True)
     django_settings = models.JSONField(default=dict)
     django_settings_scanned = models.BooleanField(default=False)
+    # {Django member: count} of assignments to members Django defines.
+    monkeypatches = models.JSONField(default=dict)
+    monkeypatches_scanned = models.BooleanField(default=False)
     # The normalized package names from ``dependencies``.
     packages = models.ManyToManyField(
         "PyPIPackage", related_name="submissions", blank=True

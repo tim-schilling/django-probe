@@ -21,6 +21,8 @@ VALID: dict[str, Any] = {
     "dependencies_source": "uv",
     "django_settings": {},
     "django_settings_scanned": False,
+    "monkeypatches": {},
+    "monkeypatches_scanned": False,
 }
 
 

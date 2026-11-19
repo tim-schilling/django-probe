@@ -86,6 +86,29 @@ class ValidationTests(IngestTestCase):
         self.assertRejected(payload(django_settings={"DEBUG": "yes"}))
         self.assertRejected(payload(django_settings_scanned="yes"))
 
+    def test_monkeypatches(self):
+        """Names no supported Django version defines are dropped."""
+        self.assertRejected(payload(monkeypatches={"django.utils": "yes"}))
+        self.assertRejected(payload(monkeypatches={"application.save": 1}))
+        self.assertRejected(payload(monkeypatches_scanned="yes"))
+
+        response = self.post(
+            payload(
+                monkeypatches={
+                    "django.db.models.QuerySet.delete": 2,
+                    "django.db.models.QuerySet.private_archive": 1,
+                },
+                monkeypatches_scanned=True,
+            )
+        )
+
+        self.assertEqual(response.status_code, 201)
+        submission = Submission.objects.get()
+        self.assertEqual(
+            submission.monkeypatches, {"django.db.models.QuerySet.delete": 2}
+        )
+        self.assertTrue(submission.monkeypatches_scanned)
+
     def test_invalid_usage_packages(self):
         self.assertRejected(payload(usage_packages="django"))
         self.assertRejected(payload(usage_packages=[{"django": 1}]))

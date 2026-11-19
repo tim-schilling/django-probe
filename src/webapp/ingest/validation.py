@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import keyword
 
-from ingest.django_api import drop_undefined_django_names
+from ingest.django_api import drop_undefined_django_names, is_django_api_name
 
 SCHEMA_VERSION = 2
 # Clients upgrade on their own schedule, so every published shape stays acceptable.
@@ -22,6 +22,7 @@ SUPPORTED_SCHEMA_VERSIONS = frozenset({1, 2})
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_DEPENDENCIES = 2000
+MAX_MONKEYPATCHES = 1000
 MAX_DJANGO_SETTINGS = 300
 MAX_PATTERNS = 500
 MAX_PROBE_SOURCES = 100
@@ -125,6 +126,17 @@ def _usage(value: object, packages: list[str]) -> dict[str, int]:
     return drop_undefined_django_names(usage)
 
 
+def _monkeypatches(value: object) -> dict[str, int]:
+    """Keep patched members that a supported Django version defines."""
+    monkeypatches = _int_map(value, "monkeypatches", MAX_MONKEYPATCHES)
+    for name in monkeypatches:
+        if not name.startswith("django."):
+            raise ValidationError(f"monkeypatches key {name!r} must be a Django name")
+    return {
+        name: count for name, count in monkeypatches.items() if is_django_api_name(name)
+    }
+
+
 def validate_payload(payload: object) -> dict:
     if not isinstance(payload, dict):
         raise ValidationError("payload must be an object")
@@ -147,6 +159,10 @@ def validate_payload(payload: object) -> dict:
     django_settings_scanned = payload.get("django_settings_scanned", False)
     if not isinstance(django_settings_scanned, bool):
         raise ValidationError("django_settings_scanned must be a boolean")
+
+    monkeypatches_scanned = payload.get("monkeypatches_scanned", False)
+    if not isinstance(monkeypatches_scanned, bool):
+        raise ValidationError("monkeypatches_scanned must be a boolean")
 
     usage_packages = _usage_packages(payload.get("usage_packages", []))
     usage = _usage(payload.get("usage", {}), usage_packages)
@@ -175,4 +191,6 @@ def validate_payload(payload: object) -> dict:
             MAX_DJANGO_SETTINGS,
         ),
         "django_settings_scanned": django_settings_scanned,
+        "monkeypatches": _monkeypatches(payload.get("monkeypatches", {})),
+        "monkeypatches_scanned": monkeypatches_scanned,
     }

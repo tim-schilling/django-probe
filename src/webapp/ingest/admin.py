@@ -122,6 +122,10 @@ class SubmissionAdmin(admin.ModelAdmin):
     def django_settings_pretty(self, obj: Submission) -> str:
         return self._pretty_json(obj.django_settings)
 
+    @admin.display(description="django monkeypatches")
+    def monkeypatches_pretty(self, obj: Submission) -> str:
+        return self._pretty_json(obj.monkeypatches)
+
     def has_add_permission(self, request) -> bool:
         # Submissions arrive over the API; hand-authoring them would pollute the data.
         return False
