@@ -136,7 +136,12 @@ class OrganizationMembership(models.Model):
         on_delete=models.CASCADE,
         related_name="organization_memberships",
     )
-    role = models.CharField(max_length=10, choices=Role.choices, default=Role.MEMBER)
+    role = models.CharField(
+        max_length=10,
+        choices=Role.choices,
+        default=Role.MEMBER,
+        help_text="Owners can also change roles and remove people.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

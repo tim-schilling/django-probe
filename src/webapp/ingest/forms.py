@@ -104,7 +104,10 @@ class ProjectEditForm(forms.ModelForm):
 
 class MembershipAddForm(forms.Form):
     username = forms.CharField(max_length=150)
-    role = forms.ChoiceField(choices=OrganizationMembership.Role.choices)
+    role = forms.ChoiceField(
+        choices=OrganizationMembership.Role.choices,
+        help_text=OrganizationMembership._meta.get_field("role").help_text,
+    )
 
     def __init__(self, *args, membership: OrganizationMembership, **kwargs):
         super().__init__(*args, **kwargs)

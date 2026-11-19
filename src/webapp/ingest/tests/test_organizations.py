@@ -721,6 +721,11 @@ class OrganizationManagementViewTests(TestCase):
             "No user has that username",
             status_code=400,
         )
+        self.assertContains(
+            missing_response,
+            "Owners can also change roles and remove people.",
+            status_code=400,
+        )
         self.assertEqual(duplicate_response.status_code, 400)
         self.assertContains(
             duplicate_response,
